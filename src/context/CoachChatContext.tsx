@@ -19,7 +19,7 @@ interface CoachChatContextType {
 
 const CoachChatContext = createContext<CoachChatContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'profilelens_coach_messages_v1';
+const STORAGE_KEY = 'caliber_coach_messages_v1';
 
 export const CoachChatProvider: React.FC<{
   children: React.ReactNode;

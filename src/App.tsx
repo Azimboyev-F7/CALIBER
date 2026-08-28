@@ -21,11 +21,39 @@ import { getStoredAuthUser, signOutUser } from './lib/supabaseClient';
 
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('landing');
+  const [pendingScreen, setPendingScreen] = useState<ActiveScreen | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>(INITIAL_USER_PROFILE);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredAuthUser());
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(INITIAL_ANALYSIS_RESULT);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Central Navigation handler with auth enforcement
+  const handleNavigate = (targetScreen: ActiveScreen) => {
+    if (!currentUser && targetScreen !== 'landing' && targetScreen !== 'auth') {
+      setPendingScreen(targetScreen);
+      setActiveScreen('auth');
+    } else {
+      if (targetScreen === 'auth') {
+        if (!pendingScreen) {
+          setPendingScreen('dashboard');
+        }
+      } else {
+        setPendingScreen(null);
+      }
+      setActiveScreen(targetScreen);
+    }
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Guard protected screens if user becomes unauthenticated
+  useEffect(() => {
+    if (!currentUser && activeScreen !== 'landing' && activeScreen !== 'auth') {
+      setPendingScreen(activeScreen);
+      setActiveScreen('auth');
+    }
+  }, [currentUser, activeScreen]);
 
   // Sync stored user name if present
   useEffect(() => {
@@ -165,10 +193,7 @@ export default function App() {
         {/* If Landing view is selected, render full Landing page with top nav */}
         {activeScreen === 'landing' ? (
           <LandingView
-            onNavigate={(screen) => {
-              setActiveScreen(screen);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            onNavigate={handleNavigate}
             onOpenUpgrade={() => setIsUpgradeOpen(true)}
             currentUser={currentUser}
             onSignOut={handleSignOut}
@@ -176,22 +201,17 @@ export default function App() {
         ) : activeScreen === 'auth' ? (
           <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
             <LandingView
-              onNavigate={(screen) => {
-                setActiveScreen(screen);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onNavigate={handleNavigate}
               onOpenUpgrade={() => setIsUpgradeOpen(true)}
               currentUser={currentUser}
               onSignOut={handleSignOut}
             />
             <div className="fixed inset-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-2xl overflow-y-auto pt-10 pb-16">
               <AuthView
-                onNavigate={(screen) => {
-                  setActiveScreen(screen);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
+                onNavigate={handleNavigate}
                 currentUser={currentUser}
                 onUserChange={handleUserChange}
+                pendingScreen={pendingScreen}
               />
             </div>
           </div>
@@ -201,10 +221,7 @@ export default function App() {
             {/* Desktop Left Sidebar */}
             <Sidebar
               currentScreen={activeScreen}
-              onNavigate={(screen) => {
-                setActiveScreen(screen);
-                setMobileMenuOpen(false);
-              }}
+              onNavigate={handleNavigate}
               userProfile={userProfile}
               onOpenUpgrade={() => setIsUpgradeOpen(true)}
               currentUser={currentUser}
@@ -217,7 +234,7 @@ export default function App() {
                 className="flex items-center gap-2 cursor-pointer"
                 onClick={() => setActiveScreen('landing')}
               >
-                <span className="text-[20px] font-extrabold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">ProfileLens</span>
+                <span className="text-[20px] font-extrabold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Caliber</span>
               </div>
 
               <button

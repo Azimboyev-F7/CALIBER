@@ -177,3 +177,21 @@
   background: rgba(255, 255, 255, 0.28);
 }
 
+/* Ensure native select dropdown menus render dark with crisp high-contrast text */
+select {
+  color-scheme: dark;
+  background-color: #0f101c !important;
+  color: #f1f5f9 !important;
+}
+
+select option {
+  background-color: #0f101c !important;
+  color: #f1f5f9 !important;
+}
+
+select option:checked,
+select option:hover {
+  background-color: #312e81 !important;
+  color: #ffffff !important;
+}
+

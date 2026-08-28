@@ -14,7 +14,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-indigo-400 text-[22px]">workspace_premium</span>
-            <h3 className="text-[18px] font-bold text-white">ProfileLens Premium</h3>
+            <h3 className="text-[18px] font-bold text-white">Caliber Premium</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1 cursor-pointer">
             <span className="material-symbols-outlined text-[18px]">close</span>
@@ -58,7 +58,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
             </ul>
             <button
               onClick={() => {
-                alert('Thank you for choosing ProfileLens Pro! Premium unlocked.');
+                alert('Thank you for choosing Caliber Pro! Premium unlocked.');
                 onClose();
               }}
               className="w-full py-2.5 glass-btn-primary font-bold rounded-xl text-[12px] cursor-pointer"

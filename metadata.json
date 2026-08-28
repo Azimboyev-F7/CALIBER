@@ -1,6 +1,6 @@
 {
-  "name": "ProfileLens",
-  "description": "AI-powered college admissions profile evaluator, providing structured analysis of academic and extracurricular profiles for high school students.",
+  "name": "Caliber",
+  "description": "AI-powered college admissions profile evaluator and strategy engine.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

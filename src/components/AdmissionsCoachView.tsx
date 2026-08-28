@@ -23,7 +23,7 @@ export const AdmissionsCoachView: React.FC<AdmissionsCoachViewProps> = ({
   const strategyTools = [
     {
       id: 'chat' as CoachMode,
-      title: 'Admissions Coach Chat',
+      title: 'Admission coach',
       desc: 'Ask custom questions to an AI model trained on top-tier admissions rubric',
       icon: 'psychology',
       badge: 'Live Gemini'

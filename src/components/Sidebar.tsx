@@ -20,7 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navItems: Array<{ id: ActiveScreen; label: string; icon: string; badge?: string; isAi?: boolean }> = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { id: 'coach', label: 'AI Admissions Coach', icon: 'psychology', badge: 'AI Live', isAi: true },
+    { id: 'coach', label: 'Admission coach', icon: 'psychology', badge: 'AI Live', isAi: true },
     { id: 'builder', label: 'Profile Builder', icon: 'edit_note' },
     { id: 'activities', label: 'My Activities', icon: 'history_edu' },
     { id: 'results', label: 'Results & Spike', icon: 'insights' },
@@ -36,14 +36,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       >
         <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-white/20 bg-white/10 group-hover:border-indigo-400/80 transition-all shadow-inner">
           <img 
-            alt="ProfileLens Icon" 
+            alt="Caliber Icon" 
             className="w-full h-full object-cover" 
             src={currentUser?.avatarUrl || userProfile.avatarUrl}
           />
         </div>
         <div>
           <h1 className="text-[17px] font-bold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-300 bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">
-            ProfileLens
+            Caliber
           </h1>
           <p className="text-[11px] font-medium text-slate-400">Admissions Pro</p>
         </div>

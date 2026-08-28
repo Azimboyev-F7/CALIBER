@@ -17,12 +17,12 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
   onUpdateProfile,
   onShowToast
 }) => {
-  // Generate unique profile fingerprint to detect meaningful changes in stats/major
-  const profileKey = `${userProfile.unweightedGpa}-${userProfile.weightedGpa}-${userProfile.satScore}-${userProfile.actScore}-${userProfile.apIbHonorsCount}-${userProfile.intendedMajor}-${userProfile.activities.length}`;
+  // Generate unique profile fingerprint to detect meaningful changes in stats/major/preferences
+  const profileKey = `${userProfile.unweightedGpa}-${userProfile.ieltsScore || ''}-${userProfile.preferredCountry || ''}-${userProfile.budgetPerYear || ''}-${userProfile.satScore}-${userProfile.apIbHonorsCount}-${userProfile.intendedMajor}-${userProfile.activities.length}`;
 
   const [recommendations, setRecommendations] = useState<CollegeRecommendationsResult | null>(() => {
     try {
-      const cached = sessionStorage.getItem(`profilelens_rec_${profileKey}`);
+      const cached = sessionStorage.getItem(`caliber_rec_${profileKey}`);
       if (cached) {
         return JSON.parse(cached);
       }
@@ -55,7 +55,7 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
         setRecommendations(data.data);
         setLastFetchedKey(profileKey);
         try {
-          sessionStorage.setItem(`profilelens_rec_${profileKey}`, JSON.stringify(data.data));
+          sessionStorage.setItem(`caliber_rec_${profileKey}`, JSON.stringify(data.data));
         } catch (e) {
           // ignore
         }
@@ -159,7 +159,7 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
       setRecommendations(fallbackData);
       setLastFetchedKey(profileKey);
       try {
-        sessionStorage.setItem(`profilelens_rec_${profileKey}`, JSON.stringify(fallbackData));
+        sessionStorage.setItem(`caliber_rec_${profileKey}`, JSON.stringify(fallbackData));
       } catch (e) {
         // ignore
       }
@@ -249,9 +249,25 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
             </span>
             AI University Recommendations &amp; Estimated Admission Rates
           </h3>
-          <p className="text-[12.5px] md:text-[13px] text-slate-300">
-            Real-time admissions likelihood calculated from your GPA, test scores, course rigor, and intended major.
+          <p className="text-[12.5px] md:text-[13px] text-slate-300 mb-2">
+            Real-time university matches calculated based on your GPA, IELTS, Preferred Country, Budget, and Major.
           </p>
+
+          {/* Active Criteria Badges */}
+          <div className="flex flex-wrap items-center gap-2 text-[11.5px]">
+            <span className="bg-indigo-500/15 text-indigo-200 px-2.5 py-1 rounded-lg border border-indigo-500/30 flex items-center gap-1 font-medium">
+              <span className="material-symbols-outlined text-[14px] text-indigo-400">public</span>
+              Country: <strong className="text-white">{userProfile.preferredCountry || 'United States'}</strong>
+            </span>
+            <span className="bg-purple-500/15 text-purple-200 px-2.5 py-1 rounded-lg border border-purple-500/30 flex items-center gap-1 font-medium">
+              <span className="material-symbols-outlined text-[14px] text-purple-400">translate</span>
+              IELTS: <strong className="text-white">{userProfile.ieltsScore || '7.5'}</strong>
+            </span>
+            <span className="bg-emerald-500/15 text-emerald-200 px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1 font-medium">
+              <span className="material-symbols-outlined text-[14px] text-emerald-400">payments</span>
+              Budget: <strong className="text-white">{userProfile.budgetPerYear || '$25,000 - $45,000 / yr'}</strong>
+            </span>
+          </div>
         </div>
 
         {/* Refresh / Re-evaluate Button */}

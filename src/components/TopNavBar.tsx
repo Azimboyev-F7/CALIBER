@@ -19,7 +19,7 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       <div className="flex justify-between items-center w-full px-5 md:px-7 max-w-[1140px] mx-auto h-14">
         <div className="flex items-center gap-2 cursor-pointer group" onClick={() => onNavigate('landing')}>
           <span className="text-[20px] font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-300 bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">
-            ProfileLens
+            Caliber
           </span>
         </div>
 

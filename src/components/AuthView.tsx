@@ -11,15 +11,28 @@ interface AuthViewProps {
   onNavigate: (screen: ActiveScreen) => void;
   currentUser: AuthUser | null;
   onUserChange: (user: AuthUser | null) => void;
+  pendingScreen?: ActiveScreen | null;
 }
+
+const SCREEN_TITLES: Record<string, string> = {
+  dashboard: 'Dashboard',
+  builder: 'Profile Assessment',
+  activities: 'Activities & Honors Evaluator',
+  results: 'Spike Diagnostic Report',
+  coach: 'Admission Coach',
+  settings: 'Settings'
+};
 
 export const AuthView: React.FC<AuthViewProps> = ({
   onNavigate,
   currentUser,
-  onUserChange
+  onUserChange,
+  pendingScreen
 }) => {
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [identifier, setIdentifier] = useState('');
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -35,21 +48,25 @@ export const AuthView: React.FC<AuthViewProps> = ({
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    if (!email || !password) {
-      setErrorMsg('Please enter your email and password.');
+    const loginInput = identifier.trim() || email.trim();
+
+    if (!loginInput || !password) {
+      setErrorMsg('Please enter your username or email and password.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const { user, error } = await signInWithEmail(email, password);
+      const { user, error } = await signInWithEmail(loginInput, password);
       if (error) {
         setErrorMsg(error);
       } else if (user) {
+        const targetScreen = (pendingScreen && pendingScreen !== 'landing' && pendingScreen !== 'auth') ? pendingScreen : 'dashboard';
+        const screenTitle = SCREEN_TITLES[targetScreen] || 'Dashboard';
         onUserChange(user);
-        setSuccessMsg('Successfully signed in! Opening dashboard...');
+        setSuccessMsg(`Successfully signed in! Opening ${screenTitle}...`);
         setTimeout(() => {
-          onNavigate('dashboard');
+          onNavigate(targetScreen);
         }, 500);
       }
     } catch (err: any) {
@@ -88,6 +105,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
     try {
       const { user, error } = await signUpWithEmail(email, password, {
         name: fullName,
+        username,
         intendedMajor,
         highSchool
       });
@@ -95,10 +113,12 @@ export const AuthView: React.FC<AuthViewProps> = ({
       if (error) {
         setErrorMsg(error);
       } else if (user) {
+        const targetScreen = (pendingScreen && pendingScreen !== 'landing' && pendingScreen !== 'auth') ? pendingScreen : 'dashboard';
+        const screenTitle = SCREEN_TITLES[targetScreen] || 'Dashboard';
         onUserChange(user);
-        setSuccessMsg('Account created successfully! Directing to your workspace...');
+        setSuccessMsg(`Account created successfully! Opening ${screenTitle}...`);
         setTimeout(() => {
-          onNavigate('dashboard');
+          onNavigate(targetScreen);
         }, 500);
       }
     } catch (err: any) {
@@ -134,8 +154,9 @@ export const AuthView: React.FC<AuthViewProps> = ({
   };
 
   const handleQuickDemoLogin = () => {
+    const targetScreen = (pendingScreen && pendingScreen !== 'landing' && pendingScreen !== 'auth') ? pendingScreen : 'dashboard';
     onUserChange(DEMO_USER);
-    onNavigate('dashboard');
+    onNavigate(targetScreen);
   };
 
   return (
@@ -145,12 +166,20 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
       <div className="w-full max-w-md space-y-5 relative z-10">
         {/* Brand Header */}
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-2 relative">
+          <button
+            onClick={() => onNavigate('landing')}
+            className="absolute top-0 right-0 p-1.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-all cursor-pointer flex items-center gap-1 text-[12px]"
+            title="Return to Home"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 mb-1 shadow-lg shadow-indigo-500/10">
             <span className="material-symbols-outlined text-[24px]">school</span>
           </div>
           <h2 className="text-[24px] md:text-[28px] font-extrabold text-white tracking-tight">
-            {authMode === 'signin' && 'Welcome to ProfileLens'}
+            {authMode === 'signin' && 'Welcome to Caliber'}
             {authMode === 'signup' && 'Create Applicant Profile'}
             {authMode === 'forgot' && 'Reset Access Password'}
           </h2>
@@ -163,6 +192,16 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
         {/* Main Card */}
         <div className="glass-card rounded-2xl p-6 sm:p-8 space-y-5 shadow-[0_8px_32px_0_rgba(0,0,0,0.45)]">
+          {/* Pending Target Banner */}
+          {pendingScreen && pendingScreen !== 'landing' && pendingScreen !== 'auth' && (
+            <div className="p-3 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[12.5px] flex items-center gap-2 animate-fade-in shadow-sm">
+              <span className="material-symbols-outlined text-[18px] text-indigo-400 shrink-0">lock</span>
+              <span>
+                Please log in or create an account to access <strong>{SCREEN_TITLES[pendingScreen] || pendingScreen}</strong>.
+              </span>
+            </div>
+          )}
+
           {/* Mode Switcher Tabs */}
           {authMode !== 'forgot' && (
             <div className="flex p-1 rounded-xl bg-white/[0.04] border border-white/10">
@@ -219,19 +258,19 @@ export const AuthView: React.FC<AuthViewProps> = ({
             <form onSubmit={handleSignIn} className="space-y-4">
               <div>
                 <label className="block text-[12px] font-semibold text-slate-300 mb-1.5">
-                  Email Address
+                  Username or Email Address
                 </label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-                    mail
+                    account_circle
                   </span>
                   <input
-                    id="signin-email-input"
-                    type="email"
+                    id="signin-identifier-input"
+                    type="text"
                     required
-                    placeholder="student@example.edu"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="alexchen or student@example.edu"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
                     className="input-minimal w-full pl-9 pr-3 py-2.5 text-[13px] rounded-xl"
                   />
                 </div>
@@ -294,23 +333,44 @@ export const AuthView: React.FC<AuthViewProps> = ({
           {/* SIGN UP FORM */}
           {authMode === 'signup' && (
             <form onSubmit={handleSignUp} className="space-y-3.5">
-              <div>
-                <label className="block text-[12px] font-semibold text-slate-300 mb-1.5">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-                    person
-                  </span>
-                  <input
-                    id="signup-name-input"
-                    type="text"
-                    required
-                    placeholder="Alex Chen"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="input-minimal w-full pl-9 pr-3 py-2.5 text-[13px] rounded-xl"
-                  />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12px] font-semibold text-slate-300 mb-1.5">
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                      person
+                    </span>
+                    <input
+                      id="signup-name-input"
+                      type="text"
+                      required
+                      placeholder="Alex Chen"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="input-minimal w-full pl-9 pr-3 py-2.5 text-[13px] rounded-xl"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-semibold text-slate-300 mb-1.5">
+                    Username
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                      alternate_email
+                    </span>
+                    <input
+                      id="signup-username-input"
+                      type="text"
+                      placeholder="alexchen"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="input-minimal w-full pl-9 pr-3 py-2.5 text-[13px] rounded-xl"
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -76,7 +76,7 @@ export const CoachMessageRenderer: React.FC<CoachMessageRendererProps> = ({
   }
 
   return (
-    <div className="space-y-3 text-[13px] text-slate-200">
+    <div className="space-y-3 text-[14px] text-slate-200">
       {parts.map((part, index) => {
         if (part.type === 'chart') {
           try {
@@ -196,20 +196,20 @@ export const CoachMessageRenderer: React.FC<CoachMessageRendererProps> = ({
         return (
           <div
             key={`md-${index}`}
-            className="prose prose-invert prose-sm max-w-none text-slate-200 space-y-2
-              [&_h3]:text-[14px] [&_h3]:font-bold [&_h3]:text-indigo-300 [&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-1.5
-              [&_h4]:text-[13px] [&_h4]:font-semibold [&_h4]:text-purple-300 [&_h4]:mt-2 [&_h4]:mb-1
-              [&_p]:my-1.5 [&_p]:leading-relaxed
-              [&_ul]:my-2 [&_ul]:pl-4 [&_ul]:space-y-1
-              [&_ol]:my-2 [&_ol]:pl-4 [&_ol]:space-y-1
+            className="prose prose-invert prose-sm max-w-none text-slate-200 text-[14px] leading-relaxed space-y-2
+              [&_h3]:text-[15.5px] [&_h3]:font-bold [&_h3]:text-indigo-300 [&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:flex [&_h3]:items-center [&_h3]:gap-1.5
+              [&_h4]:text-[14.5px] [&_h4]:font-semibold [&_h4]:text-purple-300 [&_h4]:mt-2 [&_h4]:mb-1
+              [&_p]:my-1.5 [&_p]:leading-relaxed [&_p]:text-[14px]
+              [&_ul]:my-2 [&_ul]:pl-4 [&_ul]:space-y-1 [&_ul]:text-[14px]
+              [&_ol]:my-2 [&_ol]:pl-4 [&_ol]:space-y-1 [&_ol]:text-[14px]
               [&_li]:my-0.5
               [&_strong]:text-white [&_strong]:font-semibold
               [&_em]:text-slate-300 [&_em]:italic
-              [&_blockquote]:border-l-2 [&_blockquote]:border-indigo-400 [&_blockquote]:bg-indigo-950/20 [&_blockquote]:p-2.5 [&_blockquote]:rounded-r-lg [&_blockquote]:my-2 [&_blockquote]:text-[12.5px] [&_blockquote]:text-indigo-200
-              [&_table]:w-full [&_table]:my-2 [&_table]:text-[12px] [&_table]:border-collapse
+              [&_blockquote]:border-l-2 [&_blockquote]:border-indigo-400 [&_blockquote]:bg-indigo-950/20 [&_blockquote]:p-2.5 [&_blockquote]:rounded-r-lg [&_blockquote]:my-2 [&_blockquote]:text-[13.5px] [&_blockquote]:text-indigo-200
+              [&_table]:w-full [&_table]:my-2 [&_table]:text-[13px] [&_table]:border-collapse
               [&_th]:bg-white/10 [&_th]:p-2 [&_th]:text-left [&_th]:font-bold [&_th]:text-white [&_th]:border [&_th]:border-white/15
               [&_td]:p-2 [&_td]:border [&_td]:border-white/10 [&_td]:bg-white/[0.02]
-              [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-indigo-300 [&_code]:text-[11.5px]"
+              [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-indigo-300 [&_code]:text-[12.5px]"
           >
             <Markdown>{cleanMarkdown}</Markdown>
           </div>

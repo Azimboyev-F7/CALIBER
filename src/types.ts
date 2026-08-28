@@ -3,6 +3,7 @@ export type ActiveScreen = 'landing' | 'dashboard' | 'builder' | 'activities' | 
 export interface AuthUser {
   id: string;
   email: string;
+  username?: string;
   name?: string;
   avatarUrl?: string;
   created_at?: string;
@@ -74,10 +75,13 @@ export interface UserProfile {
   name: string;
   avatarUrl: string;
   unweightedGpa: string;
-  weightedGpa: string;
+  weightedGpa?: string;
   apIbHonorsCount: string;
   satScore: string;
-  actScore: string;
+  actScore?: string;
+  ieltsScore: string;
+  preferredCountry: string;
+  budgetPerYear: string;
   intendedMajor: string;
   graduationYear: string;
   lastAnalyzedDate: string;

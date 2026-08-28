@@ -49,7 +49,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
               <button
-                onClick={() => onNavigate('auth')}
+                onClick={() => onNavigate('builder')}
                 className="w-full sm:w-auto glass-btn-primary font-bold text-[14px] px-6 py-2.5 rounded-xl cursor-pointer"
               >
                 Get Started
@@ -64,36 +64,175 @@ export const LandingView: React.FC<LandingViewProps> = ({
               </a>
             </div>
 
-            {/* Immersive Dashboard Showcase */}
+            {/* Interactive Live Dashboard Showcase */}
             <div className="relative max-w-4xl mx-auto">
-              <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/20 to-purple-500/10 rounded-2xl blur-2xl -z-10 transform scale-105"></div>
-              <div className="glass-panel rounded-2xl p-2.5 md:p-4 w-full relative shadow-[0_12px_36px_rgba(0,0,0,0.45)] border border-white/15">
-                {/* Browser-like header */}
-                <div className="flex items-center justify-between mb-2.5 px-2">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56]/80"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]/80"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]/80"></div>
+              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 rounded-3xl blur-2xl opacity-70"></div>
+              
+              <div className="relative bg-[#0d0e1b] rounded-2xl border border-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.85)] overflow-hidden">
+                {/* Browser Bar */}
+                <div className="bg-[#131424] px-4 py-2.5 border-b border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#FF5F56]/90 shadow-sm shadow-red-500/40"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#FFBD2E]/90 shadow-sm shadow-amber-500/40"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#27C93F]/90 shadow-sm shadow-emerald-500/40"></div>
                   </div>
-                  <div className="text-[11px] font-mono text-slate-400 bg-white/5 px-3 py-0.5 rounded-full border border-white/10 hidden sm:block">
-                    profilelens.ai/app/dashboard
+                  <div className="flex items-center gap-2 text-[11px] font-mono text-slate-300 bg-black/40 px-3.5 py-1 rounded-full border border-white/10 shadow-inner">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    caliber.ai/app/dashboard
                   </div>
-                  <div className="w-10"></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-indigo-300 bg-indigo-500/20 px-2.5 py-0.5 rounded-full border border-indigo-500/30">
+                      LIVE PLATFORM PREVIEW
+                    </span>
+                  </div>
                 </div>
 
-                <div 
-                  onClick={() => onNavigate('dashboard')} 
-                  className="overflow-hidden rounded-xl shadow-xl border border-white/10 cursor-pointer relative group"
-                >
-                  <img
-                    alt="College admissions dashboard mockup showing standout profile strength and university matches"
-                    className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.01]"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCw6B4gJHOlbYDfR2YiJNAPGXJ3nP48Dou9cl4y41XXG6dbdVdbYv0RAStM8s3t1NNSZeaQFE4xYIo9uOwMA7c0DGqtD0iKYaCgk4XXPrnfPPpsFXaplQgnum2aqWMxXTqSoie1iFWZcPk0qVBVmxfE8d-jA3zmdsWBeFnRN9f-Q8CJM3cL_8TCqxiIJRaAuMqCvRPSPL7gHINhJp7CVCYlQ7ruC4lUNI0kkvcbVTw6voyCMzorJjwC"
-                  />
-                  <div className="absolute inset-0 bg-[#0a0a0f]/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                    <span className="glass-btn-primary font-bold px-5 py-2.5 rounded-xl text-[13px] shadow-xl">
-                      Open Live Dashboard →
-                    </span>
+                {/* Dashboard UI Frame */}
+                <div className="p-4 md:p-6 bg-gradient-to-b from-[#0f1020] to-[#080913] text-left">
+                  {/* Top Bar inside mockup */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 p-0.5 shadow-md">
+                        <div className="w-full h-full bg-[#0a0a14] rounded-[10px] flex items-center justify-center font-bold text-indigo-300 text-[14px]">
+                          AC
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-bold text-[15.5px]">Alex Chen</span>
+                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
+                            Ivy Tier Ready
+                          </span>
+                        </div>
+                        <p className="text-[11.5px] text-slate-400">Target Major: Computer Science &amp; AI · Class of 2026</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11.5px] text-slate-300 bg-white/5 border border-white/10 px-3 py-1 rounded-lg">
+                        GPA: <strong className="text-white font-bold">3.96</strong>
+                      </span>
+                      <span className="text-[11.5px] text-slate-300 bg-white/5 border border-white/10 px-3 py-1 rounded-lg">
+                        SAT: <strong className="text-white font-bold">1540</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 3 Interactive Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-4">
+                    {/* Card 1 */}
+                    <div className="bg-[#14162a]/90 border border-indigo-500/30 p-4 rounded-xl shadow-sm relative overflow-hidden group hover:border-indigo-400 transition-all">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[12px] font-medium text-slate-300">Readiness Score</span>
+                        <span className="material-symbols-outlined text-indigo-400 text-[18px]">verified</span>
+                      </div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[28px] font-black text-white">88%</span>
+                        <span className="text-[11px] font-bold text-emerald-400">+12% vs Median</span>
+                      </div>
+                      <div className="w-full bg-slate-800/80 h-2 rounded-full mt-2.5 overflow-hidden border border-white/5">
+                        <div className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full w-[88%] rounded-full"></div>
+                      </div>
+                    </div>
+
+                    {/* Card 2 */}
+                    <div className="bg-[#14162a]/90 border border-purple-500/30 p-4 rounded-xl shadow-sm relative overflow-hidden group hover:border-purple-400 transition-all">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[12px] font-medium text-slate-300">Spike Archetype</span>
+                        <span className="material-symbols-outlined text-purple-400 text-[18px]">bolt</span>
+                      </div>
+                      <div className="text-[16px] font-bold text-purple-300 truncate">
+                        Algorithmic Innovator
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-1">
+                        Tier 1 National Olympiad Finalist
+                      </div>
+                    </div>
+
+                    {/* Card 3 */}
+                    <div className="bg-[#14162a]/90 border border-pink-500/30 p-4 rounded-xl shadow-sm relative overflow-hidden group hover:border-pink-400 transition-all">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[12px] font-medium text-slate-300">Top Matches</span>
+                        <span className="material-symbols-outlined text-pink-400 text-[18px]">school</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[15px] font-bold text-white">MIT &amp; Stanford</span>
+                        <span className="text-[10px] text-amber-300 bg-amber-500/20 px-1.5 py-0.2 rounded font-bold">Reach</span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-1">
+                        CMU &amp; Georgia Tech (Target)
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2 Lower Columns */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-4">
+                    {/* Extracurriculars */}
+                    <div className="bg-[#111324]/80 border border-white/10 p-3.5 rounded-xl">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <span className="text-[12.5px] font-bold text-white flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px] text-amber-400">trophy</span>
+                          Evaluated Extracurriculars
+                        </span>
+                        <span className="text-[10px] text-indigo-300 font-semibold bg-indigo-500/15 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+                          4 Rated
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-[11.5px] p-2 bg-white/5 rounded-lg border border-white/5">
+                          <span className="text-slate-200 truncate pr-2 font-medium">USACO Platinum Competitor</span>
+                          <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded shrink-0 border border-amber-500/30">Tier 1</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11.5px] p-2 bg-white/5 rounded-lg border border-white/5">
+                          <span className="text-slate-200 truncate pr-2 font-medium">Founder, Open-Source Accessibility AI</span>
+                          <span className="text-[10px] font-bold text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded shrink-0 border border-purple-500/30">Tier 2</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* AI Coach Card */}
+                    <div className="bg-[#111324]/80 border border-indigo-500/30 p-3.5 rounded-xl flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[12.5px] font-bold text-white flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[16px] text-indigo-400">psychology</span>
+                            Admission coach Insights
+                          </span>
+                          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="w-1 h-1 rounded-full bg-emerald-400 animate-ping"></span>
+                            LIVE REC
+                          </span>
+                        </div>
+                        <p className="text-[11.5px] text-slate-300 leading-relaxed italic bg-indigo-950/40 p-2.5 rounded-lg border border-indigo-500/25">
+                          &quot;Quantify user adoption metrics in Activity #2 to turn your Tier 2 coding club into a Tier 1 national impact story.&quot;
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interactive Action Bar */}
+                  <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-[12px] text-slate-300">
+                      <span className="material-symbols-outlined text-[17px] text-emerald-400">check_circle</span>
+                      Personalized admissions strategy calibrated to top universities
+                    </div>
+
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                      <button
+                        onClick={() => onNavigate('builder')}
+                        className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-semibold text-[12.5px] transition-all cursor-pointer"
+                      >
+                        Build Your Profile
+                      </button>
+                      <button
+                        onClick={() => onNavigate('dashboard')}
+                        className="flex-1 sm:flex-initial px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-bold text-[12.5px] shadow-[0_4px_20px_rgba(99,102,241,0.4)] hover:shadow-[0_6px_25px_rgba(99,102,241,0.6)] hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <span>Open Live Dashboard</span>
+                        <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -127,127 +266,141 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </div>
         </section>
 
-        {/* Features Section (Bento Grid Style) */}
-        <section id="how-it-works" className="py-16 relative overflow-hidden">
-          <div className="max-w-[1050px] mx-auto px-5">
-            <div className="text-center mb-12">
-              <h2 className="text-[26px] md:text-[36px] font-extrabold text-white mb-2.5 tracking-tight">
-                The Journey to Your <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Dream</span>
+        {/* Features Section (Interactive Journey Roadmap) */}
+        <section id="how-it-works" className="py-20 relative overflow-hidden">
+          {/* Ambient Glows */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-indigo-500/10 blur-[130px] pointer-events-none rounded-full"></div>
+
+          <div className="max-w-[1100px] mx-auto px-5 relative z-10">
+            <div className="text-center mb-14">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 text-[11px] font-semibold tracking-wider uppercase mb-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+                End-to-End Admissions Architecture
+              </div>
+              <h2 className="text-[28px] md:text-[40px] font-extrabold text-white mb-3 tracking-tight">
+                The Journey to Your <span className="bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-300 bg-clip-text text-transparent">Dream College</span>
               </h2>
-              <p className="text-[14.5px] text-slate-400 max-w-xl mx-auto">
-                A clear, data-driven path from where you are to where you belong.
+              <p className="text-[14.5px] md:text-[15.5px] text-slate-400 max-w-xl mx-auto leading-relaxed">
+                A calibrated, four-phase path designed to highlight your spike and optimize admissions odds at top-tier universities.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Grid with interconnected stage cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               {/* Step 1 */}
               <div 
                 onClick={() => onNavigate('builder')}
-                className="glass-card glass-card-hover rounded-2xl overflow-hidden cursor-pointer"
+                className="group relative bg-[#0f101c]/80 hover:bg-[#141628] border border-white/10 hover:border-indigo-500/50 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_30px_rgba(99,102,241,0.2)] flex flex-col justify-between cursor-pointer"
               >
-                <div className="h-36 overflow-hidden relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=800"
-                    alt="University campus vision"
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent"></div>
-                  <div className="absolute bottom-2.5 left-3.5">
-                    <span className="glass-pill text-[10px] font-bold text-indigo-300 tracking-widest uppercase px-2 py-0.5 rounded-md">
-                      Step 01
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
+                      <span className="material-symbols-outlined text-[20px]">badge</span>
+                    </div>
+                    <span className="text-[11px] font-mono font-bold tracking-widest text-slate-500 group-hover:text-indigo-300 transition-colors">
+                      PHASE 01
                     </span>
                   </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-[16px] text-white mb-1.5 hover:text-indigo-400 transition-colors">
+
+                  <h3 className="font-bold text-[17px] text-white mb-2 group-hover:text-indigo-300 transition-colors">
                     Define Profile
                   </h3>
-                  <p className="text-[12.5px] text-slate-400 leading-relaxed">
-                    Input your GPA, standardized test scores, AP counts, and intended major target.
+                  <p className="text-[12.5px] text-slate-400 leading-relaxed mb-4">
+                    Input your GPA, standardized test scores (SAT/ACT/IELTS), target budget, and intended major.
                   </p>
+                </div>
+
+                <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[11.5px] font-medium text-indigo-400 group-hover:text-indigo-300">
+                  <span>Build Baseline</span>
+                  <span className="material-symbols-outlined text-[15px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </div>
               </div>
 
               {/* Step 2 */}
               <div 
                 onClick={() => onNavigate('activities')}
-                className="glass-card glass-card-hover rounded-2xl overflow-hidden cursor-pointer"
+                className="group relative bg-[#0f101c]/80 hover:bg-[#141628] border border-white/10 hover:border-purple-500/50 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_30px_rgba(168,85,247,0.2)] flex flex-col justify-between cursor-pointer"
               >
-                <div className="h-36 overflow-hidden relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1541339907198-e08756eaa589?auto=format&fit=crop&q=80&w=800"
-                    alt="Strategic planning"
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent"></div>
-                  <div className="absolute bottom-2.5 left-3.5">
-                    <span className="glass-pill text-[10px] font-bold text-indigo-300 tracking-widest uppercase px-2 py-0.5 rounded-md">
-                      Step 02
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-110 group-hover:bg-purple-500 group-hover:text-white transition-all duration-300">
+                      <span className="material-symbols-outlined text-[20px]">workspace_premium</span>
+                    </div>
+                    <span className="text-[11px] font-mono font-bold tracking-widest text-slate-500 group-hover:text-purple-300 transition-colors">
+                      PHASE 02
                     </span>
                   </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-[16px] text-white mb-1.5 hover:text-indigo-400 transition-colors">
+
+                  <h3 className="font-bold text-[17px] text-white mb-2 group-hover:text-purple-300 transition-colors">
                     Activities &amp; Honors
                   </h3>
-                  <p className="text-[12.5px] text-slate-400 leading-relaxed">
-                    Categorize and tier your extracurricular commitments and leadership roles.
+                  <p className="text-[12.5px] text-slate-400 leading-relaxed mb-4">
+                    Structure and tier extracurriculars, leadership initiatives, competitions, and research projects.
                   </p>
+                </div>
+
+                <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[11.5px] font-medium text-purple-400 group-hover:text-purple-300">
+                  <span>Score Activities</span>
+                  <span className="material-symbols-outlined text-[15px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </div>
               </div>
 
               {/* Step 3 */}
               <div 
                 onClick={() => onNavigate('results')}
-                className="glass-card glass-card-hover rounded-2xl overflow-hidden cursor-pointer"
+                className="group relative bg-[#0f101c]/80 hover:bg-[#141628] border border-white/10 hover:border-pink-500/50 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:shadow-[0_12px_30px_rgba(244,114,182,0.2)] flex flex-col justify-between cursor-pointer"
               >
-                <div className="h-36 overflow-hidden relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800"
-                    alt="Student success"
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent"></div>
-                  <div className="absolute bottom-2.5 left-3.5">
-                    <span className="glass-pill text-[10px] font-bold text-indigo-300 tracking-widest uppercase px-2 py-0.5 rounded-md">
-                      Step 03
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400 group-hover:scale-110 group-hover:bg-pink-500 group-hover:text-white transition-all duration-300">
+                      <span className="material-symbols-outlined text-[20px]">insights</span>
+                    </div>
+                    <span className="text-[11px] font-mono font-bold tracking-widest text-slate-500 group-hover:text-pink-300 transition-colors">
+                      PHASE 03
                     </span>
                   </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-[16px] text-white mb-1.5 hover:text-indigo-400 transition-colors">
+
+                  <h3 className="font-bold text-[17px] text-white mb-2 group-hover:text-pink-300 transition-colors">
                     Spike Diagnostic
                   </h3>
-                  <p className="text-[12.5px] text-slate-400 leading-relaxed">
-                    Uncover your narrative archetype, academic rigor percentile, and profile gaps.
+                  <p className="text-[12.5px] text-slate-400 leading-relaxed mb-4">
+                    Uncover your narrative archetype, Ivy rigor score, vulnerability gaps, and college tier matches.
                   </p>
+                </div>
+
+                <div className="pt-3 border-t border-white/5 flex items-center justify-between text-[11.5px] font-medium text-pink-400 group-hover:text-pink-300">
+                  <span>View Diagnostic</span>
+                  <span className="material-symbols-outlined text-[15px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </div>
               </div>
 
-              {/* Step 4 - Essential AI Admissions Coach */}
+              {/* Step 4 - Admission Coach */}
               <div 
                 onClick={() => onNavigate('coach')}
-                className="glass-card glass-card-hover rounded-2xl overflow-hidden cursor-pointer border-2 border-indigo-500/50 bg-gradient-to-b from-indigo-950/40 to-transparent"
+                className="group relative bg-gradient-to-b from-indigo-950/50 via-[#0f101c] to-[#0f101c] border-2 border-indigo-500/40 hover:border-indigo-400 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1.5 shadow-[0_4px_25px_rgba(99,102,241,0.25)] hover:shadow-[0_12px_35px_rgba(99,102,241,0.35)] flex flex-col justify-between cursor-pointer"
               >
-                <div className="h-36 overflow-hidden relative bg-indigo-900/30 flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-indigo-300 shadow-lg shadow-indigo-500/30">
-                    <span className="material-symbols-outlined text-[32px] animate-pulse">psychology</span>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] to-transparent"></div>
-                  <div className="absolute bottom-2.5 left-3.5 flex items-center gap-1.5">
-                    <span className="bg-indigo-500 text-white text-[9.5px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded-md shadow-sm">
-                      Essential
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/30 group-hover:scale-110 transition-transform duration-300">
+                      <span className="material-symbols-outlined text-[20px]">psychology</span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                      <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
+                      24/7 AI COACH
                     </span>
-                    <span className="text-[10px] text-emerald-300 font-bold">24/7 AI Coach</span>
                   </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-[16px] text-white mb-1.5 hover:text-indigo-400 transition-colors flex items-center gap-1">
-                    Admissions Coach
+
+                  <h3 className="font-bold text-[17px] text-white mb-2 group-hover:text-indigo-200 transition-colors flex items-center gap-1.5">
+                    Admission coach
                   </h3>
-                  <p className="text-[12.5px] text-slate-300 leading-relaxed">
-                    Ask questions, refine Common App essay hooks, and upgrade activity descriptions live with Gemini.
+                  <p className="text-[12.5px] text-slate-300 leading-relaxed mb-4">
+                    Get instant essay feedback, brainstorm spike initiatives, and refine Common App descriptions.
                   </p>
+                </div>
+
+                <div className="pt-3 border-t border-indigo-500/20 flex items-center justify-between text-[11.5px] font-bold text-indigo-300 group-hover:text-white">
+                  <span>Chat With Coach</span>
+                  <span className="material-symbols-outlined text-[15px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </div>
               </div>
             </div>
@@ -306,7 +459,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               </div>
 
               <button
-                onClick={() => onNavigate(currentUser ? 'builder' : 'auth')}
+                onClick={() => onNavigate('builder')}
                 className="glass-btn-primary font-bold text-[13px] px-6 py-2.5 rounded-xl cursor-pointer"
               >
                 Launch Profile Assessment →
@@ -320,30 +473,30 @@ export const LandingView: React.FC<LandingViewProps> = ({
       <footer className="bg-white/[0.02] backdrop-blur-xl border-t border-white/10 py-8 mt-auto">
         <div className="max-w-[1200px] mx-auto px-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-[16px] font-bold bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-300 bg-clip-text text-transparent">
-            ProfileLens
+            Caliber
           </div>
           <div className="flex gap-6">
             <button 
-              onClick={() => alert('ProfileLens respects student privacy. All inputs are stored locally in session or encrypted.')}
+              onClick={() => alert('Caliber respects student privacy. All inputs are stored locally in session or encrypted.')}
               className="text-[13px] text-slate-400 hover:text-white hover:underline transition-all"
             >
               Privacy Policy
             </button>
             <button 
-              onClick={() => alert('ProfileLens Terms of Service: Admissions evaluations are advisory models.')}
+              onClick={() => alert('Caliber Terms of Service: Admissions evaluations are advisory models.')}
               className="text-[13px] text-slate-400 hover:text-white hover:underline transition-all"
             >
               Terms of Service
             </button>
             <button 
-              onClick={() => alert('Contact our admissions advisory team: contact@profilelens.ai')}
+              onClick={() => alert('Contact our admissions advisory team: contact@caliber.ai')}
               className="text-[13px] text-slate-400 hover:text-white hover:underline transition-all"
             >
               Contact
             </button>
           </div>
           <div className="text-[13px] text-slate-500">
-            © 2026 ProfileLens. All rights reserved.
+            © 2026 Caliber. All rights reserved.
           </div>
         </div>
       </footer>

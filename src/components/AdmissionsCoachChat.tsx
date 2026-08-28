@@ -70,30 +70,30 @@ export const AdmissionsCoachChat: React.FC<AdmissionsCoachChatProps> = ({
   return (
     <div className="glass-panel rounded-2xl border border-white/15 overflow-hidden flex flex-col shadow-[0_10px_35px_rgba(0,0,0,0.4)]">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02] backdrop-blur-md">
-        <div className="flex items-center gap-3">
+      <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-white/[0.02] backdrop-blur-md">
+        <div className="flex items-center gap-2.5">
           <div className="relative">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-amber-500 p-0.5 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-              <div className="w-full h-full bg-[#0a0a0f] rounded-[10px] flex items-center justify-center">
-                <span className="material-symbols-outlined text-indigo-300 text-[18px]">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-indigo-600 via-purple-600 to-amber-500 p-0.5 flex items-center justify-center shadow-md">
+              <div className="w-full h-full bg-[#0a0a0f] rounded-[6px] flex items-center justify-center">
+                <span className="material-symbols-outlined text-indigo-300 text-[13px]">
                   psychology
                 </span>
               </div>
             </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border-2 border-[#0a0a0f] rounded-full animate-pulse"></span>
+            <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-400 border border-[#0a0a0f] rounded-full animate-pulse"></span>
           </div>
 
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-[14px] font-bold text-white tracking-tight">
-                Admissions Coach
+              <h3 className="text-[13px] font-bold text-white tracking-tight">
+                Admission coach
               </h3>
-              <span className="text-[10px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span className="text-[9.5px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.2 rounded-full flex items-center gap-1">
+                <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
                 Active Advisor
               </span>
             </div>
-            <p className="text-[11.5px] text-slate-400">
+            <p className="text-[11px] text-slate-400">
               Direct, expert admissions strategy grounded in your evaluated data
             </p>
           </div>
@@ -215,13 +215,13 @@ export const AdmissionsCoachChat: React.FC<AdmissionsCoachChatProps> = ({
               className={`flex gap-3 text-left ${isCoach ? 'items-start' : 'items-start justify-end'}`}
             >
               {isCoach && (
-                <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center shrink-0 mt-0.5 text-indigo-300 shadow-sm">
-                  <span className="material-symbols-outlined text-[15px]">school</span>
+                <div className="w-5 h-5 rounded-md bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center shrink-0 mt-0.5 text-indigo-300 shadow-sm">
+                  <span className="material-symbols-outlined text-[12px]">school</span>
                 </div>
               )}
 
               <div
-                className={`max-w-[88%] md:max-w-[80%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed relative group ${
+                className={`max-w-[88%] md:max-w-[80%] rounded-2xl px-4 py-3 text-[14px] leading-relaxed relative group ${
                   isCoach
                     ? 'bg-white/[0.05] border border-white/10 text-slate-200 backdrop-blur-md shadow-md'
                     : 'bg-gradient-to-r from-indigo-600/80 to-purple-600/80 border border-indigo-400/30 text-white font-medium shadow-[0_4px_15px_rgba(99,102,241,0.25)]'
@@ -233,7 +233,7 @@ export const AdmissionsCoachChat: React.FC<AdmissionsCoachChatProps> = ({
                     onFollowUpClick={(prompt) => sendMessage(prompt, userProfile, analysis)}
                   />
                 ) : (
-                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                  <p className="whitespace-pre-wrap text-[14px]">{msg.text}</p>
                 )}
 
                 <div className="flex items-center justify-between gap-3 mt-1 pt-1 border-t border-white/5 text-[10.5px] text-slate-400">
@@ -297,7 +297,7 @@ export const AdmissionsCoachChat: React.FC<AdmissionsCoachChatProps> = ({
               onKeyDown={handleKeyDown}
               placeholder="Ask anything about your spike, Common App personal statement, or college list..."
               disabled={isLoading}
-              className="input-minimal w-full px-3.5 py-2.5 text-[12.5px] resize-none max-h-24 leading-relaxed pr-10"
+              className="input-minimal w-full px-3.5 py-2.5 text-[14px] resize-none max-h-24 leading-relaxed pr-10"
             />
           </div>
 

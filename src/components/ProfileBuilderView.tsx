@@ -83,7 +83,7 @@ export const ProfileBuilderView: React.FC<ProfileBuilderViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                    Unweighted GPA
+                    GPA (Unweighted)
                   </label>
                   <input
                     type="text"
@@ -95,29 +95,16 @@ export const ProfileBuilderView: React.FC<ProfileBuilderViewProps> = ({
                 </div>
                 <div>
                   <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                    Weighted GPA
+                    IELTS Score
                   </label>
                   <input
                     type="text"
-                    value={userProfile.weightedGpa}
-                    onChange={(e) => onUpdateProfile({ weightedGpa: e.target.value })}
-                    placeholder="e.g. 4.2"
+                    value={userProfile.ieltsScore || ''}
+                    onChange={(e) => onUpdateProfile({ ieltsScore: e.target.value })}
+                    placeholder="e.g. 7.5"
                     className="input-minimal w-full px-3 py-1.5 text-[13.5px] font-medium"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                  AP/IB/Honors Classes Taken
-                </label>
-                <input
-                  type="number"
-                  value={userProfile.apIbHonorsCount}
-                  onChange={(e) => onUpdateProfile({ apIbHonorsCount: e.target.value })}
-                  placeholder="Count"
-                  className="input-minimal w-full px-3 py-1.5 text-[13.5px] font-medium"
-                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -135,13 +122,13 @@ export const ProfileBuilderView: React.FC<ProfileBuilderViewProps> = ({
                 </div>
                 <div>
                   <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                    ACT Score
+                    AP/IB/Honors Classes
                   </label>
                   <input
-                    type="text"
-                    value={userProfile.actScore}
-                    onChange={(e) => onUpdateProfile({ actScore: e.target.value })}
-                    placeholder="e.g. 34"
+                    type="number"
+                    value={userProfile.apIbHonorsCount}
+                    onChange={(e) => onUpdateProfile({ apIbHonorsCount: e.target.value })}
+                    placeholder="Count"
                     className="input-minimal w-full px-3 py-1.5 text-[13.5px] font-medium"
                   />
                 </div>
@@ -150,36 +137,75 @@ export const ProfileBuilderView: React.FC<ProfileBuilderViewProps> = ({
               <hr className="border-white/10 my-3" />
 
               <div>
-                <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                  Intended Major
+                <label className="block text-[12px] font-medium text-slate-300 mb-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[15px] text-indigo-400">public</span>
+                  Preferred Country
                 </label>
-                <div className="relative">
+                <select
+                  value={userProfile.preferredCountry || 'United States'}
+                  onChange={(e) => onUpdateProfile({ preferredCountry: e.target.value })}
+                  className="input-minimal w-full px-3 py-1.5 text-[13.5px] bg-[#0a0a0f] text-white cursor-pointer"
+                >
+                  <option className="bg-[#0f101c] text-slate-100" value="United States">United States (US)</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="United Kingdom">United Kingdom (UK)</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="Canada">Canada</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="Germany">Germany</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="Australia">Australia</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="Singapore">Singapore</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="Europe (General)">Europe (General)</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="Any / Global">Any / Global</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-medium text-slate-300 mb-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[15px] text-emerald-400">payments</span>
+                  Annual Budget for College
+                </label>
+                <select
+                  value={userProfile.budgetPerYear || '$25,000 - $45,000 / yr'}
+                  onChange={(e) => onUpdateProfile({ budgetPerYear: e.target.value })}
+                  className="input-minimal w-full px-3 py-1.5 text-[13.5px] bg-[#0a0a0f] text-white cursor-pointer"
+                >
+                  <option className="bg-[#0f101c] text-slate-100" value="Full Financial Aid Needed">Full Financial Aid / Scholarship Needed</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="Under $10,000 / yr">Under $10,000 / year</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="$10,000 - $25,000 / yr">$10,000 - $25,000 / year</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="$25,000 - $45,000 / yr">$25,000 - $45,000 / year</option>
+                  <option className="bg-[#0f101c] text-slate-100" value="$45,000+ / yr">$45,000+ / year (Flexible)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-[12px] font-medium text-slate-300 mb-1">
+                    Intended Major
+                  </label>
                   <select
                     value={userProfile.intendedMajor}
                     onChange={(e) => onUpdateProfile({ intendedMajor: e.target.value })}
                     className="input-minimal w-full px-3 py-1.5 text-[13.5px] bg-[#0a0a0f] text-white cursor-pointer"
                   >
-                    <option value="cs">Computer Science</option>
-                    <option value="engineering">Engineering</option>
-                    <option value="business">Business / Finance</option>
-                    <option value="biology">Biology / Pre-Med</option>
-                    <option value="humanities">Humanities</option>
-                    <option value="undecided">Undecided</option>
+                    <option className="bg-[#0f101c] text-slate-100" value="cs">Computer Science</option>
+                    <option className="bg-[#0f101c] text-slate-100" value="engineering">Engineering</option>
+                    <option className="bg-[#0f101c] text-slate-100" value="business">Business / Finance</option>
+                    <option className="bg-[#0f101c] text-slate-100" value="biology">Biology / Pre-Med</option>
+                    <option className="bg-[#0f101c] text-slate-100" value="humanities">Humanities</option>
+                    <option className="bg-[#0f101c] text-slate-100" value="undecided">Undecided</option>
                   </select>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                  Graduation Year
-                </label>
-                <input
-                  type="number"
-                  value={userProfile.graduationYear}
-                  onChange={(e) => onUpdateProfile({ graduationYear: e.target.value })}
-                  placeholder="YYYY"
-                  className="input-minimal w-full px-3 py-1.5 text-[13.5px] font-medium"
-                />
+                <div>
+                  <label className="block text-[12px] font-medium text-slate-300 mb-1">
+                    Graduation Year
+                  </label>
+                  <input
+                    type="number"
+                    value={userProfile.graduationYear}
+                    onChange={(e) => onUpdateProfile({ graduationYear: e.target.value })}
+                    placeholder="YYYY"
+                    className="input-minimal w-full px-3 py-1.5 text-[13.5px] font-medium"
+                  />
+                </div>
               </div>
             </div>
           </section>
