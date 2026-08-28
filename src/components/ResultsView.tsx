@@ -1,0 +1,788 @@
+import React, { useState } from 'react';
+import { ActiveScreen, AnalysisResult, UserProfile } from '../types';
+
+interface ResultsViewProps {
+  userProfile: UserProfile;
+  analysis: AnalysisResult;
+  onNavigate: (screen: ActiveScreen) => void;
+  onToggleStep: (stepId: string) => void;
+  onAddCustomStep: (text: string) => void;
+}
+
+type BenchmarkTarget = 't20' | 't50' | 'liberalArts';
+type ResultsTab = 'matrix' | 'simulator' | 'rubric';
+
+export const ResultsView: React.FC<ResultsViewProps> = ({
+  userProfile,
+  analysis,
+  onNavigate,
+  onToggleStep,
+  onAddCustomStep
+}) => {
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [newStepText, setNewStepText] = useState('');
+  const [isAddingStep, setIsAddingStep] = useState(false);
+  const [benchmarkTarget, setBenchmarkTarget] = useState<BenchmarkTarget>('t20');
+  const [activeTab, setActiveTab] = useState<ResultsTab>('matrix');
+  const [selectedPillarKey, setSelectedPillarKey] = useState<string>('Rigor');
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleExportPDF = () => {
+    window.print();
+  };
+
+  const handleAddNewStep = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStepText.trim()) return;
+    onAddCustomStep(newStepText.trim());
+    setNewStepText('');
+    setIsAddingStep(false);
+    showToast('Action item added to admissions roadmap!');
+  };
+
+  // Compute pillar scores based on user profile & analysis
+  const leadershipCount = userProfile.activities.filter((a) => a.isLeadership || a.tier <= 2).length;
+  const leadershipScore = Math.min(96, Math.max(50, 60 + leadershipCount * 8));
+
+  const awardsCount = userProfile.awards.length;
+  const awardsScore = Math.min(95, Math.max(45, 55 + awardsCount * 12));
+
+  // Benchmark targets
+  const benchmarkMultipliers = {
+    t20: { targetName: 'Top 20 Ivy/Elite Avg', rigor: 92, spike: 90, leadership: 88, awards: 85, cohesion: 88 },
+    t50: { targetName: 'Top 50 National Avg', rigor: 82, spike: 75, leadership: 74, awards: 70, cohesion: 75 },
+    liberalArts: { targetName: 'Top LAC Avg', rigor: 88, spike: 82, leadership: 90, awards: 78, cohesion: 92 }
+  };
+
+  const currentBenchmark = benchmarkMultipliers[benchmarkTarget];
+
+  // Data for the 5 Admissions Pillars
+  const pillarsData = [
+    {
+      pillar: 'Academic Rigor & Grades',
+      shortName: 'Rigor',
+      studentScore: analysis.academicRigorScore,
+      benchmarkScore: currentBenchmark.rigor,
+      nationalAvg: 64,
+      icon: 'menu_book',
+      color: '#818cf8',
+      rubricRating: analysis.academicRigorScore >= 90 ? 'Tier 1 (Elite)' : analysis.academicRigorScore >= 80 ? 'Tier 2 (Strong)' : 'Tier 3 (Average)',
+      rubricScale: '1 / 5 (Ivy Scale)',
+      committeeLens: 'How much did the student challenge themselves relative to the most demanding courses offered at their high school?',
+      rationale: `Computed from your unweighted ${userProfile.unweightedGpa} GPA and ${userProfile.apIbHonorsCount} AP/IB/Honors courses taken across high school.`,
+      tacticalMove: 'Protect GPA in senior fall while maintaining highest available rigor in core STEM / Humanities subjects.'
+    },
+    {
+      pillar: 'Extracurricular Spike',
+      shortName: 'Spike',
+      studentScore: analysis.extracurricularDepthScore,
+      benchmarkScore: currentBenchmark.spike,
+      nationalAvg: 52,
+      icon: 'bolt',
+      color: '#a855f7',
+      rubricRating: analysis.extracurricularDepthScore >= 88 ? 'Tier 1 (Distinctive Hook)' : 'Tier 2 (Solid Specialization)',
+      rubricScale: '1-2 / 5 (Ivy Scale)',
+      committeeLens: 'Does this applicant have a sharp, memorable angle of distinction that will contribute to class vitality?',
+      rationale: `Concentrated depth in "${analysis.spikeCategory}" showing clear thematic alignment rather than fragmented extracurricular participation.`,
+      tacticalMove: 'Package your primary initiative with external validation (media, research preprint, or community scale).'
+    },
+    {
+      pillar: 'Leadership & Real-World Impact',
+      shortName: 'Leadership',
+      studentScore: leadershipScore,
+      benchmarkScore: currentBenchmark.leadership,
+      nationalAvg: 58,
+      icon: 'groups',
+      color: '#38bdf8',
+      rubricRating: leadershipScore >= 85 ? 'Tier 1-2 (Initiator/Founder)' : 'Tier 2-3 (Active Contributor)',
+      rubricScale: '2 / 5 (Ivy Scale)',
+      committeeLens: 'Did the student create opportunities for others or simply participate in existing institutional structures?',
+      rationale: `Evaluated across ${userProfile.activities.length} total activities with ${leadershipCount} primary leadership or founder roles.`,
+      tacticalMove: 'Quantify metrics in all Common App descriptions (e.g. "$4,200 raised", "450 active users", "12 peers mentored").'
+    },
+    {
+      pillar: 'Honors & Tier Recognition',
+      shortName: 'Honors',
+      studentScore: awardsScore,
+      benchmarkScore: currentBenchmark.awards,
+      nationalAvg: 46,
+      icon: 'military_tech',
+      color: '#f59e0b',
+      rubricRating: awardsScore >= 80 ? 'State / Regional Recognized' : 'School / Local Recognized',
+      rubricScale: '2-3 / 5 (Ivy Scale)',
+      committeeLens: 'Are the applicant’s skills recognized and validated by objective third-party institutions?',
+      rationale: `${userProfile.awards.length} verified recognitions logged across academic, STEM, and creative competitions.`,
+      tacticalMove: 'Enter high-yield state or national competitions before early decision deadlines.'
+    },
+    {
+      pillar: 'Narrative Cohesion & Essays',
+      shortName: 'Narrative',
+      studentScore: analysis.narrativeCohesionScore,
+      benchmarkScore: currentBenchmark.cohesion,
+      nationalAvg: 50,
+      icon: 'auto_stories',
+      color: '#ec4899',
+      rubricRating: analysis.narrativeCohesionScore >= 85 ? 'High Cohesion' : 'Developing Narrative Arc',
+      rubricScale: '1-2 / 5 (Ivy Scale)',
+      committeeLens: 'Does the application tell one compelling, authentic story from transcript to essays and recommendations?',
+      rationale: `Evaluates how seamlessly your intended major (${userProfile.intendedMajor}) aligns with your coursework, essays, and extracurriculars.`,
+      tacticalMove: 'Ensure personal statement explores the underlying intellectual curiosity that connects your activities.'
+    }
+  ];
+
+  const activePillar = pillarsData.find((p) => p.shortName === selectedPillarKey) || pillarsData[0];
+
+  // College tier simulation breakdown
+  const reachColleges = userProfile.targetColleges.filter((c) => c.category === 'reach');
+  const targetColleges = userProfile.targetColleges.filter((c) => c.category === 'target');
+  const safetyColleges = userProfile.targetColleges.filter((c) => c.category === 'safety');
+
+  // Overall average profile rating
+  const overallStandingScore = Math.round(
+    (analysis.academicRigorScore + analysis.extracurricularDepthScore + leadershipScore + awardsScore + analysis.narrativeCohesionScore) / 5
+  );
+
+  return (
+    <div className="max-w-[1140px] mx-auto px-4 md:px-8 py-6 md:py-8 space-y-6 text-[#f1f5f9] print:p-0 print:bg-white print:text-black">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 glass-modal text-white font-semibold px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 border border-white/20 animate-fade-up text-[13px]">
+          <span className="material-symbols-outlined text-[18px] text-indigo-400">check_circle</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
+              Admissions Diagnostic Audit
+            </span>
+            <span className="text-[12px] text-slate-400">
+              Evaluated for Class of {userProfile.graduationYear}
+            </span>
+          </div>
+          <h2 className="text-[24px] md:text-[28px] font-extrabold text-white tracking-tight">
+            Admissions Standing &amp; Competitiveness Matrix
+          </h2>
+          <p className="text-[13.5px] md:text-[14.5px] text-slate-300">
+            Comprehensive multi-pillar evaluation for <strong className="text-white">{userProfile.name}</strong> applying for <strong className="text-indigo-300">{userProfile.intendedMajor}</strong>.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={handleExportPDF}
+            className="px-3.5 py-2 glass-btn-secondary text-[12.5px] font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[16px]">print</span>
+            <span>Export Report</span>
+          </button>
+          <button
+            onClick={() => onNavigate('coach')}
+            className="px-4 py-2 glass-btn-primary text-[12.5px] font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-indigo-500/25"
+          >
+            <span className="material-symbols-outlined text-[17px]">chat</span>
+            <span>Consult AI Coach</span>
+          </button>
+        </div>
+      </div>
+
+      {/* High-Level Score Banner */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div className="md:col-span-4 glass-card rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-[#10101a] to-[#0d0d14] flex items-center justify-between shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400">
+              Overall Standing
+            </span>
+            <h3 className="text-[26px] font-extrabold text-white">
+              {analysis.overallRating}
+            </h3>
+            <p className="text-[12px] text-slate-300">
+              Composite Profile Index: <strong className="text-indigo-300">{overallStandingScore}/100</strong>
+            </p>
+          </div>
+          <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shadow-lg shadow-indigo-500/20">
+            <span className="material-symbols-outlined text-[28px]">stars</span>
+          </div>
+        </div>
+
+        <div className="md:col-span-8 glass-card rounded-2xl p-5 flex flex-col justify-center border border-white/10 shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="material-symbols-outlined text-indigo-400 text-[18px]">psychology</span>
+            <h3 className="text-[11px] text-indigo-400 font-bold uppercase tracking-wider">
+              Strategic Admissions Committee Assessment
+            </h3>
+          </div>
+          <p className="text-[13.5px] md:text-[14px] text-slate-200 leading-relaxed font-normal">
+            "{analysis.aiInsight}"
+          </p>
+        </div>
+      </div>
+
+      {/* Mode Switcher Tabs */}
+      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab('matrix')}
+            className={`px-3.5 py-1.5 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'matrix'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">bar_chart</span>
+            <span>Pillars &amp; Delta Matrix</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('simulator')}
+            className={`px-3.5 py-1.5 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'simulator'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">analytics</span>
+            <span>Admissions Odds Simulator</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('rubric')}
+            className={`px-3.5 py-1.5 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'rubric'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">fact_check</span>
+            <span>Committee Rubric Lens</span>
+          </button>
+        </div>
+
+        {/* Benchmark Switcher */}
+        <div className="flex items-center bg-white/[0.04] p-0.5 rounded-xl border border-white/10">
+          <button
+            onClick={() => setBenchmarkTarget('t20')}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+              benchmarkTarget === 't20' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Top 20
+          </button>
+          <button
+            onClick={() => setBenchmarkTarget('t50')}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+              benchmarkTarget === 't50' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Top 50
+          </button>
+          <button
+            onClick={() => setBenchmarkTarget('liberalArts')}
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+              benchmarkTarget === 'liberalArts' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Top LAC
+          </button>
+        </div>
+      </div>
+
+      {/* TAB 1: PILLARS & DELTA MATRIX */}
+      {activeTab === 'matrix' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-fade-in">
+          {/* Main Visual Delta Bars (Span 7) */}
+          <div className="lg:col-span-7 glass-card rounded-2xl p-5 md:p-6 flex flex-col justify-between shadow-[0_6px_24px_0_rgba(0,0,0,0.32)] border border-white/15">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-[16px] font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-indigo-400 text-[20px]">tune</span>
+                    Admissions Competitiveness Delta
+                  </h3>
+                  <p className="text-[12px] text-slate-400">
+                    Comparing your metrics against the {currentBenchmark.targetName}.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 text-[11px]">
+                  <div className="flex items-center gap-1.5 text-indigo-300 font-semibold">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+                    <span>Your Standing</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-purple-300 font-semibold">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                    <span>Target Pool</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pillars Interactive List */}
+              <div className="space-y-3">
+                {pillarsData.map((d) => {
+                  const diff = d.studentScore - d.benchmarkScore;
+                  const isAhead = diff >= 0;
+                  const isSelected = selectedPillarKey === d.shortName;
+
+                  return (
+                    <div
+                      key={d.shortName}
+                      onClick={() => setSelectedPillarKey(d.shortName)}
+                      className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-indigo-500/15 border-indigo-400 shadow-md shadow-indigo-500/15'
+                          : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="material-symbols-outlined text-[19px]"
+                            style={{ color: d.color }}
+                          >
+                            {d.icon}
+                          </span>
+                          <div>
+                            <h4 className="text-[13.5px] font-bold text-white">{d.pillar}</h4>
+                            <span className="text-[11px] text-slate-400">{d.rubricRating}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-[14px] font-extrabold text-white">{d.studentScore}%</span>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold uppercase border ${
+                              isAhead
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                            }`}
+                          >
+                            {isAhead ? `+${diff}% Lead` : `${diff}% Delta`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Visual Multi-Bar Indicator with Benchmark Marker */}
+                      <div className="relative h-3 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${d.studentScore}%`,
+                            backgroundColor: d.color
+                          }}
+                        ></div>
+                        {/* Target Pool Line Marker */}
+                        <div
+                          className="absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_8px_#ffffff] z-10"
+                          style={{ left: `${d.benchmarkScore}%` }}
+                          title={`Target Benchmark: ${d.benchmarkScore}%`}
+                        ></div>
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10.5px] text-slate-400 mt-1.5">
+                        <span>National Applicant Avg: {d.nationalAvg}%</span>
+                        <span className="font-semibold text-purple-300">{currentBenchmark.targetName}: {d.benchmarkScore}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selected Pillar Diagnostic Detail Card */}
+            <div className="mt-4 pt-3.5 border-t border-white/10 bg-white/[0.03] p-3.5 rounded-xl border border-white/10 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]" style={{ color: activePillar.color }}>
+                    {activePillar.icon}
+                  </span>
+                  <span className="font-bold text-white text-[13px]">{activePillar.pillar} Strategic Analysis</span>
+                </div>
+                <span className="text-[11px] font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">
+                  Ivy Rubric: {activePillar.rubricScale}
+                </span>
+              </div>
+              <p className="text-[12px] text-slate-300 leading-relaxed">
+                {activePillar.rationale}
+              </p>
+              <div className="p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[11.5px] text-indigo-200">
+                <strong>Tactical Next Step:</strong> {activePillar.tacticalMove}
+              </div>
+            </div>
+          </div>
+
+          {/* Spike Spotlight & AI Advisory (Span 5) */}
+          <div className="lg:col-span-5 glass-card rounded-2xl p-5 md:p-6 flex flex-col justify-between shadow-[0_6px_24px_0_rgba(0,0,0,0.32)] border border-indigo-500/30 bg-gradient-to-b from-indigo-950/30 via-[#10101a] to-[#0d0d14]">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                    <span className="material-symbols-outlined text-[20px]">bolt</span>
+                  </div>
+                  <div>
+                    <h3 className="text-[16px] font-bold text-white">Your Spike Blueprint</h3>
+                    <span className="text-[11px] text-indigo-300 font-medium">Primary Hook for Admissions Readers</span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10.5px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Competitive
+                </span>
+              </div>
+
+              {/* Spike Card */}
+              <div className="bg-white/[0.04] p-4 rounded-xl border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10.5px] font-bold text-indigo-400 uppercase tracking-wider">
+                    Applicant Spike Archetype
+                  </span>
+                  <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px]">verified</span>
+                    Focused Hook
+                  </span>
+                </div>
+                <h4 className="text-[16px] font-extrabold text-white">
+                  {analysis.spikeCategory}
+                </h4>
+                <p className="text-[12.5px] text-slate-300 leading-relaxed">
+                  {analysis.spikeDescription}
+                </p>
+              </div>
+
+              {/* Committee Pitch */}
+              <div className="p-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 space-y-1">
+                <div className="flex items-center gap-1.5 text-indigo-300 text-[11.5px] font-bold">
+                  <span className="material-symbols-outlined text-[15px]">record_voice_over</span>
+                  Admissions Committee Discussion:
+                </div>
+                <p className="text-[12px] text-slate-200 italic leading-snug">
+                  "Demonstrates superior coursework foundations and tangible project execution in {userProfile.intendedMajor}."
+                </p>
+              </div>
+
+              {/* Priority Recommendation */}
+              {analysis.priorityRecommendation && (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                  <div className="flex items-center gap-1.5 text-amber-300 text-[11.5px] font-bold">
+                    <span className="material-symbols-outlined text-[15px]">priority_high</span>
+                    {analysis.priorityRecommendation.title}
+                  </div>
+                  <p className="text-[12px] text-slate-300 leading-relaxed">
+                    {analysis.priorityRecommendation.description}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 mt-2 border-t border-white/10">
+              <button
+                onClick={() => onNavigate('coach')}
+                className="w-full py-2.5 glass-btn-primary font-bold text-[13px] rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-500/25"
+              >
+                <span className="material-symbols-outlined text-[17px]">psychology</span>
+                <span>Ask AI Coach: How to Elevate This Spike</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: ADMISSIONS ODDS SIMULATOR */}
+      {activeTab === 'simulator' && (
+        <div className="space-y-5 animate-fade-in">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Reach Schools Card */}
+            <div className="glass-card rounded-2xl p-5 border border-rose-500/30 bg-gradient-to-b from-rose-950/20 to-transparent space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-rose-400 text-[20px]">rocket_launch</span>
+                  <h3 className="text-[15px] font-bold text-white">Reach Institutions</h3>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                  {reachColleges.length} Schools
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-[12px]">
+                  <span className="text-slate-400">Simulated Admit Probability</span>
+                  <span className="text-rose-300 font-bold">14% - 22%</span>
+                </div>
+                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-rose-500 rounded-full" style={{ width: '20%' }}></div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {reachColleges.map((c) => (
+                  <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
+                    <span className="font-semibold text-white">{c.name}</span>
+                    <span className="text-slate-400">{c.acceptanceRate}</span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[11.5px] text-slate-300 italic">
+                Acceptance hinges on primary spike distinction and exceptional supplement essays.
+              </p>
+            </div>
+
+            {/* Target Schools Card */}
+            <div className="glass-card rounded-2xl p-5 border border-amber-500/30 bg-gradient-to-b from-amber-950/20 to-transparent space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-amber-400 text-[20px]">track_changes</span>
+                  <h3 className="text-[15px] font-bold text-white">Target Institutions</h3>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  {targetColleges.length} Schools
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-[12px]">
+                  <span className="text-slate-400">Simulated Admit Probability</span>
+                  <span className="text-amber-300 font-bold">48% - 65%</span>
+                </div>
+                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-500 rounded-full" style={{ width: '58%' }}></div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {targetColleges.map((c) => (
+                  <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
+                    <span className="font-semibold text-white">{c.name}</span>
+                    <span className="text-slate-400">{c.acceptanceRate}</span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[11.5px] text-slate-300 italic">
+                Strong academic baseline matches the 75th percentile of admitted freshmen.
+              </p>
+            </div>
+
+            {/* Safety Schools Card */}
+            <div className="glass-card rounded-2xl p-5 border border-emerald-500/30 bg-gradient-to-b from-emerald-950/20 to-transparent space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-emerald-400 text-[20px]">shield</span>
+                  <h3 className="text-[15px] font-bold text-white">Safety Institutions</h3>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {safetyColleges.length} Schools
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-[12px]">
+                  <span className="text-slate-400">Simulated Admit Probability</span>
+                  <span className="text-emerald-300 font-bold">85% - 94%</span>
+                </div>
+                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: '90%' }}></div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {safetyColleges.map((c) => (
+                  <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
+                    <span className="font-semibold text-white">{c.name}</span>
+                    <span className="text-slate-400">{c.acceptanceRate}</span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[11.5px] text-slate-300 italic">
+                Comfortable safety margins; ideal for early merit scholarship consideration.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: COMMITTEE RUBRIC LENS */}
+      {activeTab === 'rubric' && (
+        <div className="glass-card rounded-2xl p-6 border border-white/10 space-y-5 animate-fade-in">
+          <div className="border-b border-white/10 pb-3">
+            <h3 className="text-[16px] font-bold text-white">Ivy League 1-5 Admissions Scoring Rubric Breakdown</h3>
+            <p className="text-[12px] text-slate-400">
+              How reader committees convert grades, testing, activities, and essays into quantitative ratings.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pillarsData.map((p) => (
+              <div key={p.shortName} className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]" style={{ color: p.color }}>{p.icon}</span>
+                    <span className="font-bold text-white text-[13.5px]">{p.pillar}</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">
+                    {p.rubricScale}
+                  </span>
+                </div>
+                <p className="text-[12px] text-slate-300 font-medium">
+                  <strong>Reader Question:</strong> {p.committeeLens}
+                </p>
+                <p className="text-[11.5px] text-slate-400 leading-relaxed">
+                  {p.rationale}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Strengths, Gaps, and Immediate Action Plan Checklist */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+        {/* Strengths (Span 4) */}
+        <div className="md:col-span-4 glass-card rounded-2xl p-5 flex flex-col justify-between shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
+          <div>
+            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 border-b border-white/10 pb-2 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-emerald-400 text-[15px]">verified</span>
+              Key Strengths &amp; Anchors
+            </h3>
+            <ul className="space-y-3">
+              {analysis.keyStrengths.map((strength, idx) => (
+                <li key={idx} className="flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-emerald-400 text-[17px] shrink-0 mt-0.5">
+                    check_circle
+                  </span>
+                  <div>
+                    <p className="text-[13px] font-semibold text-white">{strength.title}</p>
+                    <p className="text-[11.5px] text-slate-300 font-normal">{strength.description}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="pt-3 mt-4 border-t border-white/10 text-[11px] text-slate-400 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px] text-indigo-400">info</span>
+            Highlight these core anchors in your primary application essay.
+          </div>
+        </div>
+
+        {/* Gaps (Span 4) */}
+        <div className="md:col-span-4 glass-card rounded-2xl p-5 shadow-[0_6px_24px_0_rgba(0,0,0,0.32)] border border-rose-500/30 bg-gradient-to-br from-rose-950/20 to-transparent flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
+              <h3 className="text-[11px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[15px]">crisis_alert</span>
+                Gaps &amp; Opportunities
+              </h3>
+              <button
+                onClick={() => onNavigate('coach')}
+                className="text-[10.5px] font-bold text-rose-300 hover:text-white bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 px-2 py-0.5 rounded-full transition-all flex items-center gap-0.5 cursor-pointer"
+              >
+                <span>Coach</span>
+                <span className="material-symbols-outlined text-[11px]">arrow_forward</span>
+              </button>
+            </div>
+            <div className="space-y-3">
+              {analysis.gapsToAddress.map((gap, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 rounded-xl border border-rose-500/20 bg-rose-500/10 flex flex-col gap-1.5 backdrop-blur-md"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-rose-300 text-[16px]">warning</span>
+                    <span className="text-[12.5px] font-semibold text-white">{gap.title}</span>
+                  </div>
+                  <p className="text-[11.5px] text-slate-300 leading-relaxed pl-5">
+                    {gap.suggestion}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate('coach')}
+            className="mt-4 w-full py-2 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 text-[12px] font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[15px]">psychology</span>
+            <span>Develop Strategy with AI Coach</span>
+          </button>
+        </div>
+
+        {/* Next Action Checklist (Span 4) */}
+        <div className="md:col-span-4 glass-card rounded-2xl p-5 flex flex-col justify-between shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
+          <div>
+            <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
+              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <span className="material-symbols-outlined text-indigo-400 text-[15px]">checklist</span>
+                Next Action Roadmap
+              </h3>
+              <button
+                onClick={() => setIsAddingStep(!isAddingStep)}
+                className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-0.5 font-semibold cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[13px]">add</span>
+                Add Step
+              </button>
+            </div>
+
+            {isAddingStep && (
+              <form onSubmit={handleAddNewStep} className="mb-2.5 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter action item..."
+                  value={newStepText}
+                  onChange={(e) => setNewStepText(e.target.value)}
+                  className="input-minimal flex-1 px-3 py-1.5 text-[12px]"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 glass-btn-primary rounded-lg text-[11.5px] font-bold cursor-pointer"
+                >
+                  Save
+                </button>
+              </form>
+            )}
+
+            <div className="flex flex-col gap-2">
+              {analysis.immediateNextSteps.map((step) => (
+                <label
+                  key={step.id}
+                  className={`flex items-start gap-2.5 p-2.5 rounded-lg transition-all cursor-pointer border ${
+                    step.completed
+                      ? 'bg-white/[0.02] border-white/5 opacity-60'
+                      : 'hover:bg-white/[0.06] border-white/5 hover:border-white/15'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={step.completed}
+                    onChange={() => onToggleStep(step.id)}
+                    className="mt-0.5 rounded text-indigo-500 focus:ring-indigo-400 border-white/20 w-4 h-4 bg-white/10 cursor-pointer"
+                  />
+                  <span
+                    className={`text-[12.5px] leading-snug ${
+                      step.completed ? 'line-through text-slate-500' : 'text-slate-200'
+                    }`}
+                  >
+                    {step.text}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={() => showToast('Action roadmap saved to profile!')}
+            className="mt-4 w-full py-2 glass-btn-primary text-[12px] font-bold rounded-xl cursor-pointer"
+          >
+            Save Action Roadmap
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
