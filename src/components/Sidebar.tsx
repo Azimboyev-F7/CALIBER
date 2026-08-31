@@ -21,6 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems: Array<{ id: ActiveScreen; label: string; icon: string; badge?: string; isAi?: boolean }> = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     { id: 'coach', label: 'Admission coach', icon: 'psychology', badge: 'AI Live', isAi: true },
+    { id: 'colleges', label: 'Target Universities', icon: 'school', badge: 'Hub' },
     { id: 'builder', label: 'Profile Builder', icon: 'edit_note' },
     { id: 'activities', label: 'My Activities', icon: 'history_edu' },
     { id: 'results', label: 'Results & Spike', icon: 'insights' },

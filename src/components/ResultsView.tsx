@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { ActiveScreen, AnalysisResult, UserProfile } from '../types';
+import { ActiveScreen, AdmissionsAnalysis, UserProfile } from '../types';
 
 interface ResultsViewProps {
   userProfile: UserProfile;
-  analysis: AnalysisResult;
+  analysis: AdmissionsAnalysis;
   onNavigate: (screen: ActiveScreen) => void;
-  onToggleStep: (stepId: string) => void;
-  onAddCustomStep: (text: string) => void;
+  onToggleStep?: (stepId: string) => void;
+  onToggleActionStep?: (stepId: string) => void;
+  onAddCustomStep: (stepText: string) => void;
 }
 
 type BenchmarkTarget = 't20' | 't50' | 'liberalArts';
@@ -17,8 +18,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   analysis,
   onNavigate,
   onToggleStep,
+  onToggleActionStep,
   onAddCustomStep
 }) => {
+  const toggleHandler = onToggleStep || onToggleActionStep || (() => {});
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [newStepText, setNewStepText] = useState('');
   const [isAddingStep, setIsAddingStep] = useState(false);
@@ -53,7 +56,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
   // Benchmark targets
   const benchmarkMultipliers = {
-    t20: { targetName: 'Top 20 Ivy/Elite Avg', rigor: 92, spike: 90, leadership: 88, awards: 85, cohesion: 88 },
+    t20: { targetName: 'Top 20 National Avg', rigor: 92, spike: 88, leadership: 86, awards: 84, cohesion: 88 },
     t50: { targetName: 'Top 50 National Avg', rigor: 82, spike: 75, leadership: 74, awards: 70, cohesion: 75 },
     liberalArts: { targetName: 'Top LAC Avg', rigor: 88, spike: 82, leadership: 90, awards: 78, cohesion: 92 }
   };
@@ -137,9 +140,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   const activePillar = pillarsData.find((p) => p.shortName === selectedPillarKey) || pillarsData[0];
 
   // College tier simulation breakdown
-  const reachColleges = userProfile.targetColleges.filter((c) => c.category === 'reach');
-  const targetColleges = userProfile.targetColleges.filter((c) => c.category === 'target');
-  const safetyColleges = userProfile.targetColleges.filter((c) => c.category === 'safety');
+  const reachColleges = (userProfile.targetColleges || []).filter((c) => c.category === 'reach');
+  const targetColleges = (userProfile.targetColleges || []).filter((c) => c.category === 'target');
+  const safetyColleges = (userProfile.targetColleges || []).filter((c) => c.category === 'safety');
 
   // Overall average profile rating
   const overallStandingScore = Math.round(
@@ -151,13 +154,13 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 glass-modal text-white font-semibold px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 border border-white/20 animate-fade-up text-[13px]">
-          <span className="material-symbols-outlined text-[18px] text-indigo-400">check_circle</span>
+          <span className="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
@@ -175,7 +178,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={handleExportPDF}
             className="px-3.5 py-2 glass-btn-secondary text-[12.5px] font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer"
@@ -225,8 +228,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         </div>
       </div>
 
-      {/* Mode Switcher Tabs */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+      {/* Tabs Navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab('matrix')}
@@ -740,47 +743,71 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 />
                 <button
                   type="submit"
-                  className="px-3 py-1.5 glass-btn-primary rounded-lg text-[11.5px] font-bold cursor-pointer"
+                  className="px-3 py-1.5 glass-btn-primary rounded-xl text-[11.5px] font-bold"
                 >
-                  Save
+                  Add
                 </button>
               </form>
             )}
 
-            <div className="flex flex-col gap-2">
-              {analysis.immediateNextSteps.map((step) => (
-                <label
+            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+              {(analysis.immediateNextSteps || (analysis as any).nextSteps || []).map((step: any) => (
+                <div
                   key={step.id}
-                  className={`flex items-start gap-2.5 p-2.5 rounded-lg transition-all cursor-pointer border ${
+                  onClick={() => {
+                    toggleHandler(step.id);
+                    showToast(step.completed ? 'Marked action as pending' : 'Completed roadmap action!');
+                  }}
+                  className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                     step.completed
                       ? 'bg-white/[0.02] border-white/5 opacity-60'
-                      : 'hover:bg-white/[0.06] border-white/5 hover:border-white/15'
+                      : 'bg-white/[0.04] border-white/10 hover:border-white/20'
                   }`}
                 >
-                  <input
-                    type="checkbox"
-                    checked={step.completed}
-                    onChange={() => onToggleStep(step.id)}
-                    className="mt-0.5 rounded text-indigo-500 focus:ring-indigo-400 border-white/20 w-4 h-4 bg-white/10 cursor-pointer"
-                  />
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className={`material-symbols-outlined text-[18px] ${
+                        step.completed ? 'text-emerald-400' : 'text-slate-500'
+                      }`}
+                    >
+                      {step.completed ? 'check_box' : 'check_box_outline_blank'}
+                    </span>
+                    <span
+                      className={`text-[12px] font-medium leading-snug ${
+                        step.completed ? 'line-through text-slate-400' : 'text-slate-200'
+                      }`}
+                    >
+                      {step.text || step.title}
+                    </span>
+                  </div>
                   <span
-                    className={`text-[12.5px] leading-snug ${
-                      step.completed ? 'line-through text-slate-500' : 'text-slate-200'
+                    className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider shrink-0 ${
+                      step.priority === 'high'
+                        ? 'bg-rose-500/20 text-rose-300'
+                        : step.priority === 'medium'
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-blue-500/20 text-blue-300'
                     }`}
                   >
-                    {step.text}
+                    {step.priority || 'high'}
                   </span>
-                </label>
+                </div>
               ))}
             </div>
           </div>
 
-          <button
-            onClick={() => showToast('Action roadmap saved to profile!')}
-            className="mt-4 w-full py-2 glass-btn-primary text-[12px] font-bold rounded-xl cursor-pointer"
-          >
-            Save Action Roadmap
-          </button>
+          <div className="pt-3 mt-4 border-t border-white/10 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400">
+              {(analysis.immediateNextSteps || (analysis as any).nextSteps || []).filter((s: any) => s.completed).length} of {(analysis.immediateNextSteps || (analysis as any).nextSteps || []).length} complete
+            </span>
+            <button
+              onClick={() => onNavigate('coach')}
+              className="text-[11.5px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
+            >
+              <span>Strategize with Coach</span>
+              <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

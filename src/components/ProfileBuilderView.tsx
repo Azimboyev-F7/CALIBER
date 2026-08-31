@@ -1,25 +1,26 @@
 import React, { useState } from 'react';
-import { ActiveScreen, ActivityItem, AwardItem, UserProfile } from '../types';
+import { ActiveScreen, UserProfile } from '../types';
 import { AICollegeRecommendationsCard } from './AICollegeRecommendationsCard';
 
 interface ProfileBuilderViewProps {
   userProfile: UserProfile;
   onUpdateProfile: (updated: Partial<UserProfile>) => void;
   onNavigate: (screen: ActiveScreen) => void;
-  onRunAnalysis: () => void;
-  isAnalyzing: boolean;
+  onRunAnalysis?: () => void;
+  isAnalyzing?: boolean;
+  hasUnsavedChanges?: boolean;
   onOpenAddActivity: () => void;
   onOpenAddAward: () => void;
-  onDeleteActivity: (id: string) => void;
-  onDeleteAward: (id: string) => void;
+  onDeleteActivity?: (id: string) => void;
+  onDeleteAward?: (id: string) => void;
 }
 
 export const ProfileBuilderView: React.FC<ProfileBuilderViewProps> = ({
   userProfile,
   onUpdateProfile,
-  onNavigate,
   onRunAnalysis,
   isAnalyzing,
+  hasUnsavedChanges,
   onOpenAddActivity,
   onOpenAddAward,
   onDeleteActivity,
@@ -29,274 +30,293 @@ export const ProfileBuilderView: React.FC<ProfileBuilderViewProps> = ({
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage((current) => (current === msg ? null : current));
-    }, 3500);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleFieldChange = (field: keyof UserProfile, value: any) => {
+    onUpdateProfile({ [field]: value });
   };
 
   return (
-    <div className="max-w-[1140px] mx-auto px-4 md:px-8 py-6 md:py-8 space-y-6 text-[#f1f5f9]">
+    <div className="max-w-[1240px] mx-auto px-4 md:px-8 py-6 md:py-8 space-y-8 text-[#f1f5f9]">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 bg-[#141424] border border-indigo-500/50 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 animate-fade-in backdrop-blur-xl">
-          <span className="material-symbols-outlined text-indigo-400 text-[20px]">
-            check_circle
-          </span>
-          <span className="text-[13px] font-medium">{toastMessage}</span>
-          <button
-            onClick={() => setToastMessage(null)}
-            className="text-slate-400 hover:text-white ml-2 text-[16px] cursor-pointer"
-          >
-            ×
-          </button>
+        <div className="fixed bottom-5 right-5 z-50 glass-modal text-white font-semibold px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 border border-white/20 animate-fade-up text-[13px]">
+          <span className="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
+          <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Page Header */}
-      <div>
-        <h2 className="text-[24px] md:text-[30px] font-extrabold text-white tracking-tight mb-1">
-          Build Your Profile
-        </h2>
-        <p className="text-[13.5px] md:text-[14.5px] text-slate-400">
-          Detail your academic journey and extracurricular impact to generate tailored admissions insights and university admission rates.
-        </p>
-      </div>
-
-      {/* Bento Grid Layout for Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left Column: Academic Snapshot */}
-        <div className="lg:col-span-5 space-y-5">
-          <section className="glass-card rounded-2xl p-5 md:p-6 flex flex-col h-full shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
-            <div className="flex items-center gap-2 mb-4">
-              <span
-                className="material-symbols-outlined text-indigo-400 text-[22px]"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                school
+      {/* Page Title & Subtitle + Action Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-white/5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-[26px] md:text-[30px] font-black text-white tracking-tight">
+              Build Your Profile
+            </h1>
+            {hasUnsavedChanges && (
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse">
+                Unsaved changes
               </span>
-              <h3 className="text-[17px] md:text-[19px] font-bold text-white">
-                Academic Snapshot
-              </h3>
-            </div>
-
-            <div className="space-y-3.5 flex-1">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                    GPA (Unweighted)
-                  </label>
-                  <input
-                    type="text"
-                    value={userProfile.unweightedGpa}
-                    onChange={(e) => onUpdateProfile({ unweightedGpa: e.target.value })}
-                    placeholder="e.g. 3.85"
-                    className="input-minimal w-full px-3 py-1.5 text-[13.5px] font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                    IELTS Score
-                  </label>
-                  <input
-                    type="text"
-                    value={userProfile.ieltsScore || ''}
-                    onChange={(e) => onUpdateProfile({ ieltsScore: e.target.value })}
-                    placeholder="e.g. 7.5"
-                    className="input-minimal w-full px-3 py-1.5 text-[13.5px] font-medium"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                    SAT Score
-                  </label>
-                  <input
-                    type="text"
-                    value={userProfile.satScore}
-                    onChange={(e) => onUpdateProfile({ satScore: e.target.value })}
-                    placeholder="e.g. 1520"
-                    className="input-minimal w-full px-3 py-1.5 text-[13.5px] font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                    AP/IB/Honors Classes
-                  </label>
-                  <input
-                    type="number"
-                    value={userProfile.apIbHonorsCount}
-                    onChange={(e) => onUpdateProfile({ apIbHonorsCount: e.target.value })}
-                    placeholder="Count"
-                    className="input-minimal w-full px-3 py-1.5 text-[13.5px] font-medium"
-                  />
-                </div>
-              </div>
-
-              <hr className="border-white/10 my-3" />
-
-              <div>
-                <label className="block text-[12px] font-medium text-slate-300 mb-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[15px] text-indigo-400">public</span>
-                  Preferred Country
-                </label>
-                <select
-                  value={userProfile.preferredCountry || 'United States'}
-                  onChange={(e) => onUpdateProfile({ preferredCountry: e.target.value })}
-                  className="input-minimal w-full px-3 py-1.5 text-[13.5px] bg-[#0a0a0f] text-white cursor-pointer"
-                >
-                  <option className="bg-[#0f101c] text-slate-100" value="United States">United States (US)</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="United Kingdom">United Kingdom (UK)</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="Canada">Canada</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="Germany">Germany</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="Australia">Australia</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="Singapore">Singapore</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="Europe (General)">Europe (General)</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="Any / Global">Any / Global</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-medium text-slate-300 mb-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[15px] text-emerald-400">payments</span>
-                  Annual Budget for College
-                </label>
-                <select
-                  value={userProfile.budgetPerYear || '$25,000 - $45,000 / yr'}
-                  onChange={(e) => onUpdateProfile({ budgetPerYear: e.target.value })}
-                  className="input-minimal w-full px-3 py-1.5 text-[13.5px] bg-[#0a0a0f] text-white cursor-pointer"
-                >
-                  <option className="bg-[#0f101c] text-slate-100" value="Full Financial Aid Needed">Full Financial Aid / Scholarship Needed</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="Under $10,000 / yr">Under $10,000 / year</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="$10,000 - $25,000 / yr">$10,000 - $25,000 / year</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="$25,000 - $45,000 / yr">$25,000 - $45,000 / year</option>
-                  <option className="bg-[#0f101c] text-slate-100" value="$45,000+ / yr">$45,000+ / year (Flexible)</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div>
-                  <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                    Intended Major
-                  </label>
-                  <select
-                    value={userProfile.intendedMajor}
-                    onChange={(e) => onUpdateProfile({ intendedMajor: e.target.value })}
-                    className="input-minimal w-full px-3 py-1.5 text-[13.5px] bg-[#0a0a0f] text-white cursor-pointer"
-                  >
-                    <option className="bg-[#0f101c] text-slate-100" value="cs">Computer Science</option>
-                    <option className="bg-[#0f101c] text-slate-100" value="engineering">Engineering</option>
-                    <option className="bg-[#0f101c] text-slate-100" value="business">Business / Finance</option>
-                    <option className="bg-[#0f101c] text-slate-100" value="biology">Biology / Pre-Med</option>
-                    <option className="bg-[#0f101c] text-slate-100" value="humanities">Humanities</option>
-                    <option className="bg-[#0f101c] text-slate-100" value="undecided">Undecided</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[12px] font-medium text-slate-300 mb-1">
-                    Graduation Year
-                  </label>
-                  <input
-                    type="number"
-                    value={userProfile.graduationYear}
-                    onChange={(e) => onUpdateProfile({ graduationYear: e.target.value })}
-                    placeholder="YYYY"
-                    className="input-minimal w-full px-3 py-1.5 text-[13.5px] font-medium"
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
+            )}
+          </div>
+          <p className="text-[13.5px] md:text-[14px] text-slate-400">
+            Detail your academic journey and extracurricular impact to generate tailored admissions insights and university admission rates.
+          </p>
         </div>
 
-        {/* Right Column: Activities & Awards */}
-        <div className="lg:col-span-7 space-y-5 flex flex-col">
-          {/* Activities Section */}
-          <section className="glass-card rounded-2xl p-5 md:p-6 flex-1 shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span
-                  className="material-symbols-outlined text-indigo-400 text-[22px]"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  directions_run
-                </span>
-                <h3 className="text-[17px] md:text-[19px] font-bold text-white">
-                  Activities
-                </h3>
+        {onRunAnalysis && (
+          <button
+            id="btn-analyze-full-profile"
+            onClick={onRunAnalysis}
+            disabled={isAnalyzing}
+            className="self-start sm:self-auto shrink-0 px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:from-indigo-400 hover:via-purple-500 hover:to-indigo-400 text-white font-bold text-[13.5px] shadow-[0_0_25px_rgba(99,102,241,0.45)] hover:shadow-[0_0_35px_rgba(99,102,241,0.65)] flex items-center gap-2.5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-[0.98]"
+          >
+            {isAnalyzing ? (
+              <>
+                <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                <span>Evaluating Profile...</span>
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[19px] text-indigo-200">auto_awesome</span>
+                <span>Analyze Full Profile</span>
+                <span className="material-symbols-outlined text-[18px] text-white/70">arrow_forward</span>
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Main Top 2-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Academic Snapshot (Span 5) */}
+        <div className="lg:col-span-5 rounded-2xl bg-[#0c0c14] border border-white/10 p-5 md:p-6 space-y-4 shadow-[0_8px_30px_rgb(0,0,0,0.4)]">
+          <div className="flex items-center gap-2 text-white font-bold text-[16px] pb-1">
+            <span className="text-indigo-400 text-[20px]">🎓</span>
+            <span>Academic Snapshot</span>
+          </div>
+
+          {/* Row 1: GPA (Unweighted) & IELTS Score */}
+          <div className="grid grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-[11.5px] font-semibold text-slate-300 mb-1.5">
+                GPA (Unweighted)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="4.0"
+                value={userProfile.unweightedGpa || ''}
+                onChange={(e) => handleFieldChange('unweightedGpa', parseFloat(e.target.value) || 0)}
+                placeholder="3.85"
+                className="w-full bg-[#13131f] border border-white/10 rounded-xl px-3.5 py-2 text-[13px] text-white focus:outline-none focus:border-indigo-500 transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11.5px] font-semibold text-slate-300 mb-1.5">
+                IELTS Score
+              </label>
+              <input
+                type="text"
+                value={userProfile.ieltsScore || ''}
+                onChange={(e) => handleFieldChange('ieltsScore', e.target.value)}
+                placeholder="7.5"
+                className="w-full bg-[#13131f] border border-white/10 rounded-xl px-3.5 py-2 text-[13px] text-white focus:outline-none focus:border-indigo-500 transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: SAT Score & AP/IB/Honors Classes */}
+          <div className="grid grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-[11.5px] font-semibold text-slate-300 mb-1.5">
+                SAT Score
+              </label>
+              <input
+                type="number"
+                step="10"
+                min="400"
+                max="1600"
+                value={userProfile.satScore || ''}
+                onChange={(e) => handleFieldChange('satScore', parseInt(e.target.value, 10) || 0)}
+                placeholder="1520"
+                className="w-full bg-[#13131f] border border-white/10 rounded-xl px-3.5 py-2 text-[13px] text-white focus:outline-none focus:border-indigo-500 transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11.5px] font-semibold text-slate-300 mb-1.5">
+                AP/IB/Honors Classes
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="30"
+                value={userProfile.apIbHonorsCount ?? 10}
+                onChange={(e) => handleFieldChange('apIbHonorsCount', parseInt(e.target.value, 10) || 0)}
+                placeholder="10"
+                className="w-full bg-[#13131f] border border-white/10 rounded-xl px-3.5 py-2 text-[13px] text-white focus:outline-none focus:border-indigo-500 transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Row 3: Preferred Country */}
+          <div>
+            <label className="block text-[11.5px] font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <span>🌍</span>
+              <span>Preferred Country</span>
+            </label>
+            <select
+              value={userProfile.preferredCountry || 'United States (US)'}
+              onChange={(e) => handleFieldChange('preferredCountry', e.target.value)}
+              className="w-full bg-[#13131f] border border-white/10 rounded-xl px-3.5 py-2.5 text-[13px] text-white focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+            >
+              <option value="United States (US)">United States (US)</option>
+              <option value="United Kingdom (UK)">United Kingdom (UK)</option>
+              <option value="Canada (CA)">Canada (CA)</option>
+              <option value="Australia / NZ">Australia / NZ</option>
+              <option value="Europe / Singapore">Europe / Singapore</option>
+            </select>
+          </div>
+
+          {/* Row 4: Annual Budget for College */}
+          <div>
+            <label className="block text-[11.5px] font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <span>💵</span>
+              <span>Annual Budget for College</span>
+            </label>
+            <select
+              value={userProfile.budgetPerYear || '$25,000 - $45,000 / year'}
+              onChange={(e) => handleFieldChange('budgetPerYear', e.target.value)}
+              className="w-full bg-[#13131f] border border-white/10 rounded-xl px-3.5 py-2.5 text-[13px] text-white focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+            >
+              <option value="Full Need / $0 - $10,000 / year">Full Need / $0 - $10,000 / year</option>
+              <option value="$10,000 - $25,000 / year">$10,000 - $25,000 / year</option>
+              <option value="$25,000 - $45,000 / year">$25,000 - $45,000 / year</option>
+              <option value="$45,000 - $65,000 / year">$45,000 - $65,000 / year</option>
+              <option value="$65,000+ / Full Pay">$65,000+ / Full Pay</option>
+            </select>
+          </div>
+
+          {/* Row 5: Intended Major & Graduation Year */}
+          <div className="grid grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-[11.5px] font-semibold text-slate-300 mb-1.5">
+                Intended Major
+              </label>
+              <select
+                value={userProfile.intendedMajor}
+                onChange={(e) => handleFieldChange('intendedMajor', e.target.value)}
+                className="w-full bg-[#13131f] border border-white/10 rounded-xl px-3 py-2 text-[13px] text-white focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
+              >
+                <option value="Computer Science">Computer Science</option>
+                <option value="Robotics & AI Engineering">Robotics &amp; AI Engineering</option>
+                <option value="Electrical Engineering">Electrical Engineering</option>
+                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                <option value="Biomedical Engineering">Biomedical Engineering</option>
+                <option value="Data Science & Mathematics">Data Science &amp; Mathematics</option>
+                <option value="Economics & Finance">Economics &amp; Finance</option>
+                <option value="Pre-Med / Biology">Pre-Med / Biology</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11.5px] font-semibold text-slate-300 mb-1.5">
+                Graduation Year
+              </label>
+              <input
+                type="text"
+                value={userProfile.graduationYear}
+                onChange={(e) => handleFieldChange('graduationYear', e.target.value)}
+                placeholder="2026"
+                className="w-full bg-[#13131f] border border-white/10 rounded-xl px-3 py-2 text-[13px] text-white focus:outline-none focus:border-indigo-500 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Activities (Top) + Awards (Bottom) (Span 7) */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Activities Container */}
+          <div className="rounded-2xl bg-[#0c0c14] border border-white/10 p-5 md:p-6 space-y-4 shadow-[0_8px_30px_rgb(0,0,0,0.4)]">
+            <div className="flex items-center justify-between pb-1">
+              <div className="flex items-center gap-2 text-white font-bold text-[16px]">
+                <span className="text-blue-400 text-[18px]">🏃</span>
+                <span>Activities</span>
               </div>
-              
               <button
                 onClick={onOpenAddActivity}
-                className="flex items-center gap-1 glass-btn-secondary px-3 py-1 rounded-full text-[12px] font-semibold cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-[12px] flex items-center gap-1 cursor-pointer transition-all border border-white/10"
               >
-                <span className="material-symbols-outlined text-[15px]">add</span>
-                Add Activity
+                <span className="material-symbols-outlined text-[14px]">add</span>
+                <span>Add Activity</span>
               </button>
             </div>
 
+            {/* Activities List */}
             <div className="space-y-3">
               {userProfile.activities.length === 0 ? (
-                <div className="p-6 border border-dashed border-white/15 rounded-xl text-center text-slate-400 text-[13px]">
-                  No activities added yet. Click "+ Add Activity" to log your leadership roles.
-                </div>
+                <p className="text-[12.5px] text-slate-400 italic text-center py-4">
+                  No activities added yet. Click &quot;+ Add Activity&quot; to build your portfolio.
+                </p>
               ) : (
-                userProfile.activities.map((activity) => {
-                  const barColorClass =
-                    activity.accentColor === 'tertiary'
-                      ? 'bg-amber-400'
-                      : activity.accentColor === 'secondary'
-                      ? 'bg-slate-300'
-                      : 'bg-indigo-400';
+                userProfile.activities.map((act, idx) => {
+                  // Border color accents matching user's original design
+                  const borderAccent =
+                    idx === 0
+                      ? 'border-l-[4px] border-l-amber-500'
+                      : idx === 1
+                      ? 'border-l-[4px] border-l-cyan-500'
+                      : idx === 2
+                      ? 'border-l-[4px] border-l-indigo-500'
+                      : 'border-l-[4px] border-l-slate-600';
 
                   return (
                     <div
-                      key={activity.id}
-                      className="p-3.5 rounded-xl border border-white/10 hover:border-white/20 transition-all bg-white/[0.04] backdrop-blur-md group relative overflow-hidden"
+                      key={act.id}
+                      className={`p-3.5 rounded-xl bg-[#13131f] border border-white/10 hover:border-white/20 transition-all ${borderAccent}`}
                     >
-                      {/* Left color bar */}
-                      <div className={`absolute top-0 left-0 w-1 h-full ${barColorClass}`}></div>
-
-                      <div className="flex justify-between items-start mb-1 pl-2.5">
+                      <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h4 className="text-[15px] font-bold text-white">
-                            {activity.title}
+                          <h4 className="text-[14px] font-bold text-white">
+                            {act.title}
                           </h4>
-                          <p className="text-[13px] text-slate-300">{activity.role}</p>
+                          <p className="text-[12px] text-slate-300 mt-0.5">
+                            {act.role}
+                          </p>
                         </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full glass-pill text-slate-200 text-[10.5px] font-semibold">
-                            {activity.category}
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-medium bg-white/10 text-slate-300 border border-white/10">
+                            {act.category || 'Extracurricular'}
                           </span>
-                          <button
-                            onClick={() => onDeleteActivity(activity.id)}
-                            className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 p-0.5 transition-all cursor-pointer"
-                            title="Remove activity"
-                          >
-                            <span className="material-symbols-outlined text-[15px]">delete</span>
-                          </button>
+                          {onDeleteActivity && (
+                            <button
+                              onClick={() => onDeleteActivity(act.id)}
+                              className="text-slate-500 hover:text-rose-400 p-1 transition-colors cursor-pointer"
+                              title="Delete activity"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3.5 mt-2 pl-2.5">
-                        <div className="flex items-center gap-1 text-slate-400">
-                          <span className="material-symbols-outlined text-[15px]">schedule</span>
-                          <span className="text-[11.5px] font-medium">{activity.hoursPerWeek} hrs/wk</span>
-                        </div>
-
-                        {activity.isLeadership && (
-                          <div className="flex items-center gap-1 text-indigo-400">
-                            <span
-                              className="material-symbols-outlined text-[15px]"
-                              style={{ fontVariationSettings: "'FILL' 1" }}
-                            >
+                      <div className="flex items-center gap-3 mt-2.5 text-[11.5px]">
+                        <span className="text-slate-400 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[13px] text-slate-400">schedule</span>
+                          {act.hoursPerWeek} hrs/wk
+                        </span>
+                        {act.isLeadership && (
+                          <span className="text-indigo-400 font-semibold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px] text-indigo-400" style={{ fontVariationSettings: "'FILL' 1" }}>
                               star
                             </span>
-                            <span className="text-[11.5px] font-semibold">Leadership</span>
-                          </div>
+                            Leadership
+                          </span>
                         )}
                       </div>
                     </div>
@@ -304,109 +324,116 @@ export const ProfileBuilderView: React.FC<ProfileBuilderViewProps> = ({
                 })
               )}
             </div>
-          </section>
+          </div>
 
-          {/* Awards & Honors Section */}
-          <section className="glass-card rounded-2xl p-5 md:p-6 shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span
-                  className="material-symbols-outlined text-amber-400 text-[22px]"
-                  style={{ fontVariationSettings: "'FILL' 1" }}
-                >
-                  emoji_events
-                </span>
-                <h3 className="text-[17px] md:text-[19px] font-bold text-white">
-                  Awards &amp; Honors
-                </h3>
+          {/* Awards & Honors Container */}
+          <div className="rounded-2xl bg-[#0c0c14] border border-white/10 p-5 md:p-6 space-y-4 shadow-[0_8px_30px_rgb(0,0,0,0.4)]">
+            <div className="flex items-center justify-between pb-1">
+              <div className="flex items-center gap-2 text-white font-bold text-[16px]">
+                <span className="text-amber-400 text-[18px]">🏆</span>
+                <span>Awards &amp; Honors</span>
               </div>
-              
               <button
                 onClick={onOpenAddAward}
-                className="flex items-center gap-1 glass-btn-secondary px-3 py-1 rounded-full text-[12px] font-semibold cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-[12px] flex items-center gap-1 cursor-pointer transition-all border border-white/10"
               >
-                <span className="material-symbols-outlined text-[15px]">add</span>
-                Add Award
+                <span className="material-symbols-outlined text-[14px]">add</span>
+                <span>Add Award</span>
               </button>
             </div>
 
-            <ul className="divide-y divide-white/10 border-t border-white/10">
+            {/* Awards List */}
+            <div className="space-y-2.5">
               {userProfile.awards.length === 0 ? (
-                <li className="py-5 text-center text-slate-400 text-[13px]">
-                  No awards added yet. Add scholastic and extracurricular recognitions.
-                </li>
+                <p className="text-[12.5px] text-slate-400 italic text-center py-3">
+                  No honors or recognitions added yet.
+                </p>
               ) : (
                 userProfile.awards.map((award) => {
-                  const isNational = award.level === 'National' || award.level === 'International';
-                  const badgeStyle = isNational
-                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                    : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30';
+                  const isNational =
+                    award.level?.toLowerCase() === 'national' ||
+                    award.level?.toLowerCase() === 'international';
 
                   return (
-                    <li
+                    <div
                       key={award.id}
-                      className="flex items-center justify-between py-2.5 group hover:bg-white/[0.04] px-2.5 rounded-lg transition-colors"
+                      className="p-3 rounded-xl bg-[#13131f] border border-white/10 hover:border-white/20 transition-all flex items-center justify-between gap-3"
                     >
-                      <span className="text-[13.5px] font-medium text-white">
+                      <span className="font-semibold text-white text-[13px]">
                         {award.title}
                       </span>
-                      
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2 shrink-0">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold border ${badgeStyle}`}
+                          className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-bold ${
+                            isNational
+                              ? 'bg-rose-950/80 text-rose-300 border border-rose-800/40'
+                              : 'bg-indigo-950/80 text-indigo-300 border border-indigo-800/40'
+                          }`}
                         >
                           {award.level}
                         </span>
-                        <button
-                          onClick={() => onDeleteAward(award.id)}
-                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 p-0.5 transition-all cursor-pointer"
-                          title="Remove award"
-                        >
-                          <span className="material-symbols-outlined text-[15px]">delete</span>
-                        </button>
+                        {onDeleteAward && (
+                          <button
+                            onClick={() => onDeleteAward(award.id)}
+                            className="text-slate-500 hover:text-rose-400 p-1 transition-colors cursor-pointer"
+                            title="Delete award"
+                          >
+                            <span className="material-symbols-outlined text-[15px]">delete</span>
+                          </button>
+                        )}
                       </div>
-                    </li>
+                    </div>
                   );
                 })
               )}
-            </ul>
-          </section>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* AI University Recommendations & Personalized Admissions Rates Hub */}
+      {/* Full Width AI University Recommendations & Estimated Admission Rates */}
       <AICollegeRecommendationsCard
         userProfile={userProfile}
         onUpdateProfile={onUpdateProfile}
         onShowToast={showToast}
       />
 
-      {/* Primary Action Button Bar */}
-      <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-white/10 pt-6">
-        <button
-          onClick={() => onNavigate('dashboard')}
-          className="glass-btn-secondary px-5 py-2.5 rounded-xl text-[13.5px] font-semibold flex items-center gap-2 cursor-pointer order-2 sm:order-1"
-        >
-          <span className="material-symbols-outlined text-[17px]">arrow_back</span>
-          <span>Return to Dashboard</span>
-        </button>
+      {/* Bottom Full Evaluation Bar */}
+      {onRunAnalysis && (
+        <div className="rounded-2xl p-6 bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-[#0c0c14] border border-indigo-500/30 flex flex-col md:flex-row items-center justify-between gap-5 shadow-[0_8px_30px_rgb(0,0,0,0.5)]">
+          <div className="space-y-1 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-2">
+              <span className="material-symbols-outlined text-indigo-400 text-[22px]">rocket_launch</span>
+              <h3 className="text-[17px] font-bold text-white">
+                Ready for Full Holistic Evaluation?
+              </h3>
+            </div>
+            <p className="text-[13px] text-slate-300 max-w-xl">
+              Calculate your overall Admissions Tier, Narrative &amp; Spike Rating, tailored SWOT breakdown, and 6-month actionable roadmap.
+            </p>
+          </div>
 
-        <button
-          onClick={onRunAnalysis}
-          disabled={isAnalyzing}
-          className="glass-btn-primary px-6 py-2.5 rounded-xl text-[14px] font-bold flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50 order-1 sm:order-2 shadow-lg shadow-indigo-500/25"
-        >
-          <span
-            className={`material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform ${
-              isAnalyzing ? 'animate-spin' : ''
-            }`}
-            style={{ fontVariationSettings: "'FILL' 1" }}
+          <button
+            id="btn-analyze-full-profile-bottom"
+            onClick={onRunAnalysis}
+            disabled={isAnalyzing}
+            className="w-full md:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-600 hover:from-indigo-400 hover:via-purple-500 hover:to-indigo-400 text-white font-bold text-[14px] shadow-[0_0_30px_rgba(99,102,241,0.5)] hover:shadow-[0_0_40px_rgba(99,102,241,0.7)] flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 active:scale-[0.98] shrink-0"
           >
-            {isAnalyzing ? 'sync' : 'magic_button'}
-          </span>
-          <span>{isAnalyzing ? 'Evaluating Profile with AI...' : 'Analyze Full Profile'}</span>
-        </button>
-      </div>
+            {isAnalyzing ? (
+              <>
+                <span className="material-symbols-outlined text-[19px] animate-spin">progress_activity</span>
+                <span>Evaluating Profile...</span>
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[20px] text-indigo-200">auto_awesome</span>
+                <span>Analyze Full Profile &amp; Generate Roadmap</span>
+                <span className="material-symbols-outlined text-[19px] text-white/70">arrow_forward</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

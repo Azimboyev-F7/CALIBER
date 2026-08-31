@@ -1,4 +1,4 @@
-export type ActiveScreen = 'landing' | 'dashboard' | 'builder' | 'activities' | 'results' | 'settings' | 'coach' | 'auth';
+export type ActiveScreen = 'landing' | 'dashboard' | 'builder' | 'activities' | 'results' | 'settings' | 'coach' | 'colleges' | 'auth';
 
 export interface AuthUser {
   id: string;
@@ -113,12 +113,15 @@ export interface AnalysisResult {
     id: string;
     text: string;
     completed: boolean;
+    priority?: string;
   }>;
   priorityRecommendation: {
     title: string;
     description: string;
   };
 }
+
+export type AdmissionsAnalysis = AnalysisResult;
 
 export interface RecommendedCollege {
   id: string;

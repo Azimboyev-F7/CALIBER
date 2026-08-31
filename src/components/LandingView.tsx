@@ -18,6 +18,47 @@ export const LandingView: React.FC<LandingViewProps> = ({
   const [demoGpa, setDemoGpa] = useState('3.9');
   const [demoAps, setDemoAps] = useState('8');
   const [demoMajor, setDemoMajor] = useState('Computer Science');
+  const [demoEcTier, setDemoEcTier] = useState<'Tier 1' | 'Tier 2' | 'Tier 3' | 'Tier 4'>('Tier 1');
+
+  // Dynamic calculation for instant preview calibration
+  const gpaNum = Math.min(4.0, Math.max(1.0, parseFloat(demoGpa) || 3.5));
+  const apNum = Math.min(20, Math.max(0, parseInt(demoAps) || 0));
+
+  const rigorScore = Math.min(10, (gpaNum / 4.0 * 6.5) + (apNum * 0.35)).toFixed(1);
+  const ecScore = demoEcTier === 'Tier 1' ? 9.5 : demoEcTier === 'Tier 2' ? 8.0 : demoEcTier === 'Tier 3' ? 6.5 : 5.0;
+  const compScore = Math.min(99, Math.round((parseFloat(rigorScore) * 5) + (ecScore * 5)));
+  const percentile = Math.min(99, Math.max(50, Math.round(compScore * 0.95)));
+
+  let oddsText = '10% - 18%';
+  let oddsBadge = 'Solid Candidate';
+  let oddsBadgeColor = 'text-indigo-400 bg-indigo-500/20 border-indigo-500/30';
+
+  if (compScore >= 90) {
+    oddsText = '32% - 45%';
+    oddsBadge = 'Ivy League Spike';
+    oddsBadgeColor = 'text-emerald-400 bg-emerald-500/20 border-emerald-500/30';
+  } else if (compScore >= 80) {
+    oddsText = '20% - 30%';
+    oddsBadge = 'Top 20 Target Ready';
+    oddsBadgeColor = 'text-purple-300 bg-purple-500/20 border-purple-500/30';
+  } else if (compScore >= 70) {
+    oddsText = '12% - 20%';
+    oddsBadge = 'Competitive Regional';
+    oddsBadgeColor = 'text-amber-300 bg-amber-500/20 border-amber-500/30';
+  } else {
+    oddsText = '5% - 12%';
+    oddsBadge = 'Foundational Gap';
+    oddsBadgeColor = 'text-rose-400 bg-rose-500/20 border-rose-500/30';
+  }
+
+  const majorTips: Record<string, string> = {
+    'Computer Science': `For ${demoMajor}, pair your ${apNum} APs with a Tier 1 open-source or Olympiad project to stand out in the top 3% pool.`,
+    'Engineering': `Engineering admissions weight AP Calc BC & Physics C. Your rigor (${rigorScore}/10) needs lab or build proof.`,
+    'Business / Finance': `For Business, showcase quantitative rigor alongside startup revenue or national leadership.`,
+    'Pre-Med / Biology': `Pre-Med requires wet-lab research or clinical volunteer hours alongside a high GPA (${gpaNum}).`,
+    'Humanities': `Humanities spikes rely on published writing, national awards (Scholastic Art), or regional advocacy.`
+  };
+  const dynamicTip = majorTips[demoMajor] || majorTips['Computer Science'];
 
   return (
     <div className="bg-[#0a0a0f] text-[#f1f5f9] flex flex-col min-h-screen relative overflow-hidden">
@@ -408,62 +449,208 @@ export const LandingView: React.FC<LandingViewProps> = ({
         </section>
 
         {/* Interactive Quick Try Section */}
-        <section id="features" className="py-12 relative">
-          <div className="max-w-[900px] mx-auto px-5">
-            <div className="glass-panel p-6 md:p-8 rounded-2xl text-center relative overflow-hidden">
-              <div className="absolute -right-20 -top-20 w-56 h-56 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <section id="features" className="py-14 relative">
+          <div className="max-w-[1050px] mx-auto px-5">
+            <div className="relative bg-[#0d0e1a] border border-white/20 rounded-3xl p-6 md:p-10 overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)]">
+              {/* Glow background effects */}
+              <div className="absolute -top-24 -right-24 w-80 h-80 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
-              <span className="text-[11px] font-bold tracking-widest uppercase text-indigo-400 mb-1.5 block">
-                Instant Calibration
-              </span>
-              <h3 className="text-[22px] md:text-[26px] font-bold text-white mb-2">
-                Ready to evaluate your admissions odds?
-              </h3>
-              <p className="text-slate-300 max-w-lg mx-auto mb-6 text-[14px]">
-                Enter your target numbers to see where your application spike currently sits on the national curve.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 max-w-xl mx-auto mb-5 text-left">
-                <div>
-                  <label className="block text-[12px] text-slate-300 font-medium mb-1">Unweighted GPA</label>
-                  <input 
-                    type="text" 
-                    value={demoGpa}
-                    onChange={(e) => setDemoGpa(e.target.value)}
-                    className="input-minimal w-full px-3 py-2 text-[13px]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[12px] text-slate-300 font-medium mb-1">AP / IB Classes</label>
-                  <input 
-                    type="number" 
-                    value={demoAps}
-                    onChange={(e) => setDemoAps(e.target.value)}
-                    className="input-minimal w-full px-3 py-2 text-[13px]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[12px] text-slate-300 font-medium mb-1">Target Major</label>
-                  <select 
-                    value={demoMajor}
-                    onChange={(e) => setDemoMajor(e.target.value)}
-                    className="input-minimal w-full px-3 py-2 text-[13px] bg-[#0a0a0f]"
-                  >
-                    <option value="Computer Science">Computer Science</option>
-                    <option value="Engineering">Engineering</option>
-                    <option value="Business / Finance">Business / Finance</option>
-                    <option value="Pre-Med / Biology">Pre-Med / Biology</option>
-                    <option value="Humanities">Humanities</option>
-                  </select>
-                </div>
+              {/* Title Header */}
+              <div className="text-center max-w-2xl mx-auto mb-8 relative z-10">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase text-indigo-300 bg-indigo-500/15 border border-indigo-500/30 px-3 py-1 rounded-full mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+                  Instant Calibration Simulator
+                </span>
+                <h3 className="text-[26px] md:text-[32px] font-extrabold text-white mb-2 tracking-tight">
+                  Ready to evaluate your admissions odds?
+                </h3>
+                <p className="text-slate-300 text-[14px]">
+                  Adjust your numbers in real-time to simulate your academic rigor score, spike tier, and target university acceptance odds.
+                </p>
               </div>
 
-              <button
-                onClick={() => onNavigate('builder')}
-                className="glass-btn-primary font-bold text-[13px] px-6 py-2.5 rounded-xl cursor-pointer"
-              >
-                Launch Profile Assessment →
-              </button>
+              {/* 2 Column Interactive Calculator Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch relative z-10">
+                {/* Left Controls (7 cols) */}
+                <div className="lg:col-span-7 bg-[#121326]/90 border border-white/10 rounded-2xl p-5 md:p-6 space-y-5">
+                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <span className="text-[13px] font-bold text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px] text-indigo-400">tune</span>
+                      Input Profile Metrics
+                    </span>
+                    <span className="text-[11px] text-slate-400">Live recalculation</span>
+                  </div>
+
+                  {/* GPA Slider & Input */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="text-[12.5px] font-semibold text-slate-200">Unweighted GPA (4.0 Scale)</label>
+                      <span className="text-[14px] font-extrabold text-indigo-400 font-mono">{demoGpa}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="range"
+                        min="3.0"
+                        max="4.0"
+                        step="0.05"
+                        value={demoGpa}
+                        onChange={(e) => setDemoGpa(e.target.value)}
+                        className="w-full accent-indigo-500 h-2 bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                      <input 
+                        type="number"
+                        step="0.01"
+                        min="1.0"
+                        max="4.0"
+                        value={demoGpa}
+                        onChange={(e) => setDemoGpa(e.target.value)}
+                        className="w-20 px-2.5 py-1.5 text-[13px] font-bold text-center bg-black/40 border border-white/15 rounded-lg text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* AP / IB Counter */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="text-[12.5px] font-semibold text-slate-200">AP / IB Advanced Classes</label>
+                      <span className="text-[14px] font-extrabold text-indigo-400 font-mono">{demoAps} Courses</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setDemoAps(String(Math.max(0, parseInt(demoAps) - 1)))}
+                        className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold text-[18px] flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                      >
+                        -
+                      </button>
+                      <input 
+                        type="number"
+                        min="0"
+                        max="20"
+                        value={demoAps}
+                        onChange={(e) => setDemoAps(e.target.value)}
+                        className="flex-1 px-3 py-2 text-[14px] font-bold text-center bg-black/40 border border-white/15 rounded-xl text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setDemoAps(String(Math.min(20, parseInt(demoAps) + 1)))}
+                        className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold text-[18px] flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Target Major Select */}
+                  <div>
+                    <label className="block text-[12.5px] font-semibold text-slate-200 mb-1.5">Target Major</label>
+                    <select 
+                      value={demoMajor}
+                      onChange={(e) => setDemoMajor(e.target.value)}
+                      className="w-full px-3.5 py-2.5 text-[13px] font-semibold bg-black/40 border border-white/15 rounded-xl text-white focus:outline-none focus:border-indigo-400"
+                    >
+                      <option value="Computer Science">Computer Science &amp; AI</option>
+                      <option value="Engineering">Engineering &amp; Robotics</option>
+                      <option value="Business / Finance">Business / Finance / Economics</option>
+                      <option value="Pre-Med / Biology">Pre-Med / Bio &amp; Neuroscience</option>
+                      <option value="Humanities">Humanities &amp; Political Science</option>
+                    </select>
+                  </div>
+
+                  {/* Extracurricular Tier Selector */}
+                  <div>
+                    <label className="block text-[12.5px] font-semibold text-slate-200 mb-1.5">Top Extracurricular Depth</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: 'Tier 1', label: 'Tier 1: Nat\'l / Olympiad' },
+                        { id: 'Tier 2', label: 'Tier 2: State / Regional' },
+                        { id: 'Tier 3', label: 'Tier 3: School Captain' },
+                        { id: 'Tier 4', label: 'Tier 4: General Member' }
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setDemoEcTier(t.id as any)}
+                          className={`px-3 py-2 rounded-xl text-[11.5px] font-medium border text-left transition-all cursor-pointer ${
+                            demoEcTier === t.id
+                              ? 'bg-indigo-600/30 border-indigo-400 text-white font-bold shadow-sm'
+                              : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Calculated Results Display (5 cols) */}
+                <div className="lg:col-span-5 bg-gradient-to-b from-[#151730] to-[#0c0d1c] border border-indigo-500/40 rounded-2xl p-5 md:p-6 flex flex-col justify-between relative shadow-xl overflow-hidden">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                      <span className="text-[12px] font-bold text-slate-300 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px] text-emerald-400">analytics</span>
+                        Live Curve Analysis
+                      </span>
+                      <span className={`text-[10.5px] font-extrabold px-2.5 py-0.5 rounded-full border ${oddsBadgeColor}`}>
+                        {oddsBadge}
+                      </span>
+                    </div>
+
+                    {/* Competitiveness Index Gauge */}
+                    <div>
+                      <div className="flex justify-between items-baseline mb-1">
+                        <span className="text-[12px] text-slate-300 font-medium">Competitiveness Index</span>
+                        <span className="text-[28px] font-black text-white">{compScore}<span className="text-[14px] text-slate-400 font-normal">/100</span></span>
+                      </div>
+                      <div className="w-full bg-slate-800/80 h-2.5 rounded-full overflow-hidden border border-white/10">
+                        <div 
+                          className="bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${compScore}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Simulates <strong className="text-emerald-400">Top {100 - percentile}%</strong> of national applicants in {demoMajor}
+                      </p>
+                    </div>
+
+                    {/* 2 Mini Stats */}
+                    <div className="grid grid-cols-2 gap-2.5 pt-1">
+                      <div className="bg-white/5 p-2.5 rounded-xl border border-white/5">
+                        <div className="text-[10.5px] text-slate-400">Academic Rigor</div>
+                        <div className="text-[18px] font-extrabold text-indigo-300">{rigorScore} <span className="text-[11px] text-slate-400 font-normal">/ 10</span></div>
+                      </div>
+                      <div className="bg-white/5 p-2.5 rounded-xl border border-white/5">
+                        <div className="text-[10.5px] text-slate-400">Est. Top 20 Odds</div>
+                        <div className="text-[16px] font-bold text-emerald-300">{oddsText}</div>
+                      </div>
+                    </div>
+
+                    {/* Live Dynamic Tip */}
+                    <div className="bg-indigo-950/50 p-3 rounded-xl border border-indigo-500/25">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-300 mb-1">
+                        <span className="material-symbols-outlined text-[14px]">psychology</span>
+                        Diagnostic Insight
+                      </div>
+                      <p className="text-[11.5px] text-slate-300 leading-relaxed italic">
+                        &quot;{dynamicTip}&quot;
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* CTA Button */}
+                  <div className="pt-4 mt-4 border-t border-white/10">
+                    <button
+                      onClick={() => onNavigate('builder')}
+                      className="w-full py-3 px-5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-bold text-[13px] shadow-[0_4px_20px_rgba(99,102,241,0.4)] hover:shadow-[0_6px_25px_rgba(99,102,241,0.6)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <span>Launch Full Profile Assessment</span>
+                      <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>

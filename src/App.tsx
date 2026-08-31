@@ -8,6 +8,7 @@ import { ProfileBuilderView } from './components/ProfileBuilderView';
 import { ResultsView } from './components/ResultsView';
 import { ActivitiesView } from './components/ActivitiesView';
 import { AdmissionsCoachView } from './components/AdmissionsCoachView';
+import { UniversitiesView } from './components/UniversitiesView';
 import { FloatingCoachWidget } from './components/FloatingCoachWidget';
 import { SettingsView } from './components/SettingsView';
 import { AuthView } from './components/AuthView';
@@ -26,6 +27,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredAuthUser());
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(INITIAL_ANALYSIS_RESULT);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Central Navigation handler with auth enforcement
@@ -89,6 +91,7 @@ export default function App() {
   // Profile update handler
   const handleUpdateProfile = (updated: Partial<UserProfile>) => {
     setUserProfile((prev) => ({ ...prev, ...updated }));
+    setHasUnsavedChanges(true);
   };
 
   // Activity handlers
@@ -97,6 +100,7 @@ export default function App() {
       ...prev,
       activities: [...prev.activities, activity]
     }));
+    setHasUnsavedChanges(true);
   };
 
   const handleDeleteActivity = (id: string) => {
@@ -104,10 +108,12 @@ export default function App() {
       ...prev,
       activities: prev.activities.filter((a) => a.id !== id)
     }));
+    setHasUnsavedChanges(true);
   };
 
   const handleUpdateActivities = (activities: ActivityItem[]) => {
     setUserProfile((prev) => ({ ...prev, activities }));
+    setHasUnsavedChanges(true);
   };
 
   // Award handlers
@@ -116,6 +122,7 @@ export default function App() {
       ...prev,
       awards: [...prev.awards, award]
     }));
+    setHasUnsavedChanges(true);
   };
 
   const handleDeleteAward = (id: string) => {
@@ -123,6 +130,7 @@ export default function App() {
       ...prev,
       awards: prev.awards.filter((a) => a.id !== id)
     }));
+    setHasUnsavedChanges(true);
   };
 
   // Checklist handler in Results
@@ -174,6 +182,7 @@ export default function App() {
       setAnalysisResult(localResult);
     } finally {
       setIsAnalyzing(false);
+      setHasUnsavedChanges(false);
       setUserProfile((prev) => ({
         ...prev,
         lastAnalyzedDate: 'Just now'
@@ -280,6 +289,18 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => {
+                    setActiveScreen('colleges');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`p-3 rounded-xl text-left font-semibold transition-all flex items-center gap-2 ${
+                    activeScreen === 'colleges' ? 'glass-pill text-white font-bold border-indigo-500/40 bg-indigo-500/20' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[18px] text-indigo-400">school</span>
+                  <span>Target Universities</span>
+                </button>
+                <button
+                  onClick={() => {
                     setActiveScreen('builder');
                     setMobileMenuOpen(false);
                   }}
@@ -357,10 +378,11 @@ export default function App() {
                 <DashboardView
                   userProfile={userProfile}
                   analysis={analysisResult}
-                  onNavigate={setActiveScreen}
+                  onNavigate={handleNavigate}
                   onUpdateProfile={handleUpdateProfile}
                   onReanalyze={handleRunAnalysis}
                   isAnalyzing={isAnalyzing}
+                  hasUnsavedChanges={hasUnsavedChanges}
                   onOpenContextNotes={() => setIsContextNotesOpen(true)}
                   onOpenReviewDrafts={() => setIsReviewDraftsOpen(true)}
                 />
@@ -370,8 +392,16 @@ export default function App() {
                 <AdmissionsCoachView
                   userProfile={userProfile}
                   analysis={analysisResult}
-                  onNavigate={setActiveScreen}
+                  onNavigate={handleNavigate}
                   onOpenContextNotes={() => setIsContextNotesOpen(true)}
+                />
+              )}
+
+              {activeScreen === 'colleges' && (
+                <UniversitiesView
+                  userProfile={userProfile}
+                  onUpdateProfile={handleUpdateProfile}
+                  onNavigate={handleNavigate}
                 />
               )}
 
@@ -379,9 +409,10 @@ export default function App() {
                 <ProfileBuilderView
                   userProfile={userProfile}
                   onUpdateProfile={handleUpdateProfile}
-                  onNavigate={setActiveScreen}
+                  onNavigate={handleNavigate}
                   onRunAnalysis={handleRunAnalysis}
                   isAnalyzing={isAnalyzing}
+                  hasUnsavedChanges={hasUnsavedChanges}
                   onOpenAddActivity={() => setIsAddActivityOpen(true)}
                   onOpenAddAward={() => setIsAddAwardOpen(true)}
                   onDeleteActivity={handleDeleteActivity}
