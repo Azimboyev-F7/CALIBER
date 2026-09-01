@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ActiveScreen, ActivityItem, AwardItem, UserProfile, AnalysisResult, AuthUser } from './types';
 import { INITIAL_USER_PROFILE, INITIAL_ANALYSIS_RESULT, computeLocalAnalysis } from './data/initialData';
 import { Sidebar } from './components/Sidebar';
@@ -17,17 +17,75 @@ import { AddAwardModal } from './components/AddAwardModal';
 import { ContextNotesModal } from './components/ContextNotesModal';
 import { ReviewDraftsModal } from './components/ReviewDraftsModal';
 import { UpgradeModal } from './components/UpgradeModal';
+import { SaveStatusIndicator } from './components/SaveStatusIndicator';
 import { CoachChatProvider } from './context/CoachChatContext';
 import { getStoredAuthUser, signOutUser } from './lib/supabaseClient';
+
+const PROFILE_STORAGE_KEY = 'caliber_user_profile';
+
+const getScreenTitle = (screen: ActiveScreen) => {
+  switch (screen) {
+    case 'dashboard':
+      return 'Dashboard';
+    case 'coach':
+      return 'AI Admissions Coach';
+    case 'colleges':
+      return 'Target Universities';
+    case 'builder':
+      return 'Profile Builder';
+    case 'activities':
+      return 'My Activities';
+    case 'results':
+      return 'Results & Spike';
+    case 'settings':
+      return 'Settings';
+    default:
+      return 'Dashboard';
+  }
+};
+
+const getScreenIcon = (screen: ActiveScreen) => {
+  switch (screen) {
+    case 'dashboard':
+      return 'dashboard';
+    case 'coach':
+      return 'psychology';
+    case 'colleges':
+      return 'school';
+    case 'builder':
+      return 'edit_note';
+    case 'activities':
+      return 'history_edu';
+    case 'results':
+      return 'insights';
+    case 'settings':
+      return 'settings';
+    default:
+      return 'dashboard';
+  }
+};
 
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('landing');
   const [pendingScreen, setPendingScreen] = useState<ActiveScreen | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile>(INITIAL_USER_PROFILE);
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    try {
+      const stored = localStorage.getItem(PROFILE_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return { ...INITIAL_USER_PROFILE, ...parsed };
+      }
+    } catch (e) {
+      console.warn('Failed to load stored profile:', e);
+    }
+    return INITIAL_USER_PROFILE;
+  });
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredAuthUser());
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(INITIAL_ANALYSIS_RESULT);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved');
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Central Navigation handler with auth enforcement
@@ -88,49 +146,84 @@ export default function App() {
   const [isReviewDraftsOpen, setIsReviewDraftsOpen] = useState(false);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
 
+  // Helper to trigger real-time saving feedback and persistent storage
+  const triggerAutoSave = (updatedProfile: UserProfile) => {
+    setSaveStatus('saving');
+    setHasUnsavedChanges(true);
+    try {
+      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfile));
+    } catch (e) {
+      console.warn('Failed to persist profile:', e);
+    }
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      setSaveStatus('saved');
+    }, 650);
+  };
+
   // Profile update handler
   const handleUpdateProfile = (updated: Partial<UserProfile>) => {
-    setUserProfile((prev) => ({ ...prev, ...updated }));
-    setHasUnsavedChanges(true);
+    setUserProfile((prev) => {
+      const next = { ...prev, ...updated };
+      triggerAutoSave(next);
+      return next;
+    });
   };
 
   // Activity handlers
   const handleAddActivity = (activity: ActivityItem) => {
-    setUserProfile((prev) => ({
-      ...prev,
-      activities: [...prev.activities, activity]
-    }));
-    setHasUnsavedChanges(true);
+    setUserProfile((prev) => {
+      const next = {
+        ...prev,
+        activities: [...prev.activities, activity]
+      };
+      triggerAutoSave(next);
+      return next;
+    });
   };
 
   const handleDeleteActivity = (id: string) => {
-    setUserProfile((prev) => ({
-      ...prev,
-      activities: prev.activities.filter((a) => a.id !== id)
-    }));
-    setHasUnsavedChanges(true);
+    setUserProfile((prev) => {
+      const next = {
+        ...prev,
+        activities: prev.activities.filter((a) => a.id !== id)
+      };
+      triggerAutoSave(next);
+      return next;
+    });
   };
 
   const handleUpdateActivities = (activities: ActivityItem[]) => {
-    setUserProfile((prev) => ({ ...prev, activities }));
-    setHasUnsavedChanges(true);
+    setUserProfile((prev) => {
+      const next = { ...prev, activities };
+      triggerAutoSave(next);
+      return next;
+    });
   };
 
   // Award handlers
   const handleAddAward = (award: AwardItem) => {
-    setUserProfile((prev) => ({
-      ...prev,
-      awards: [...prev.awards, award]
-    }));
-    setHasUnsavedChanges(true);
+    setUserProfile((prev) => {
+      const next = {
+        ...prev,
+        awards: [...prev.awards, award]
+      };
+      triggerAutoSave(next);
+      return next;
+    });
   };
 
   const handleDeleteAward = (id: string) => {
-    setUserProfile((prev) => ({
-      ...prev,
-      awards: prev.awards.filter((a) => a.id !== id)
-    }));
-    setHasUnsavedChanges(true);
+    setUserProfile((prev) => {
+      const next = {
+        ...prev,
+        awards: prev.awards.filter((a) => a.id !== id)
+      };
+      triggerAutoSave(next);
+      return next;
+    });
   };
 
   // Checklist handler in Results
@@ -156,6 +249,7 @@ export default function App() {
   // Core AI Analysis runner
   const handleRunAnalysis = async () => {
     setIsAnalyzing(true);
+    let finalAnalysis: AnalysisResult = INITIAL_ANALYSIS_RESULT;
     try {
       const response = await fetch('/api/analyze-profile', {
         method: 'POST',
@@ -166,27 +260,76 @@ export default function App() {
       if (response.ok) {
         const data = await response.json();
         if (data.analysis) {
+          finalAnalysis = data.analysis;
           setAnalysisResult(data.analysis);
         } else {
           // Fallback to local heuristic evaluation engine
-          const localResult = computeLocalAnalysis(userProfile);
-          setAnalysisResult(localResult);
+          finalAnalysis = computeLocalAnalysis(userProfile);
+          setAnalysisResult(finalAnalysis);
         }
       } else {
-        const localResult = computeLocalAnalysis(userProfile);
-        setAnalysisResult(localResult);
+        finalAnalysis = computeLocalAnalysis(userProfile);
+        setAnalysisResult(finalAnalysis);
       }
     } catch (err) {
       console.warn('Backend call failed, using local model:', err);
-      const localResult = computeLocalAnalysis(userProfile);
-      setAnalysisResult(localResult);
+      finalAnalysis = computeLocalAnalysis(userProfile);
+      setAnalysisResult(finalAnalysis);
     } finally {
       setIsAnalyzing(false);
       setHasUnsavedChanges(false);
-      setUserProfile((prev) => ({
-        ...prev,
-        lastAnalyzedDate: 'Just now'
-      }));
+      setSaveStatus('saved');
+
+      // Compute latest snapshot metrics
+      const leadershipCount = userProfile.activities.filter((a) => a.isLeadership || a.tier <= 2).length;
+      const leadershipScore = Math.min(96, Math.max(50, 60 + leadershipCount * 8));
+      const awardsScore = Math.min(95, Math.max(45, 55 + userProfile.awards.length * 12));
+      const parsedSat = parseInt(userProfile.satScore, 10);
+      let testingScore = 78;
+      if (!isNaN(parsedSat) && parsedSat > 0) {
+        testingScore = Math.min(99, Math.max(50, Math.round(((parsedSat - 1100) / 500) * 45 + 54)));
+      }
+      const overallScore = Math.round(
+        (finalAnalysis.academicRigorScore +
+          finalAnalysis.extracurricularDepthScore +
+          leadershipScore +
+          awardsScore +
+          finalAnalysis.narrativeCohesionScore +
+          testingScore) / 6
+      );
+
+      const newSnapshot = {
+        id: `eval-${Date.now()}`,
+        date: 'Current (Aug 2026)',
+        timestamp: Date.now(),
+        overallScore,
+        academicRigorScore: finalAnalysis.academicRigorScore,
+        extracurricularDepthScore: finalAnalysis.extracurricularDepthScore,
+        narrativeCohesionScore: finalAnalysis.narrativeCohesionScore,
+        leadershipScore,
+        honorsScore: awardsScore,
+        testingReadinessScore: testingScore,
+        benchmarkTargetScore: 88,
+        keyMilestoneEvent: `Updated Analysis: ${finalAnalysis.spikeCategory || 'Admissions Audit'}`,
+        overallRating: finalAnalysis.overallRating,
+        notes: finalAnalysis.aiInsight ? finalAnalysis.aiInsight.slice(0, 110) + '...' : 'Audited profile updates.'
+      };
+
+      setUserProfile((prev) => {
+        const existingHistory = prev.analysisHistory || [];
+        const filtered = existingHistory.filter((h) => !h.date.includes('Current'));
+        const next = {
+          ...prev,
+          lastAnalyzedDate: 'Just now',
+          analysisHistory: [...filtered, newSnapshot]
+        };
+        try {
+          localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(next));
+        } catch (e) {
+          console.warn('Failed to save updated history:', e);
+        }
+        return next;
+      });
       setActiveScreen('results');
     }
   };
@@ -206,6 +349,10 @@ export default function App() {
             onOpenUpgrade={() => setIsUpgradeOpen(true)}
             currentUser={currentUser}
             onSignOut={handleSignOut}
+            hasUnsavedChanges={hasUnsavedChanges}
+            saveStatus={saveStatus}
+            onReanalyze={handleRunAnalysis}
+            isAnalyzing={isAnalyzing}
           />
         ) : activeScreen === 'auth' ? (
           <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
@@ -214,6 +361,10 @@ export default function App() {
               onOpenUpgrade={() => setIsUpgradeOpen(true)}
               currentUser={currentUser}
               onSignOut={handleSignOut}
+              hasUnsavedChanges={hasUnsavedChanges}
+              saveStatus={saveStatus}
+              onReanalyze={handleRunAnalysis}
+              isAnalyzing={isAnalyzing}
             />
             <div className="fixed inset-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-2xl overflow-y-auto pt-10 pb-16">
               <AuthView
@@ -237,28 +388,9 @@ export default function App() {
               onSignOut={handleSignOut}
             />
 
-            {/* Mobile Navigation Header */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/10 z-40 flex items-center justify-between px-4">
-              <div
-                className="flex items-center gap-2 cursor-pointer"
-                onClick={() => setActiveScreen('landing')}
-              >
-                <span className="text-[20px] font-extrabold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Caliber</span>
-              </div>
-
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 text-slate-400 hover:text-white cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[24px]">
-                  {mobileMenuOpen ? 'close' : 'menu'}
-                </span>
-              </button>
-            </div>
-
             {/* Mobile Drawer */}
             {mobileMenuOpen && (
-              <div className="md:hidden fixed inset-0 top-16 z-50 bg-[#0a0a0f]/95 backdrop-blur-2xl border-b border-white/10 p-6 space-y-3.5 flex flex-col overflow-y-auto">
+              <div className="md:hidden fixed inset-0 top-14 z-50 bg-[#0a0a0f]/95 backdrop-blur-2xl border-b border-white/10 p-6 space-y-3.5 flex flex-col overflow-y-auto">
                 <button
                   onClick={() => {
                     setActiveScreen('dashboard');
@@ -371,82 +503,131 @@ export default function App() {
               </div>
             )}
 
+            {/* Right Container: Global In-App Header + Main Content View */}
+            <div className="flex-1 flex flex-col h-full ml-0 md:ml-56 overflow-hidden">
+              {/* Global In-App Header Bar */}
+              <header className="h-14 shrink-0 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-4 md:px-7 z-30 shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
+                {/* Left: Mobile Brand / Desktop Breadcrumb Path */}
+                <div className="flex items-center gap-3">
+                  <div
+                    className="md:hidden flex items-center gap-2 cursor-pointer"
+                    onClick={() => handleNavigate('landing')}
+                  >
+                    <span className="text-[19px] font-extrabold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                      Caliber
+                    </span>
+                  </div>
 
-            {/* Main Content Area */}
-            <main className="flex-1 ml-0 md:ml-56 h-full overflow-y-auto bg-transparent pt-14 md:pt-0">
-              {activeScreen === 'dashboard' && (
-                <DashboardView
-                  userProfile={userProfile}
-                  analysis={analysisResult}
-                  onNavigate={handleNavigate}
-                  onUpdateProfile={handleUpdateProfile}
-                  onReanalyze={handleRunAnalysis}
-                  isAnalyzing={isAnalyzing}
-                  hasUnsavedChanges={hasUnsavedChanges}
-                  onOpenContextNotes={() => setIsContextNotesOpen(true)}
-                  onOpenReviewDrafts={() => setIsReviewDraftsOpen(true)}
-                />
-              )}
+                  <div className="hidden md:flex items-center gap-2 text-[13px] select-none">
+                    <span className="material-symbols-outlined text-[17px] text-indigo-400">
+                      {getScreenIcon(activeScreen)}
+                    </span>
+                    <span className="text-slate-500 font-medium">Caliber</span>
+                    <span className="text-slate-600 font-semibold">/</span>
+                    <span className="text-white font-semibold">
+                      {getScreenTitle(activeScreen)}
+                    </span>
+                  </div>
+                </div>
 
-              {activeScreen === 'coach' && (
-                <AdmissionsCoachView
-                  userProfile={userProfile}
-                  analysis={analysisResult}
-                  onNavigate={handleNavigate}
-                  onOpenContextNotes={() => setIsContextNotesOpen(true)}
-                />
-              )}
+                {/* Right: Real-Time Changes Saved / Saving Indicator & Mobile Menu Toggle */}
+                <div className="flex items-center gap-3">
+                  <SaveStatusIndicator
+                    saveStatus={saveStatus}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                    onReanalyze={handleRunAnalysis}
+                    isAnalyzing={isAnalyzing}
+                  />
 
-              {activeScreen === 'colleges' && (
-                <UniversitiesView
-                  userProfile={userProfile}
-                  onUpdateProfile={handleUpdateProfile}
-                  onNavigate={handleNavigate}
-                />
-              )}
+                  {/* Mobile Menu Button */}
+                  <button
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    className="md:hidden p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-all cursor-pointer"
+                    aria-label="Toggle Navigation Menu"
+                  >
+                    <span className="material-symbols-outlined text-[24px]">
+                      {mobileMenuOpen ? 'close' : 'menu'}
+                    </span>
+                  </button>
+                </div>
+              </header>
 
-              {activeScreen === 'builder' && (
-                <ProfileBuilderView
-                  userProfile={userProfile}
-                  onUpdateProfile={handleUpdateProfile}
-                  onNavigate={handleNavigate}
-                  onRunAnalysis={handleRunAnalysis}
-                  isAnalyzing={isAnalyzing}
-                  hasUnsavedChanges={hasUnsavedChanges}
-                  onOpenAddActivity={() => setIsAddActivityOpen(true)}
-                  onOpenAddAward={() => setIsAddAwardOpen(true)}
-                  onDeleteActivity={handleDeleteActivity}
-                  onDeleteAward={handleDeleteAward}
-                />
-              )}
+              {/* Main Content Area */}
+              <main className="flex-1 h-full overflow-y-auto bg-transparent">
+                {activeScreen === 'dashboard' && (
+                  <DashboardView
+                    userProfile={userProfile}
+                    analysis={analysisResult}
+                    onNavigate={handleNavigate}
+                    onUpdateProfile={handleUpdateProfile}
+                    onReanalyze={handleRunAnalysis}
+                    isAnalyzing={isAnalyzing}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                    onOpenContextNotes={() => setIsContextNotesOpen(true)}
+                    onOpenReviewDrafts={() => setIsReviewDraftsOpen(true)}
+                  />
+                )}
 
-              {activeScreen === 'results' && (
-                <ResultsView
-                  userProfile={userProfile}
-                  analysis={analysisResult}
-                  onNavigate={setActiveScreen}
-                  onToggleStep={handleToggleStep}
-                  onAddCustomStep={handleAddCustomStep}
-                />
-              )}
+                {activeScreen === 'coach' && (
+                  <AdmissionsCoachView
+                    userProfile={userProfile}
+                    analysis={analysisResult}
+                    onNavigate={handleNavigate}
+                    onOpenContextNotes={() => setIsContextNotesOpen(true)}
+                  />
+                )}
 
-              {activeScreen === 'activities' && (
-                <ActivitiesView
-                  userProfile={userProfile}
-                  onUpdateActivities={handleUpdateActivities}
-                  onOpenAddActivity={() => setIsAddActivityOpen(true)}
-                  onNavigate={setActiveScreen}
-                />
-              )}
+                {activeScreen === 'colleges' && (
+                  <UniversitiesView
+                    userProfile={userProfile}
+                    onUpdateProfile={handleUpdateProfile}
+                    onNavigate={handleNavigate}
+                  />
+                )}
 
-              {activeScreen === 'settings' && (
-                <SettingsView
-                  userProfile={userProfile}
-                  onUpdateProfile={handleUpdateProfile}
-                  onNavigate={setActiveScreen}
-                />
-              )}
-            </main>
+                {activeScreen === 'builder' && (
+                  <ProfileBuilderView
+                    userProfile={userProfile}
+                    onUpdateProfile={handleUpdateProfile}
+                    onNavigate={handleNavigate}
+                    onRunAnalysis={handleRunAnalysis}
+                    isAnalyzing={isAnalyzing}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                    onOpenAddActivity={() => setIsAddActivityOpen(true)}
+                    onOpenAddAward={() => setIsAddAwardOpen(true)}
+                    onDeleteActivity={handleDeleteActivity}
+                    onDeleteAward={handleDeleteAward}
+                  />
+                )}
+
+                {activeScreen === 'results' && (
+                  <ResultsView
+                    userProfile={userProfile}
+                    analysis={analysisResult}
+                    onNavigate={setActiveScreen}
+                    onToggleStep={handleToggleStep}
+                    onAddCustomStep={handleAddCustomStep}
+                  />
+                )}
+
+                {activeScreen === 'activities' && (
+                  <ActivitiesView
+                    userProfile={userProfile}
+                    onUpdateActivities={handleUpdateActivities}
+                    onOpenAddActivity={() => setIsAddActivityOpen(true)}
+                    onNavigate={setActiveScreen}
+                  />
+                )}
+
+                {activeScreen === 'settings' && (
+                  <SettingsView
+                    userProfile={userProfile}
+                    onUpdateProfile={handleUpdateProfile}
+                    onNavigate={setActiveScreen}
+                  />
+                )}
+              </main>
+            </div>
 
             {/* Floating AI Coach Quick Access Widget */}
             <FloatingCoachWidget

@@ -7,13 +7,21 @@ interface LandingViewProps {
   onOpenUpgrade: () => void;
   currentUser?: AuthUser | null;
   onSignOut?: () => void;
+  hasUnsavedChanges?: boolean;
+  saveStatus?: 'saved' | 'saving';
+  onReanalyze?: () => void;
+  isAnalyzing?: boolean;
 }
 
 export const LandingView: React.FC<LandingViewProps> = ({
   onNavigate,
   onOpenUpgrade,
   currentUser,
-  onSignOut
+  onSignOut,
+  hasUnsavedChanges = false,
+  saveStatus = 'saved',
+  onReanalyze,
+  isAnalyzing = false
 }) => {
   const [demoGpa, setDemoGpa] = useState('3.9');
   const [demoAps, setDemoAps] = useState('8');
@@ -67,6 +75,10 @@ export const LandingView: React.FC<LandingViewProps> = ({
         onOpenPricing={onOpenUpgrade}
         currentUser={currentUser}
         onSignOut={onSignOut}
+        hasUnsavedChanges={hasUnsavedChanges}
+        saveStatus={saveStatus}
+        onReanalyze={onReanalyze}
+        isAnalyzing={isAnalyzing}
       />
 
 

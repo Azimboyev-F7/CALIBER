@@ -1,26 +1,48 @@
 import React from 'react';
 import { ActiveScreen, AuthUser } from '../types';
+import { SaveStatusIndicator } from './SaveStatusIndicator';
 
 interface TopNavBarProps {
   onNavigate: (screen: ActiveScreen) => void;
   onOpenPricing?: () => void;
   currentUser?: AuthUser | null;
   onSignOut?: () => void;
+  hasUnsavedChanges?: boolean;
+  saveStatus?: 'saved' | 'saving';
+  onReanalyze?: () => void;
+  isAnalyzing?: boolean;
 }
 
 export const TopNavBar: React.FC<TopNavBarProps> = ({
   onNavigate,
   onOpenPricing,
   currentUser,
-  onSignOut
+  onSignOut,
+  hasUnsavedChanges = false,
+  saveStatus = 'saved',
+  onReanalyze,
+  isAnalyzing = false
 }) => {
   return (
     <nav className="sticky bg-white/[0.03] backdrop-blur-xl top-0 z-50 transition-all duration-300 border-b border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.25)]">
       <div className="flex justify-between items-center w-full px-5 md:px-7 max-w-[1140px] mx-auto h-14">
-        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => onNavigate('landing')}>
-          <span className="text-[20px] font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-300 bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">
-            Caliber
-          </span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 cursor-pointer group" onClick={() => onNavigate('landing')}>
+            <span className="text-[20px] font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-300 bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">
+              Caliber
+            </span>
+          </div>
+
+          {currentUser && (
+            <div className="hidden sm:block">
+              <SaveStatusIndicator
+                saveStatus={saveStatus}
+                hasUnsavedChanges={hasUnsavedChanges}
+                onReanalyze={onReanalyze}
+                isAnalyzing={isAnalyzing}
+              />
+            </div>
+          )}
         </div>
 
         <div className="hidden md:flex items-center space-x-6">

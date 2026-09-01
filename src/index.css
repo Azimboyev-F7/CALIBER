@@ -228,3 +228,15 @@ select option:hover {
   color: #ffffff !important;
 }
 
+/* Remove spin buttons / scroll stepper arrows in all number inputs */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+}
+

@@ -71,6 +71,23 @@ export interface CollegeTarget {
   checklist?: ApplicationChecklistItem[];
 }
 
+export interface AnalysisHistoryEntry {
+  id: string;
+  date: string; // e.g. "Jun 2025", "Sep 2025", "Nov 2025", "Jan 2026", "Current"
+  timestamp: number;
+  overallScore: number;
+  academicRigorScore: number;
+  extracurricularDepthScore: number;
+  narrativeCohesionScore: number;
+  leadershipScore: number;
+  honorsScore: number;
+  testingReadinessScore: number;
+  benchmarkTargetScore?: number;
+  keyMilestoneEvent?: string;
+  overallRating?: 'Exceptional' | 'Strong' | 'Competitive' | 'Developing';
+  notes?: string;
+}
+
 export interface UserProfile {
   name: string;
   avatarUrl: string;
@@ -89,6 +106,7 @@ export interface UserProfile {
   awards: AwardItem[];
   targetColleges: CollegeTarget[];
   contextNotes: string;
+  analysisHistory?: AnalysisHistoryEntry[];
 }
 
 export interface AnalysisResult {

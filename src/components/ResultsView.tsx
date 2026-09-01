@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { ActiveScreen, AdmissionsAnalysis, UserProfile } from '../types';
+import { SpikeRadarChart, RadarDimension } from './SpikeRadarChart';
+import { ProfileGrowthHistoryChart } from './ProfileGrowthHistoryChart';
 
 interface ResultsViewProps {
   userProfile: UserProfile;
@@ -11,7 +13,7 @@ interface ResultsViewProps {
 }
 
 type BenchmarkTarget = 't20' | 't50' | 'liberalArts';
-type ResultsTab = 'matrix' | 'simulator' | 'rubric';
+type ResultsTab = 'radar' | 'history' | 'matrix' | 'simulator' | 'rubric';
 
 export const ResultsView: React.FC<ResultsViewProps> = ({
   userProfile,
@@ -26,8 +28,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   const [newStepText, setNewStepText] = useState('');
   const [isAddingStep, setIsAddingStep] = useState(false);
   const [benchmarkTarget, setBenchmarkTarget] = useState<BenchmarkTarget>('t20');
-  const [activeTab, setActiveTab] = useState<ResultsTab>('matrix');
-  const [selectedPillarKey, setSelectedPillarKey] = useState<string>('Rigor');
+  const [activeTab, setActiveTab] = useState<ResultsTab>('radar');
+  const [selectedPillarKey, setSelectedPillarKey] = useState<string>('Spike');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -54,14 +56,100 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   const awardsCount = userProfile.awards.length;
   const awardsScore = Math.min(95, Math.max(45, 55 + awardsCount * 12));
 
+  // Compute standardized testing readiness score (0-100)
+  const parsedSat = parseInt(userProfile.satScore, 10);
+  const parsedIelts = parseFloat(userProfile.ieltsScore || '0');
+  let testingScore = 78;
+  if (!isNaN(parsedSat) && parsedSat > 0) {
+    testingScore = Math.min(99, Math.max(50, Math.round(((parsedSat - 1100) / 500) * 45 + 54)));
+  } else if (!isNaN(parsedIelts) && parsedIelts > 0) {
+    testingScore = Math.min(98, Math.max(50, Math.round((parsedIelts / 9) * 98)));
+  }
+
   // Benchmark targets
   const benchmarkMultipliers = {
-    t20: { targetName: 'Top 20 National Avg', rigor: 92, spike: 88, leadership: 86, awards: 84, cohesion: 88 },
-    t50: { targetName: 'Top 50 National Avg', rigor: 82, spike: 75, leadership: 74, awards: 70, cohesion: 75 },
-    liberalArts: { targetName: 'Top LAC Avg', rigor: 88, spike: 82, leadership: 90, awards: 78, cohesion: 92 }
+    t20: { targetName: 'Top 20 National Avg', rigor: 92, spike: 88, leadership: 86, awards: 84, cohesion: 88, testing: 93 },
+    t50: { targetName: 'Top 50 National Avg', rigor: 82, spike: 75, leadership: 74, awards: 70, cohesion: 75, testing: 82 },
+    liberalArts: { targetName: 'Top LAC Avg', rigor: 88, spike: 82, leadership: 90, awards: 78, cohesion: 92, testing: 87 }
   };
 
   const currentBenchmark = benchmarkMultipliers[benchmarkTarget];
+
+  // Data for the 6 Admissions Radar Dimensions
+  const radarDimensions: RadarDimension[] = [
+    {
+      key: 'rigor',
+      name: 'Academic Rigor & GPA',
+      shortName: 'Academic Rigor',
+      studentScore: analysis.academicRigorScore,
+      benchmarkScore: currentBenchmark.rigor,
+      nationalAvg: 64,
+      icon: 'menu_book',
+      color: '#818cf8',
+      description: `Unweighted ${userProfile.unweightedGpa} GPA with ${userProfile.apIbHonorsCount} advanced AP/IB courses.`,
+      rubricRating: analysis.academicRigorScore >= 90 ? 'Tier 1 (Elite Course Load)' : 'Tier 2 (Competitive)'
+    },
+    {
+      key: 'spike',
+      name: 'Extracurricular Spike',
+      shortName: 'Spike',
+      studentScore: analysis.extracurricularDepthScore,
+      benchmarkScore: currentBenchmark.spike,
+      nationalAvg: 52,
+      icon: 'bolt',
+      color: '#a855f7',
+      description: `Distinctive focus area: "${analysis.spikeCategory}" with concentrated initiative.`,
+      rubricRating: analysis.extracurricularDepthScore >= 88 ? 'Tier 1 (Memorable Hook)' : 'Tier 2 (Solid Specialization)'
+    },
+    {
+      key: 'leadership',
+      name: 'Leadership & Real-World Impact',
+      shortName: 'Leadership',
+      studentScore: leadershipScore,
+      benchmarkScore: currentBenchmark.leadership,
+      nationalAvg: 58,
+      icon: 'groups',
+      color: '#38bdf8',
+      description: `${leadershipCount} leadership & founding initiatives across ${userProfile.activities.length} logged pursuits.`,
+      rubricRating: leadershipScore >= 85 ? 'Tier 1-2 (Initiator/Leader)' : 'Tier 2-3 (Active Contributor)'
+    },
+    {
+      key: 'honors',
+      name: 'Honors & External Validation',
+      shortName: 'Honors',
+      studentScore: awardsScore,
+      benchmarkScore: currentBenchmark.awards,
+      nationalAvg: 46,
+      icon: 'military_tech',
+      color: '#f59e0b',
+      description: `${awardsCount} verified honors, STEM, or regional recognitions.`,
+      rubricRating: awardsScore >= 80 ? 'State/National Recognized' : 'School/Local Level'
+    },
+    {
+      key: 'narrative',
+      name: 'Narrative Cohesion & Major Fit',
+      shortName: 'Narrative',
+      studentScore: analysis.narrativeCohesionScore,
+      benchmarkScore: currentBenchmark.cohesion,
+      nationalAvg: 50,
+      icon: 'auto_stories',
+      color: '#ec4899',
+      description: `Harmonious story aligning ${userProfile.intendedMajor} with coursework and essays.`,
+      rubricRating: analysis.narrativeCohesionScore >= 85 ? 'High Cohesion Arc' : 'Developing Arc'
+    },
+    {
+      key: 'testing',
+      name: 'Standardized Testing & Readiness',
+      shortName: 'Testing',
+      studentScore: testingScore,
+      benchmarkScore: currentBenchmark.testing,
+      nationalAvg: 56,
+      icon: 'psychology_alt',
+      color: '#10b981',
+      description: userProfile.satScore ? `SAT score: ${userProfile.satScore} / IELTS: ${userProfile.ieltsScore || 'N/A'}` : 'Holistic testing profile',
+      rubricRating: testingScore >= 90 ? '99th Percentile' : 'Competitive Tier'
+    }
+  ];
 
   // Data for the 5 Admissions Pillars
   const pillarsData = [
@@ -137,7 +225,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     }
   ];
 
-  const activePillar = pillarsData.find((p) => p.shortName === selectedPillarKey) || pillarsData[0];
+  const activePillar = pillarsData.find((p) => p.shortName.toLowerCase() === selectedPillarKey.toLowerCase() || p.pillar.toLowerCase().includes(selectedPillarKey.toLowerCase())) || pillarsData[0];
+  const activeRadarDim = radarDimensions.find((d) => d.shortName.toLowerCase() === selectedPillarKey.toLowerCase() || d.key.toLowerCase() === selectedPillarKey.toLowerCase() || d.name.toLowerCase().includes(selectedPillarKey.toLowerCase())) || radarDimensions[1];
 
   // College tier simulation breakdown
   const reachColleges = (userProfile.targetColleges || []).filter((c) => c.category === 'reach');
@@ -146,7 +235,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
   // Overall average profile rating
   const overallStandingScore = Math.round(
-    (analysis.academicRigorScore + analysis.extracurricularDepthScore + leadershipScore + awardsScore + analysis.narrativeCohesionScore) / 5
+    (analysis.academicRigorScore + analysis.extracurricularDepthScore + leadershipScore + awardsScore + analysis.narrativeCohesionScore + testingScore) / 6
   );
 
   return (
@@ -200,9 +289,19 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="md:col-span-4 glass-card rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-[#10101a] to-[#0d0d14] flex items-center justify-between shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
           <div className="space-y-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400">
-              Overall Standing
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400">
+                Overall Standing
+              </span>
+              <button
+                onClick={() => setActiveTab('history')}
+                className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-all flex items-center gap-1 cursor-pointer"
+                title="View Improvement Line Chart"
+              >
+                <span className="material-symbols-outlined text-[11px]">trending_up</span>
+                <span>+22% Growth</span>
+              </button>
+            </div>
             <h3 className="text-[26px] font-extrabold text-white">
               {analysis.overallRating}
             </h3>
@@ -230,12 +329,37 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
       {/* Tabs Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setActiveTab('radar')}
+            className={`px-3.5 py-1.5 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'radar'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/40'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">radar</span>
+            <span>Spike Radar Chart</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-3.5 py-1.5 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'history'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/40'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]">trending_up</span>
+            <span>Growth Timeline</span>
+            <span className="text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
+              +22%
+            </span>
+          </button>
           <button
             onClick={() => setActiveTab('matrix')}
             className={`px-3.5 py-1.5 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'matrix'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/40'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
@@ -246,7 +370,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             onClick={() => setActiveTab('simulator')}
             className={`px-3.5 py-1.5 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'simulator'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/40'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
@@ -257,7 +381,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             onClick={() => setActiveTab('rubric')}
             className={`px-3.5 py-1.5 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'rubric'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/40'
                 : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
@@ -267,11 +391,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         </div>
 
         {/* Benchmark Switcher */}
-        <div className="flex items-center bg-white/[0.04] p-0.5 rounded-xl border border-white/10">
+        <div className="flex items-center bg-white/[0.04] p-0.5 rounded-xl border border-white/10 shrink-0">
           <button
             onClick={() => setBenchmarkTarget('t20')}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-              benchmarkTarget === 't20' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+              benchmarkTarget === 't20' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
             }`}
           >
             Top 20
@@ -279,7 +403,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           <button
             onClick={() => setBenchmarkTarget('t50')}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-              benchmarkTarget === 't50' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+              benchmarkTarget === 't50' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
             }`}
           >
             Top 50
@@ -287,7 +411,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           <button
             onClick={() => setBenchmarkTarget('liberalArts')}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-              benchmarkTarget === 'liberalArts' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+              benchmarkTarget === 'liberalArts' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'
             }`}
           >
             Top LAC
@@ -295,7 +419,169 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         </div>
       </div>
 
-      {/* TAB 1: PILLARS & DELTA MATRIX */}
+      {/* TAB 0: D3 SPIKE RADAR CHART VIEW */}
+      {activeTab === 'radar' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-fade-in">
+          {/* D3 Radar Chart Container (Span 7) */}
+          <div className="lg:col-span-7 glass-card rounded-2xl p-5 md:p-6 flex flex-col justify-between shadow-[0_6px_24px_0_rgba(0,0,0,0.32)] border border-white/15">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-[16px] font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-indigo-400 text-[20px]">radar</span>
+                    Applicant Narrative Spike Geometry
+                  </h3>
+                  <p className="text-[12px] text-slate-400">
+                    D3-rendered polygon mapping your profile dimensions against the {currentBenchmark.targetName}.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setActiveTab('matrix')}
+                  className="glass-btn-secondary px-2.5 py-1 rounded-lg text-[11.5px] font-semibold text-slate-300 flex items-center gap-1 cursor-pointer hover:text-white"
+                  title="Switch to bar chart matrix view"
+                >
+                  <span className="material-symbols-outlined text-[14px]">view_column</span>
+                  <span>Bar View</span>
+                </button>
+              </div>
+
+              {/* D3 Radar SVG Component */}
+              <SpikeRadarChart
+                dimensions={radarDimensions}
+                benchmarkTitle={currentBenchmark.targetName}
+                selectedDimensionKey={selectedPillarKey}
+                onSelectDimension={(key) => setSelectedPillarKey(key)}
+                className="w-full"
+              />
+            </div>
+
+            {/* Quick Metrics Strip */}
+            <div className="mt-4 pt-3.5 border-t border-white/10 grid grid-cols-3 gap-2 text-center text-[11px]">
+              <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Strongest Dimension</span>
+                <span className="font-bold text-emerald-300 truncate block mt-0.5">
+                  {radarDimensions.reduce((prev, curr) => (curr.studentScore > prev.studentScore ? curr : prev)).name}
+                </span>
+              </div>
+              <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Opportunity Gap</span>
+                <span className="font-bold text-amber-300 truncate block mt-0.5">
+                  {radarDimensions.reduce((prev, curr) => (curr.studentScore - curr.benchmarkScore < prev.studentScore - prev.benchmarkScore ? curr : prev)).name}
+                </span>
+              </div>
+              <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Selected Lens</span>
+                <span className="font-bold text-indigo-300 truncate block mt-0.5">
+                  {activeRadarDim.shortName} ({activeRadarDim.studentScore}%)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Spike Spotlight & Deep-Dive (Span 5) */}
+          <div className="lg:col-span-5 glass-card rounded-2xl p-5 md:p-6 flex flex-col justify-between shadow-[0_6px_24px_0_rgba(0,0,0,0.32)] border border-indigo-500/30 bg-gradient-to-b from-indigo-950/30 via-[#10101a] to-[#0d0d14]">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                    <span className="material-symbols-outlined text-[20px]">{activeRadarDim.icon || 'bolt'}</span>
+                  </div>
+                  <div>
+                    <h3 className="text-[16px] font-bold text-white">
+                      {activeRadarDim.name}
+                    </h3>
+                    <span className="text-[11px] text-indigo-300 font-medium">Selected Dimension Strategy</span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10.5px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {activeRadarDim.rubricRating || 'Competitive'}
+                </span>
+              </div>
+
+              {/* Active Dimension Details */}
+              <div className="bg-white/[0.04] p-4 rounded-xl border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10.5px] font-bold text-indigo-400 uppercase tracking-wider">
+                    Dimension Evaluation
+                  </span>
+                  <span className="text-[12px] font-extrabold text-white">
+                    {activeRadarDim.studentScore}% <span className="text-slate-400 text-[10.5px] font-normal">vs {activeRadarDim.benchmarkScore}% pool</span>
+                  </span>
+                </div>
+                <p className="text-[12.5px] text-slate-200 leading-relaxed">
+                  {activeRadarDim.description}
+                </p>
+                <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-white/5">
+                  <span>Ivy Scale Target: <strong>{activePillar.rubricScale || '1-2 / 5'}</strong></span>
+                  <span className={activeRadarDim.studentScore >= activeRadarDim.benchmarkScore ? 'text-emerald-300 font-bold' : 'text-amber-300 font-bold'}>
+                    {activeRadarDim.studentScore >= activeRadarDim.benchmarkScore ? `+${activeRadarDim.studentScore - activeRadarDim.benchmarkScore}% Lead` : `${activeRadarDim.studentScore - activeRadarDim.benchmarkScore}% Gap`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Primary Spike Archetype Card */}
+              <div className="bg-gradient-to-br from-purple-950/20 to-indigo-950/20 p-3.5 rounded-xl border border-purple-500/20 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10.5px] font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px]">verified</span>
+                    Admissions Spike Archetype
+                  </span>
+                  <span className="text-[11px] text-indigo-300 font-bold">{analysis.spikeCategory}</span>
+                </div>
+                <p className="text-[12px] text-slate-300 leading-relaxed">
+                  {analysis.spikeDescription}
+                </p>
+              </div>
+
+              {/* Reader Committee Perspective */}
+              <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 space-y-1">
+                <div className="flex items-center gap-1.5 text-indigo-300 text-[11px] font-bold">
+                  <span className="material-symbols-outlined text-[14px]">record_voice_over</span>
+                  Committee Reader Deliberation Lens:
+                </div>
+                <p className="text-[11.5px] text-slate-200 italic leading-snug">
+                  "{activePillar.committeeLens}"
+                </p>
+              </div>
+
+              {/* Priority Recommendation */}
+              {analysis.priorityRecommendation && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                  <div className="flex items-center gap-1.5 text-amber-300 text-[11px] font-bold">
+                    <span className="material-symbols-outlined text-[14px]">priority_high</span>
+                    Key Tactical Move:
+                  </div>
+                  <p className="text-[11.5px] text-slate-300 leading-relaxed">
+                    {activePillar.tacticalMove || analysis.priorityRecommendation.description}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 mt-2 border-t border-white/10">
+              <button
+                onClick={() => onNavigate('coach')}
+                className="w-full py-2.5 glass-btn-primary font-bold text-[13px] rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-500/25"
+              >
+                <span className="material-symbols-outlined text-[17px]">psychology</span>
+                <span>Ask AI Coach: Elevate {activeRadarDim.shortName}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 1: RECHARTS PROFILE GROWTH & STRENGTH HISTORY LINE CHART */}
+      {activeTab === 'history' && (
+        <ProfileGrowthHistoryChart
+          userProfile={userProfile}
+          analysis={analysis}
+          onNavigate={onNavigate}
+        />
+      )}
+
+      {/* TAB 2: PILLARS & DELTA MATRIX */}
       {activeTab === 'matrix' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-fade-in">
           {/* Main Visual Delta Bars (Span 7) */}
@@ -311,14 +597,24 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     Comparing your metrics against the {currentBenchmark.targetName}.
                   </p>
                 </div>
-                <div className="flex items-center gap-3 text-[11px]">
-                  <div className="flex items-center gap-1.5 text-indigo-300 font-semibold">
-                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
-                    <span>Your Standing</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-purple-300 font-semibold">
-                    <span className="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
-                    <span>Target Pool</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setActiveTab('radar')}
+                    className="glass-btn-secondary px-2.5 py-1 rounded-lg text-[11.5px] font-semibold text-slate-300 flex items-center gap-1 cursor-pointer hover:text-white"
+                    title="Switch to Spike Radar Chart view"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">radar</span>
+                    <span>Radar View</span>
+                  </button>
+                  <div className="hidden sm:flex items-center gap-3 text-[11px]">
+                    <div className="flex items-center gap-1.5 text-indigo-300 font-semibold">
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+                      <span>Your Standing</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-purple-300 font-semibold">
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+                      <span>Target Pool</span>
+                    </div>
                   </div>
                 </div>
               </div>

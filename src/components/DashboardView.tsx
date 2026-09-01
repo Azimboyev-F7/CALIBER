@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ActiveScreen, AdmissionsAnalysis, UserProfile } from '../types';
 import { TargetCollegesSummaryWidget } from './TargetCollegesSummaryWidget';
+import { CollegeApplicationTimeline } from './CollegeApplicationTimeline';
 
 interface DashboardViewProps {
   userProfile: UserProfile;
@@ -580,6 +581,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* College Application Timeline Component */}
+      <CollegeApplicationTimeline
+        userProfile={userProfile}
+        onNavigate={onNavigate}
+        onUpdateProfile={onUpdateProfile}
+      />
 
       {/* Target Universities Portfolio Widget */}
       <TargetCollegesSummaryWidget

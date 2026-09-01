@@ -202,6 +202,72 @@ export const INITIAL_USER_PROFILE: UserProfile = {
         { id: 'chk-3', label: 'Decision Received - Admitted!', completed: true }
       ]
     }
+  ],
+  analysisHistory: [
+    {
+      id: 'eval-1',
+      date: 'Jun 2025',
+      timestamp: new Date(2025, 5, 1).getTime(),
+      overallScore: 64,
+      academicRigorScore: 78,
+      extracurricularDepthScore: 58,
+      narrativeCohesionScore: 54,
+      leadershipScore: 56,
+      honorsScore: 50,
+      testingReadinessScore: 72,
+      benchmarkTargetScore: 88,
+      keyMilestoneEvent: 'Baseline Diagnostic Profile (Sophomore/Junior Summer Audit)',
+      overallRating: 'Developing',
+      notes: 'Initial evaluation; 4 honors, no state awards yet, preparing for PSAT.'
+    },
+    {
+      id: 'eval-2',
+      date: 'Sep 2025',
+      timestamp: new Date(2025, 8, 15).getTime(),
+      overallScore: 72,
+      academicRigorScore: 82,
+      extracurricularDepthScore: 68,
+      narrativeCohesionScore: 62,
+      leadershipScore: 66,
+      honorsScore: 64,
+      testingReadinessScore: 84,
+      benchmarkTargetScore: 88,
+      keyMilestoneEvent: 'State Science Fair 1st Place + Robotics Lead Programmer Role',
+      overallRating: 'Competitive',
+      notes: 'Added STEM optical sensor research + First Tech Challenge computer vision.'
+    },
+    {
+      id: 'eval-3',
+      date: 'Dec 2025',
+      timestamp: new Date(2025, 11, 20).getTime(),
+      overallScore: 79,
+      academicRigorScore: 86,
+      extracurricularDepthScore: 74,
+      narrativeCohesionScore: 66,
+      leadershipScore: 78,
+      honorsScore: 76,
+      testingReadinessScore: 92,
+      benchmarkTargetScore: 88,
+      keyMilestoneEvent: 'Official SAT 1520 Score + Elected Debate Team Captain',
+      overallRating: 'Strong',
+      notes: 'Major spike jump in standardized testing percentile and speech leadership.'
+    },
+    {
+      id: 'eval-4',
+      date: 'Mar 2026',
+      timestamp: new Date(2026, 2, 10).getTime(),
+      overallScore: 83,
+      academicRigorScore: 88,
+      extracurricularDepthScore: 76,
+      narrativeCohesionScore: 70,
+      leadershipScore: 84,
+      honorsScore: 82,
+      testingReadinessScore: 94,
+      benchmarkTargetScore: 88,
+      keyMilestoneEvent: 'National Merit Scholar Semifinalist + USACO Silver',
+      overallRating: 'Strong',
+      notes: 'External national validations secured in mathematics & algorithms.'
+    }
   ]
 };
 

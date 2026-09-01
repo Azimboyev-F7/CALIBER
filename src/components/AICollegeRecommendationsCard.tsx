@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   UserProfile, 
   RecommendedCollege, 
   CollegeRecommendationsResult, 
-  CollegeTarget 
+  CollegeTarget,
+  CollegeCategory 
 } from '../types';
 
 interface AICollegeRecommendationsCardProps {
@@ -17,8 +18,14 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
   onUpdateProfile,
   onShowToast
 }) => {
-  // Generate unique profile fingerprint to detect meaningful changes in stats/major/preferences
-  const profileKey = `${userProfile.unweightedGpa}-${userProfile.ieltsScore || ''}-${userProfile.preferredCountry || ''}-${userProfile.budgetPerYear || ''}-${userProfile.satScore}-${userProfile.apIbHonorsCount}-${userProfile.intendedMajor}-${userProfile.activities.length}`;
+  const [activeTab, setActiveTab] = useState<'all' | 'reach' | 'target' | 'safety'>('all');
+  const [selectedCollegeForDetail, setSelectedCollegeForDetail] = useState<RecommendedCollege | null>(null);
+
+  const effectiveRegion = userProfile.preferredCountry || 'United States';
+  const effectiveMajor = userProfile.intendedMajor || 'Computer Science';
+
+  // Generate unique profile fingerprint to detect changes
+  const profileKey = `${userProfile.unweightedGpa}-${userProfile.ieltsScore || ''}-${effectiveRegion}-${userProfile.budgetPerYear || ''}-${userProfile.satScore}-${userProfile.apIbHonorsCount}-${effectiveMajor}-${userProfile.activities.length}`;
 
   const [recommendations, setRecommendations] = useState<CollegeRecommendationsResult | null>(() => {
     try {
@@ -31,19 +38,33 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
     }
     return null;
   });
+
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'reach' | 'target' | 'safety'>('all');
   const [lastFetchedKey, setLastFetchedKey] = useState<string>(() => {
     return recommendations ? profileKey : '';
   });
 
   const fetchRecommendations = useCallback(async (isManualTrigger = false) => {
     setIsLoading(true);
+    const regionToSend = userProfile.preferredCountry || 'United States';
+    const majorToSend = userProfile.intendedMajor || 'Computer Science';
+
+    const modifiedProfile = {
+      ...userProfile,
+      preferredCountry: regionToSend,
+      intendedMajor: majorToSend
+    };
+
+    const currentKey = `${modifiedProfile.unweightedGpa}-${modifiedProfile.ieltsScore || ''}-${regionToSend}-${modifiedProfile.budgetPerYear || ''}-${modifiedProfile.satScore}-${modifiedProfile.apIbHonorsCount}-${majorToSend}-${modifiedProfile.activities.length}`;
+
     try {
       const res = await fetch('/api/recommend-colleges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile: userProfile })
+        body: JSON.stringify({ 
+          profile: modifiedProfile,
+          filterRegion: regionToSend
+        })
       });
 
       if (!res.ok) {
@@ -53,127 +74,93 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
       const data = await res.json();
       if (data && data.data) {
         setRecommendations(data.data);
-        setLastFetchedKey(profileKey);
+        setLastFetchedKey(currentKey);
         try {
-          sessionStorage.setItem(`caliber_rec_${profileKey}`, JSON.stringify(data.data));
+          sessionStorage.setItem(`caliber_rec_${currentKey}`, JSON.stringify(data.data));
         } catch (e) {
           // ignore
         }
         if (isManualTrigger) {
-          onShowToast?.('AI University matches & personalized rates generated!');
+          onShowToast?.(`Generated ${data.data.reachRecommendations?.length + data.data.targetRecommendations?.length + data.data.safetyRecommendations?.length} personalized university matches!`);
         }
       }
     } catch (err) {
+      console.warn('[AI Recommendations] Encountered error, using robust fallback', err);
       // Fallback local calculation
-      const fallbackReaches: RecommendedCollege[] = [
-        {
-          id: 'rec-mit',
-          name: 'MIT',
-          category: 'reach',
-          baselineAcceptanceRate: '3.9%',
-          estimatedAdmitRate: '8.8%',
-          matchScore: 95,
-          location: 'Cambridge, MA',
-          deadline: 'Nov 1',
-          round: 'Early Action (EA)',
-          whyFit: `Exceptional alignment with your quantitative rigor and ${userProfile.intendedMajor.toUpperCase()} focus.`,
-          keyFactor: 'STEM Maker/Research portfolio depth.',
-          strengthAlignment: 'very_high'
-        },
-        {
-          id: 'rec-stanford',
-          name: 'Stanford University',
-          category: 'reach',
-          baselineAcceptanceRate: '3.6%',
-          estimatedAdmitRate: '7.9%',
-          matchScore: 93,
-          location: 'Stanford, CA',
-          deadline: 'Nov 1',
-          round: 'Restrictive Early Action (REA)',
-          whyFit: 'High synergy with cross-disciplinary innovation and entrepreneurial leadership.',
-          keyFactor: 'Intellectual vitality and authentic voice in short essays.',
-          strengthAlignment: 'very_high'
-        }
-      ];
-
-      const fallbackTargets: RecommendedCollege[] = [
-        {
-          id: 'rec-umich',
-          name: 'University of Michigan',
-          category: 'target',
-          baselineAcceptanceRate: '17.7%',
-          estimatedAdmitRate: '46.0%',
-          matchScore: 91,
-          location: 'Ann Arbor, MI',
-          deadline: 'Nov 1',
-          round: 'Early Action (EA)',
-          whyFit: 'Top-tier undergraduate research facilities and world-class department network.',
-          keyFactor: 'Specific Why Michigan essay details and demonstrated interest.',
-          strengthAlignment: 'high'
-        },
-        {
-          id: 'rec-gatech',
-          name: 'Georgia Tech',
-          category: 'target',
-          baselineAcceptanceRate: '15.0%',
-          estimatedAdmitRate: '41.5%',
-          matchScore: 92,
-          location: 'Atlanta, GA',
-          deadline: 'Oct 15',
-          round: 'Early Action 1 (EA1)',
-          whyFit: 'Premier technological research institute with rapid career placement.',
-          keyFactor: 'Demonstrated quantitative excellence in STEM coursework.',
-          strengthAlignment: 'very_high'
-        }
-      ];
-
-      const fallbackSafeties: RecommendedCollege[] = [
-        {
-          id: 'rec-purdue',
-          name: 'Purdue University',
-          category: 'safety',
-          baselineAcceptanceRate: '50.3%',
-          estimatedAdmitRate: '84.0%',
-          matchScore: 88,
-          location: 'West Lafayette, IN',
-          deadline: 'Nov 1',
-          round: 'Early Action (EA)',
-          whyFit: 'Excellent engineering & computing programs with reliable admissions odds.',
-          keyFactor: 'Submitting by Nov 1 priority deadline for Honors College & scholarship review.',
-          strengthAlignment: 'high'
-        }
-      ];
-
       const fallbackData: CollegeRecommendationsResult = {
-        summary: `Based on your GPA (${userProfile.unweightedGpa || '3.85'}) and testing (${userProfile.satScore || '1500+'}), you have strong positioning for selective institutions.`,
-        academicCompetitivenessTier: 'Top 5% Highly Competitive',
-        reachRecommendations: fallbackReaches,
-        targetRecommendations: fallbackTargets,
-        safetyRecommendations: fallbackSafeties,
+        summary: `Based on your GPA (${userProfile.unweightedGpa || 'N/A'}), SAT (${userProfile.satScore || 'N/A'}), and target in ${regionToSend}, recommendations and admissions probabilities have been realistically calibrated.`,
+        academicCompetitivenessTier: 'Foundational / Developing Portfolio',
+        reachRecommendations: [
+          {
+            id: 'rec-pennstate',
+            name: 'Penn State University',
+            category: 'reach',
+            baselineAcceptanceRate: '55.0%',
+            estimatedAdmitRate: '22.0%',
+            matchScore: 84,
+            location: 'University Park, PA, USA',
+            deadline: 'Nov 1',
+            round: 'Early Action (EA)',
+            whyFit: `Prominent Big Ten research university with strong STEM resources and academic pathways in ${majorToSend}.`,
+            keyFactor: 'Consistent senior-year grades and applying early to the main campus.',
+            strengthAlignment: 'moderate'
+          }
+        ],
+        targetRecommendations: [
+          {
+            id: 'rec-asu',
+            name: 'Arizona State University (ASU)',
+            category: 'target',
+            baselineAcceptanceRate: '89.0%',
+            estimatedAdmitRate: '65.0%',
+            matchScore: 90,
+            location: 'Tempe, AZ, USA',
+            deadline: 'Rolling',
+            round: 'Rolling Admission',
+            whyFit: 'High innovation curriculum with extensive undergraduate research opportunities.',
+            keyFactor: 'Meeting standard competency requirements in math and laboratory sciences.',
+            strengthAlignment: 'high'
+          }
+        ],
+        safetyRecommendations: [
+          {
+            id: 'rec-uta',
+            name: 'University of Texas at Arlington (UTA)',
+            category: 'safety',
+            baselineAcceptanceRate: '93.0%',
+            estimatedAdmitRate: '85.0%',
+            matchScore: 89,
+            location: 'Arlington, TX, USA',
+            deadline: 'Rolling',
+            round: 'Rolling Admission',
+            whyFit: 'Carnegie R1 research university in the Dallas-Fort Worth metroplex with very accessible admissions.',
+            keyFactor: 'Direct submission of transcripts and English proficiency proof.',
+            strengthAlignment: 'high'
+          }
+        ],
         strategyNotes: [
-          'Apply to at least 2 Reach schools via Early Action to maximize yield without binding commitment.',
-          'Craft institutional supplement essays tailored to specific faculty labs and campus initiatives.'
+          `Apply early to priority deadlines (Early Action) to maximize admissions consideration.`,
+          `IELTS score (${userProfile.ieltsScore || '7.0'}) meets standard international criteria for listed institutions.`,
+          `Ensure financial aid requirements (FAFSA / CSS / merit scholarships) are submitted before deadlines.`
         ]
       };
 
       setRecommendations(fallbackData);
-      setLastFetchedKey(profileKey);
-      try {
-        sessionStorage.setItem(`caliber_rec_${profileKey}`, JSON.stringify(fallbackData));
-      } catch (e) {
-        // ignore
-      }
+      setLastFetchedKey(currentKey);
     } finally {
       setIsLoading(false);
     }
-  }, [userProfile, profileKey, onShowToast]);
+  }, [userProfile, onShowToast]);
 
-  // Initial load only if not cached
+  // Initial load and profile-change auto refetch
   useEffect(() => {
     if (!recommendations && !isLoading) {
       fetchRecommendations(false);
+    } else if (profileKey !== lastFetchedKey && !isLoading && lastFetchedKey !== '') {
+      // Auto refresh when key changes
+      fetchRecommendations(false);
     }
-  }, [recommendations, isLoading, fetchRecommendations]);
+  }, [profileKey, lastFetchedKey, recommendations, isLoading, fetchRecommendations]);
 
   // Check if school is already in user's targetColleges
   const isSchoolAdded = (schoolName: string): boolean => {
@@ -185,7 +172,7 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
   // Add recommended school to user's main college list
   const handleAddSchool = (rec: RecommendedCollege) => {
     if (isSchoolAdded(rec.name)) {
-      onShowToast?.(`${rec.name} is already in your college list.`);
+      onShowToast?.(`${rec.name} is already in your college portfolio.`);
       return;
     }
 
@@ -198,12 +185,13 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
       deadline: rec.deadline,
       round: rec.round,
       status: 'not_started',
-      notes: `AI Match: ${rec.estimatedAdmitRate} personalized odds. ${rec.keyFactor}`,
+      notes: `AI Match (${rec.estimatedAdmitRate} personalized odds): ${rec.keyFactor}`,
       checklist: [
-        { id: `chk-1-${Date.now()}`, label: 'Main Application & Profile', completed: false },
-        { id: `chk-2-${Date.now()}`, label: 'Institutional Supplement Essays', completed: false },
+        { id: `chk-1-${Date.now()}`, label: 'Main Application & Portal Profile', completed: false },
+        { id: `chk-2-${Date.now()}`, label: 'Institutional Supplemental Essays', completed: false },
         { id: `chk-3-${Date.now()}`, label: 'Letters of Recommendation', completed: false },
-        { id: `chk-4-${Date.now()}`, label: 'Transcripts & Test Scores', completed: false }
+        { id: `chk-4-${Date.now()}`, label: 'Transcripts & Test Scores', completed: false },
+        { id: `chk-5-${Date.now()}`, label: 'Financial Aid (FAFSA / CSS / Scholarships)', completed: false }
       ]
     };
 
@@ -211,164 +199,179 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
       targetColleges: [...(userProfile.targetColleges || []), newTarget]
     });
 
-    onShowToast?.(`Added ${rec.name} to your ${rec.category.toUpperCase()} colleges!`);
+    onShowToast?.(`Added ${rec.name} to your ${rec.category.toUpperCase()} universities!`);
   };
 
   const reaches = recommendations?.reachRecommendations || [];
   const targets = recommendations?.targetRecommendations || [];
   const safeties = recommendations?.safetyRecommendations || [];
 
-  const displayList: RecommendedCollege[] = (() => {
+  const rawDisplayList: RecommendedCollege[] = useMemo(() => {
     if (activeTab === 'reach') return reaches;
     if (activeTab === 'target') return targets;
     if (activeTab === 'safety') return safeties;
     return [...reaches, ...targets, ...safeties];
-  })();
+  }, [activeTab, reaches, targets, safeties]);
 
   const isStale = lastFetchedKey !== '' && lastFetchedKey !== profileKey;
 
   return (
-    <section className="glass-card rounded-2xl p-5 md:p-6 border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-[#0d0d16] to-[#08080f] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] space-y-5">
-      {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[13px]">psychology</span>
-              AI Admissions Engine
+    <section className="glass-card rounded-2xl p-5 md:p-6 border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-[#0d0d16] to-[#08080f] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] space-y-6">
+      {/* Top Header & Overview */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-5">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[14px]">psychology</span>
+              AI Admissions Matchmaker
             </span>
             {recommendations?.academicCompetitivenessTier && (
-              <span className="text-[11.5px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+              <span className="text-[11.5px] font-bold text-emerald-300 bg-emerald-500/15 px-2.5 py-0.5 rounded-md border border-emerald-500/30 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 {recommendations.academicCompetitivenessTier}
               </span>
             )}
           </div>
-          <h3 className="text-[18px] md:text-[20px] font-extrabold text-white tracking-tight flex items-center gap-2">
-            <span className="material-symbols-outlined text-indigo-400 text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+          <h3 className="text-[20px] md:text-[22px] font-extrabold text-white tracking-tight flex items-center gap-2">
+            <span className="material-symbols-outlined text-indigo-400 text-[26px]" style={{ fontVariationSettings: "'FILL' 1" }}>
               auto_awesome
             </span>
-            AI University Recommendations &amp; Estimated Admission Rates
+            Personalized University Recommendations &amp; Admit Odds
           </h3>
-          <p className="text-[12.5px] md:text-[13px] text-slate-300 mb-2">
-            Real-time university matches calculated based on your GPA, IELTS, Preferred Country, Budget, and Major.
+          <p className="text-[13px] text-slate-300">
+            Intelligent recommendations factoring in your GPA ({userProfile.unweightedGpa || 'N/A'}), SAT ({userProfile.satScore || 'N/A'}), IELTS ({userProfile.ieltsScore || 'N/A'}), Budget ({userProfile.budgetPerYear || 'Flexible'}), and Extracurricular Spike.
           </p>
-
-          {/* Active Criteria Badges */}
-          <div className="flex flex-wrap items-center gap-2 text-[11.5px]">
-            <span className="bg-indigo-500/15 text-indigo-200 px-2.5 py-1 rounded-lg border border-indigo-500/30 flex items-center gap-1 font-medium">
-              <span className="material-symbols-outlined text-[14px] text-indigo-400">public</span>
-              Country: <strong className="text-white">{userProfile.preferredCountry || 'United States'}</strong>
-            </span>
-            <span className="bg-purple-500/15 text-purple-200 px-2.5 py-1 rounded-lg border border-purple-500/30 flex items-center gap-1 font-medium">
-              <span className="material-symbols-outlined text-[14px] text-purple-400">translate</span>
-              IELTS: <strong className="text-white">{userProfile.ieltsScore || '7.5'}</strong>
-            </span>
-            <span className="bg-emerald-500/15 text-emerald-200 px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1 font-medium">
-              <span className="material-symbols-outlined text-[14px] text-emerald-400">payments</span>
-              Budget: <strong className="text-white">{userProfile.budgetPerYear || '$25,000 - $45,000 / yr'}</strong>
-            </span>
-          </div>
         </div>
 
-        {/* Refresh / Re-evaluate Button */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Action Controls */}
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
           {isStale && (
-            <span className="text-[11.5px] text-amber-300 font-semibold flex items-center gap-1 animate-pulse">
-              <span className="material-symbols-outlined text-[14px]">info</span>
-              Stats Updated
+            <span className="text-[11.5px] text-amber-300 font-semibold flex items-center gap-1 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/30 animate-pulse">
+              <span className="material-symbols-outlined text-[14px]">update</span>
+              Profile Criteria Changed
             </span>
           )}
           <button
             onClick={() => fetchRecommendations(true)}
             disabled={isLoading}
-            className={`px-3.5 py-2 rounded-xl text-[12.5px] font-bold flex items-center gap-1.5 cursor-pointer shadow-md transition-all ${
+            className={`px-4 py-2.5 rounded-xl text-[13px] font-bold flex items-center gap-2 cursor-pointer shadow-lg transition-all ${
               isStale
-                ? 'bg-gradient-to-r from-amber-500 to-indigo-600 text-white shadow-amber-500/30'
-                : 'glass-btn-primary shadow-indigo-500/20'
+                ? 'bg-gradient-to-r from-amber-500 to-indigo-600 text-white shadow-amber-500/30 hover:brightness-110'
+                : 'glass-btn-primary shadow-indigo-500/20 hover:border-indigo-400/50'
             } disabled:opacity-50`}
           >
-            <span className={`material-symbols-outlined text-[16px] ${isLoading ? 'animate-spin' : ''}`}>
+            <span className={`material-symbols-outlined text-[17px] ${isLoading ? 'animate-spin' : ''}`}>
               {isLoading ? 'sync' : 'auto_mode'}
             </span>
-            <span>{isLoading ? 'Calculating Odds...' : 'Recalculate AI Rates'}</span>
+            <span>{isLoading ? 'Calculating Match Odds...' : 'Recalculate AI Rates'}</span>
           </button>
         </div>
       </div>
 
-      {/* Summary Banner if loaded */}
+      {/* Summary Narrative Banner */}
       {recommendations?.summary && (
-        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 text-[12.5px] text-slate-300 flex items-start gap-2.5">
-          <span className="material-symbols-outlined text-indigo-400 text-[18px] shrink-0 mt-0.5">
-            insights
-          </span>
-          <div className="flex-1">
-            <span className="font-semibold text-white">Admissions Profile Assessment: </span>
-            {recommendations.summary}
+        <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-[#0f0f1c] border border-indigo-500/25 text-[13px] text-slate-200 flex items-start gap-3 shadow-inner">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5">
+            <span className="material-symbols-outlined text-indigo-300 text-[18px]">insights</span>
+          </div>
+          <div className="flex-1 space-y-1">
+            <div className="font-bold text-white flex items-center gap-2">
+              Admissions Portfolio Diagnosis
+              <span className="text-[11px] font-normal text-indigo-300">
+                (Destination: {effectiveRegion} • Major: {effectiveMajor})
+              </span>
+            </div>
+            <p className="leading-relaxed text-slate-300">{recommendations.summary}</p>
           </div>
         </div>
       )}
 
-      {/* Segmented Tier Filter Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1 bg-white/[0.04] p-1 rounded-xl border border-white/10">
+      {/* Tier Category Tabs */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+        <div className="flex items-center gap-1.5 bg-white/[0.04] p-1.5 rounded-xl border border-white/10 flex-wrap">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-3 py-1 rounded-lg text-[12px] font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'all'
-                ? 'bg-indigo-600 text-white shadow-sm'
+                ? 'bg-indigo-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            All Recommended ({reaches.length + targets.length + safeties.length})
+            <span>All Matches</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10.5px] bg-white/20">
+              {reaches.length + targets.length + safeties.length}
+            </span>
           </button>
+
           <button
             onClick={() => setActiveTab('reach')}
-            className={`px-3 py-1 rounded-lg text-[12px] font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'reach'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-rose-300 hover:text-white'
+                ? 'bg-rose-600 text-white shadow-md'
+                : 'text-rose-300/80 hover:text-white'
             }`}
           >
-            Reach ({reaches.length})
+            <span>Reach</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10.5px] bg-rose-950/60 border border-rose-500/30">
+              {reaches.length}
+            </span>
           </button>
+
           <button
             onClick={() => setActiveTab('target')}
-            className={`px-3 py-1 rounded-lg text-[12px] font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'target'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-indigo-300 hover:text-white'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-indigo-300/80 hover:text-white'
             }`}
           >
-            Target ({targets.length})
+            <span>Target</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10.5px] bg-indigo-950/60 border border-indigo-500/30">
+              {targets.length}
+            </span>
           </button>
+
           <button
             onClick={() => setActiveTab('safety')}
-            className={`px-3 py-1 rounded-lg text-[12px] font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               activeTab === 'safety'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-emerald-300 hover:text-white'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'text-emerald-300/80 hover:text-white'
             }`}
           >
-            Safety ({safeties.length})
+            <span>Safety</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10.5px] bg-emerald-950/60 border border-emerald-500/30">
+              {safeties.length}
+            </span>
           </button>
         </div>
 
-        <div className="text-[11.5px] text-slate-400">
-          Showing personalized match odds based on <strong className="text-white">{userProfile.intendedMajor.toUpperCase()}</strong>
+        <div className="text-[12px] text-slate-400 flex items-center gap-1.5">
+          <span className="material-symbols-outlined text-amber-400 text-[16px]">verified</span>
+          <span>Dual calculated odds (General Rate vs. Your Profile Estimated Rate)</span>
         </div>
       </div>
 
-      {/* Recommendations Cards Grid */}
-      {isLoading && !recommendations ? (
-        <div className="p-10 text-center space-y-3">
-          <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-[13px] text-slate-300 font-medium">
-            Analyzing your academic metrics &amp; matching top universities...
+      {/* Grid of Recommended Universities */}
+      {isLoading ? (
+        <div className="py-16 text-center space-y-3 glass-panel rounded-2xl border border-white/10">
+          <div className="w-10 h-10 border-3 border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <h4 className="text-[15px] font-bold text-white">Generating AI Admissions Intelligence...</h4>
+          <p className="text-[12.5px] text-slate-400 max-w-md mx-auto">
+            Matching global admissions standards in {effectiveRegion} with your unweighted GPA, test scores, and extracurricular impact.
+          </p>
+        </div>
+      ) : rawDisplayList.length === 0 ? (
+        <div className="py-12 text-center space-y-3 glass-panel rounded-2xl border border-white/10">
+          <span className="material-symbols-outlined text-slate-500 text-[36px]">school</span>
+          <h4 className="text-[15px] font-bold text-white">No recommended universities available</h4>
+          <p className="text-[12.5px] text-slate-400">
+            Click &quot;Recalculate AI Rates&quot; to generate recommendations tailored to your profile.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {displayList.map((rec) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {rawDisplayList.map((rec) => {
             const isAdded = isSchoolAdded(rec.name);
             const isReach = rec.category === 'reach';
             const isTarget = rec.category === 'target';
@@ -381,88 +384,107 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
               : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
 
             const cardBorder = isReach
-              ? 'hover:border-rose-500/40'
+              ? 'hover:border-rose-500/50'
               : isTarget
-              ? 'hover:border-indigo-500/40'
-              : 'hover:border-emerald-500/40';
+              ? 'hover:border-indigo-500/50'
+              : 'hover:border-emerald-500/50';
 
             return (
               <div
                 key={rec.id || rec.name}
-                className={`p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition-all flex flex-col justify-between space-y-3 ${cardBorder}`}
+                className={`p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-all flex flex-col justify-between space-y-3.5 shadow-sm group ${cardBorder}`}
               >
-                {/* Top Info */}
-                <div className="space-y-2">
+                {/* Header Information */}
+                <div className="space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h4 className="text-[15px] font-extrabold text-white leading-snug">
+                    <div className="flex-1 pr-1">
+                      <h4 className="text-[15.5px] font-extrabold text-white leading-snug group-hover:text-indigo-300 transition-colors">
                         {rec.name}
                       </h4>
-                      <p className="text-[11px] text-slate-400">{rec.location}</p>
+                      <p className="text-[11.5px] text-slate-400 flex items-center gap-1 mt-0.5">
+                        <span className="material-symbols-outlined text-[13px] text-slate-500">location_on</span>
+                        {rec.location}
+                      </p>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase border shrink-0 ${tierBadge}`}>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase border shrink-0 ${tierBadge}`}>
                       {rec.category}
                     </span>
                   </div>
 
-                  {/* Dual Rate Comparison: Baseline vs Personalized Estimated Rate */}
-                  <div className="grid grid-cols-2 gap-2 bg-white/[0.04] p-2.5 rounded-lg border border-white/5">
-                    <div>
+                  {/* Dual Acceptance Rate Comparison */}
+                  <div className="grid grid-cols-2 gap-2 bg-[#121220]/80 p-2.5 rounded-xl border border-white/10">
+                    <div className="space-y-0.5">
                       <span className="text-[10px] text-slate-400 uppercase font-semibold block">
-                        General Rate
+                        General Admit Rate
                       </span>
                       <span className="text-[13px] font-bold text-slate-300">
                         {rec.baselineAcceptanceRate}
                       </span>
                     </div>
 
-                    <div className="border-l border-white/10 pl-2.5">
-                      <span className="text-[10px] text-indigo-300 uppercase font-bold block flex items-center gap-1">
+                    <div className="border-l border-white/10 pl-2.5 space-y-0.5">
+                      <span className="text-[10px] text-indigo-300 uppercase font-bold flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
                         Your Est. Rate
                       </span>
-                      <span className="text-[14px] font-extrabold text-indigo-200">
+                      <span className="text-[14.5px] font-extrabold text-indigo-300">
                         {rec.estimatedAdmitRate}
                       </span>
                     </div>
                   </div>
 
                   {/* Why it Fits */}
-                  <p className="text-[12px] text-slate-300 leading-relaxed">
-                    {rec.whyFit}
-                  </p>
+                  <div className="space-y-1">
+                    <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
+                      Why It Fits Your Profile:
+                    </span>
+                    <p className="text-[12px] text-slate-300 leading-relaxed line-clamp-3">
+                      {rec.whyFit}
+                    </p>
+                  </div>
 
-                  {/* Crucial Admissions Edge / Key Factor */}
-                  <div className="text-[11px] text-amber-300/90 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20 flex items-start gap-1.5">
-                    <span className="material-symbols-outlined text-[14px] text-amber-400 shrink-0 mt-0.5">
+                  {/* Key Admissions Deciding Factor */}
+                  <div className="text-[11.5px] text-amber-200/90 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 flex items-start gap-2">
+                    <span className="material-symbols-outlined text-[15px] text-amber-400 shrink-0 mt-0.5">
                       key
                     </span>
-                    <span>
-                      <strong>Admissions Key:</strong> {rec.keyFactor}
+                    <span className="leading-snug">
+                      <strong className="text-amber-300">Admissions Edge:</strong> {rec.keyFactor}
                     </span>
                   </div>
                 </div>
 
-                {/* Bottom Action Row */}
-                <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-slate-400 truncate">
-                    {rec.round} • {rec.deadline}
-                  </span>
+                {/* Card Footer Actions */}
+                <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                  <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px] text-indigo-400">event</span>
+                    <span>{rec.round} ({rec.deadline})</span>
+                  </div>
 
-                  <button
-                    onClick={() => handleAddSchool(rec)}
-                    disabled={isAdded}
-                    className={`px-3 py-1.5 rounded-lg text-[11.5px] font-bold flex items-center gap-1 transition-all cursor-pointer shrink-0 ${
-                      isAdded
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 cursor-default'
-                        : 'glass-btn-secondary hover:bg-indigo-600 hover:text-white border-white/20'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[14px]">
-                      {isAdded ? 'check_circle' : 'add'}
-                    </span>
-                    <span>{isAdded ? 'Added to List' : 'Add to List'}</span>
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => setSelectedCollegeForDetail(rec)}
+                      className="p-1.5 rounded-lg glass-btn-secondary text-slate-300 hover:text-white cursor-pointer"
+                      title="View Details"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">visibility</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleAddSchool(rec)}
+                      disabled={isAdded}
+                      className={`px-3 py-1.5 rounded-lg text-[11.5px] font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                        isAdded
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 cursor-default font-semibold'
+                          : 'glass-btn-primary hover:bg-indigo-600 text-white'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[14px]">
+                        {isAdded ? 'check_circle' : 'add'}
+                      </span>
+                      <span>{isAdded ? 'In Portfolio' : 'Add to List'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -470,21 +492,105 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
         </div>
       )}
 
-      {/* Strategic Recommendation Advisory Notes */}
+      {/* Strategic Strategy Tips */}
       {recommendations?.strategyNotes && recommendations.strategyNotes.length > 0 && (
-        <div className="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[12px] font-bold text-indigo-300 uppercase tracking-wider">
-            <span className="material-symbols-outlined text-[15px]">tips_and_updates</span>
-            Strategic College Application Tips
+        <div className="p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/25 space-y-2">
+          <div className="flex items-center gap-2 text-[12.5px] font-bold text-indigo-300 uppercase tracking-wider">
+            <span className="material-symbols-outlined text-[17px]">tips_and_updates</span>
+            Global Admissions Counselor Strategy
           </div>
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[12px] text-slate-300">
+          <ul className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] text-slate-300">
             {recommendations.strategyNotes.map((note, idx) => (
-              <li key={idx} className="flex items-start gap-1.5">
+              <li key={idx} className="flex items-start gap-2 bg-white/[0.02] p-2.5 rounded-lg border border-white/5">
                 <span className="text-indigo-400 font-bold">•</span>
-                <span>{note}</span>
+                <span className="leading-relaxed">{note}</span>
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Detailed Modal for Recommended College */}
+      {selectedCollegeForDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#11111e] border border-indigo-500/40 rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl relative">
+            <button
+              onClick={() => setSelectedCollegeForDetail(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${
+                  selectedCollegeForDetail.category === 'reach' 
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' 
+                    : selectedCollegeForDetail.category === 'target'
+                    ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                }`}>
+                  {selectedCollegeForDetail.category} Tier
+                </span>
+                <span className="text-[12px] text-slate-400">{selectedCollegeForDetail.location}</span>
+              </div>
+              <h3 className="text-[22px] font-extrabold text-white">{selectedCollegeForDetail.name}</h3>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 bg-white/[0.03] p-3 rounded-xl border border-white/10">
+              <div>
+                <span className="text-[11px] text-slate-400 block font-semibold">General Acceptance Rate</span>
+                <span className="text-[16px] font-bold text-white">{selectedCollegeForDetail.baselineAcceptanceRate}</span>
+              </div>
+              <div className="border-l border-white/10 pl-3">
+                <span className="text-[11px] text-indigo-300 block font-bold">Your Calculated Odds</span>
+                <span className="text-[18px] font-extrabold text-indigo-300">{selectedCollegeForDetail.estimatedAdmitRate}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-[13px]">
+              <div>
+                <h5 className="font-bold text-white mb-1">Academic &amp; Program Fit</h5>
+                <p className="text-slate-300 leading-relaxed">{selectedCollegeForDetail.whyFit}</p>
+              </div>
+
+              <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 space-y-1">
+                <h5 className="font-bold text-amber-300 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px]">key</span>
+                  Decisive Admissions Factor
+                </h5>
+                <p className="text-slate-200 leading-relaxed">{selectedCollegeForDetail.keyFactor}</p>
+              </div>
+
+              <div className="flex items-center justify-between text-[12px] text-slate-300 pt-2 border-t border-white/10">
+                <span>Application Cycle: <strong>{selectedCollegeForDetail.round}</strong></span>
+                <span>Deadline: <strong>{selectedCollegeForDetail.deadline}</strong></span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                onClick={() => setSelectedCollegeForDetail(null)}
+                className="px-4 py-2 rounded-xl glass-btn-secondary text-[12.5px] font-bold cursor-pointer"
+              >
+                Close
+              </button>
+
+              <button
+                onClick={() => {
+                  handleAddSchool(selectedCollegeForDetail);
+                  setSelectedCollegeForDetail(null);
+                }}
+                disabled={isSchoolAdded(selectedCollegeForDetail.name)}
+                className="px-4 py-2 rounded-xl glass-btn-primary text-[12.5px] font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[16px]">
+                  {isSchoolAdded(selectedCollegeForDetail.name) ? 'check' : 'add'}
+                </span>
+                <span>{isSchoolAdded(selectedCollegeForDetail.name) ? 'Already Added' : 'Add to My Colleges'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

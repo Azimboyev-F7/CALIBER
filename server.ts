@@ -38,7 +38,7 @@ async function startServer() {
       model?: string;
     }
   ): Promise<any> {
-    const requestedModel = params.model || 'gemini-3.1-flash-lite';
+    const requestedModel = params.model || 'gemini-3.7-flash';
     const modelsToTry = [requestedModel, 'gemini-flash-latest', 'gemini-3.7-flash'];
     let lastError: any = null;
 
@@ -285,7 +285,7 @@ STYLE & BEHAVIORAL DIRECTIVES (CRITICAL FOR CLARITY & READABILITY):
       });
 
       const response = await generateContentWithRetry(ai, {
-        model: 'gemini-3.1-flash-lite',
+        model: 'gemini-3.7-flash',
         contents: contentsPayload,
         config: {
           systemInstruction,
@@ -396,7 +396,7 @@ STYLE & BEHAVIORAL DIRECTIVES (CRITICAL FOR CLARITY & READABILITY):
       contentsPayload.push({ role: 'user', parts: [{ text: message }] });
 
       const streamResponse = await ai.models.generateContentStream({
-        model: 'gemini-3.1-flash-lite',
+        model: 'gemini-3.7-flash',
         contents: contentsPayload,
         config: {
           systemInstruction,
@@ -490,7 +490,7 @@ Return ONLY a valid JSON object matching this TypeScript interface without markd
 }`;
 
       const response = await generateContentWithRetry(ai, {
-        model: 'gemini-3.1-flash-lite',
+        model: 'gemini-3.7-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json'
@@ -507,7 +507,7 @@ Return ONLY a valid JSON object matching this TypeScript interface without markd
       }
 
       return res.json({
-        source: 'gemini-3.1-flash-lite',
+        source: 'gemini-3.7-flash',
         success: true,
         analysis: parsed
       });
@@ -543,7 +543,7 @@ Draft: ${roughDescription}
 Provide ONLY the polished 1-2 sentence Common App description (max 150 characters), no explanation.`;
 
       const response = await generateContentWithRetry(ai, {
-        model: 'gemini-3.1-flash-lite',
+        model: 'gemini-3.7-flash',
         contents: prompt,
       });
 
@@ -558,40 +558,123 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
     }
   });
 
-  // Helper for generating deterministic intelligent college recommendations with personalized admit rates
-  function generateIntelligentCollegeRecommendations(profile: any): any {
-    const uwGpa = parseFloat(profile?.unweightedGpa || '3.8');
-    const sat = parseInt(profile?.satScore || '1480', 10);
-    const major = (profile?.intendedMajor || 'cs').toLowerCase();
-    const country = (profile?.preferredCountry || 'United States').toLowerCase();
+  // Helper for generating deterministic intelligent college recommendations with realistic, calibrated personalized admit rates
+  function generateIntelligentCollegeRecommendations(profile: any, filterTier?: string, filterRegion?: string): any {
+    const uwGpa = parseFloat(profile?.unweightedGpa || '3.5');
+    const sat = parseInt(profile?.satScore || '1350', 10);
+    const major = (profile?.intendedMajor || 'Computer Science').toLowerCase();
+    const country = (filterRegion || profile?.preferredCountry || 'United States').toLowerCase();
     const budget = profile?.budgetPerYear || 'Flexible';
-    const ielts = profile?.ieltsScore || '7.5';
-    const rigor = parseInt(profile?.apIbHonorsCount || '8', 10);
-    const activitiesCount = profile?.activities?.length || 0;
-    const hasLeadership = profile?.activities?.some((a: any) => a.isLeadership) || false;
+    const ielts = profile?.ieltsScore || '7.0';
+    const rigor = parseInt(profile?.apIbHonorsCount || '4', 10);
+    const activities = Array.isArray(profile?.activities) ? profile.activities : [];
+    const activitiesCount = activities.length;
+    const hasLeadership = activities.some((a: any) => a.isLeadership);
+    const awardsCount = Array.isArray(profile?.awards) ? profile.awards.length : 0;
 
-    // Academic strength modifier: 0.8 (developing) to 2.5 (extremely strong)
-    let academicModifier = 1.0;
-    if (uwGpa >= 3.9 && rigor >= 8) {
-      academicModifier = 2.2;
-    } else if (uwGpa >= 3.8) {
-      academicModifier = 1.6;
-    } else if (uwGpa >= 3.6) {
-      academicModifier = 1.2;
+    // Calculate Portfolio Strength Index (0 to 100)
+    let academicScore = 0;
+    if (uwGpa >= 3.95) academicScore += 25;
+    else if (uwGpa >= 3.85) academicScore += 21;
+    else if (uwGpa >= 3.70) academicScore += 16;
+    else if (uwGpa >= 3.50) academicScore += 12;
+    else if (uwGpa >= 3.20) academicScore += 7;
+    else if (uwGpa >= 2.80) academicScore += 3;
+    else academicScore += 1;
+
+    if (!isNaN(sat)) {
+      if (sat >= 1550) academicScore += 12;
+      else if (sat >= 1480) academicScore += 9;
+      else if (sat >= 1400) academicScore += 6;
+      else if (sat >= 1300) academicScore += 4;
+      else if (sat >= 1150) academicScore += 2;
     } else {
-      academicModifier = 0.9;
+      academicScore += (uwGpa >= 3.8 ? 6 : 2);
     }
 
-    if (hasLeadership && activitiesCount >= 4) {
-      academicModifier += 0.3;
-    }
+    if (rigor >= 8) academicScore += 8;
+    else if (rigor >= 5) academicScore += 5;
+    else if (rigor >= 3) academicScore += 3;
+    else academicScore += 1;
 
-    const calcAdmitRate = (baseRateStr: string, multiplier: number, cap = 92): string => {
+    let ecScore = 0;
+    if (activitiesCount >= 8) ecScore += 25;
+    else if (activitiesCount >= 5) ecScore += 18;
+    else if (activitiesCount >= 3) ecScore += 11;
+    else if (activitiesCount >= 1) ecScore += 4;
+
+    if (hasLeadership) ecScore += 8;
+    if (awardsCount >= 3) ecScore += 10;
+    else if (awardsCount >= 1) ecScore += 5;
+
+    const totalPortfolioScore = Math.min(100, academicScore + ecScore);
+
+    // Determines candidate bracket:
+    // 'elite': Score >= 75 (Top 5% T20 ready)
+    // 'competitive': Score >= 50 (Top 25% T50 contender)
+    // 'developing': Score < 50 (Foundational / Selective regional)
+    const isElite = totalPortfolioScore >= 75;
+    const isCompetitive = totalPortfolioScore >= 50 && totalPortfolioScore < 75;
+    const isDeveloping = totalPortfolioScore < 50;
+
+    // Realistic uninflated odds calculator:
+    // If a student has low portfolio (<50), their odds at a 3.9% baseline school (like MIT) should be ~0.1% to 0.3%, NEVER 3.2%!
+    const calcRealisticOdds = (baseRateStr: string): string => {
       const base = parseFloat(baseRateStr.replace('%', '')) || 10;
-      let est = Math.round(base * multiplier * 10) / 10;
-      if (est > cap) est = cap;
-      if (est < 2.0) est = 2.0;
-      return `${est}%`;
+      let calculatedOdds = 0;
+
+      if (base <= 5.0) {
+        // Hyper-selective (MIT 3.9%, Stanford 3.6%, Harvard 3.4%)
+        if (isDeveloping) {
+          calculatedOdds = Math.max(0.1, Math.round((base * 0.05) * 10) / 10); // ~0.1% - 0.2%
+        } else if (isCompetitive) {
+          calculatedOdds = Math.round((base * 0.25) * 10) / 10; // ~0.8% - 1.2%
+        } else {
+          // Elite
+          calculatedOdds = Math.round((base * 2.4) * 10) / 10; // ~8.5% - 12.0%
+        }
+      } else if (base <= 15.0) {
+        // Highly selective (CMU, Berkeley, UCLA, Cornell, Oxford)
+        if (isDeveloping) {
+          calculatedOdds = Math.max(0.4, Math.round((base * 0.12) * 10) / 10); // ~1.0% - 1.8%
+        } else if (isCompetitive) {
+          calculatedOdds = Math.round((base * 0.6) * 10) / 10; // ~5.0% - 8.0%
+        } else {
+          // Elite
+          calculatedOdds = Math.round((base * 2.2) * 10) / 10; // ~22.0% - 33.0%
+        }
+      } else if (base <= 35.0) {
+        // Selective / Target (Michigan, Georgia Tech, UIUC, UW Madison)
+        if (isDeveloping) {
+          calculatedOdds = Math.max(2.0, Math.round((base * 0.25) * 10) / 10); // ~4.0% - 7.5%
+        } else if (isCompetitive) {
+          calculatedOdds = Math.round((base * 1.1) * 10) / 10; // ~20.0% - 35.0%
+        } else {
+          // Elite
+          calculatedOdds = Math.round((base * 2.3) * 10) / 10; // ~45.0% - 68.0%
+        }
+      } else if (base <= 65.0) {
+        // Moderate (Purdue, Penn State, Ohio State, Pitt)
+        if (isDeveloping) {
+          calculatedOdds = Math.round((base * 0.45) * 10) / 10; // ~20.0% - 28.0%
+        } else if (isCompetitive) {
+          calculatedOdds = Math.round((base * 1.15) * 10) / 10; // ~55.0% - 70.0%
+        } else {
+          // Elite
+          calculatedOdds = Math.min(94, Math.round((base * 1.7) * 10) / 10); // ~85.0% - 94.0%
+        }
+      } else {
+        // High acceptance (Arizona State, Iowa State, UT Arlington)
+        if (isDeveloping) {
+          calculatedOdds = Math.round((base * 0.8) * 10) / 10; // ~55.0% - 68.0%
+        } else if (isCompetitive) {
+          calculatedOdds = Math.min(92, Math.round((base * 1.15) * 10) / 10); // ~80.0% - 90.0%
+        } else {
+          calculatedOdds = Math.min(98, Math.round((base * 1.3) * 10) / 10); // ~95.0% - 98.0%
+        }
+      }
+
+      return `${calculatedOdds.toFixed(1)}%`;
     };
 
     let reaches: any[] = [];
@@ -599,337 +682,434 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
     let safeties: any[] = [];
 
     if (country.includes('uk') || country.includes('united kingdom')) {
-      reaches = [
-        {
-          id: 'rec-oxford',
-          name: 'University of Oxford',
-          category: 'reach',
-          baselineAcceptanceRate: '14.5%',
-          estimatedAdmitRate: calcAdmitRate('14.5%', academicModifier * 0.85, 25),
-          matchScore: 95,
-          location: 'Oxford, United Kingdom',
-          deadline: 'Oct 15',
-          round: 'UCAS Deadline',
-          whyFit: `World-leading tutorial pedagogy in ${major.toUpperCase()}. Matches your IELTS ${ielts} and academic rigor.`,
-          keyFactor: 'Oxbridge admissions test (MAT/PAT/TSA) performance and academic interview.',
-          strengthAlignment: 'very_high'
-        },
-        {
-          id: 'rec-cambridge',
-          name: 'University of Cambridge',
-          category: 'reach',
-          baselineAcceptanceRate: '15.7%',
-          estimatedAdmitRate: calcAdmitRate('15.7%', academicModifier * 0.88, 28),
-          matchScore: 94,
-          location: 'Cambridge, United Kingdom',
-          deadline: 'Oct 15',
-          round: 'UCAS Deadline',
-          whyFit: 'Superb tripos degree structure and direct subject specialization from year one.',
-          keyFactor: 'Subject-specific written assessment and mathematical problem solving.',
-          strengthAlignment: 'very_high'
-        },
-        {
-          id: 'rec-imperial',
-          name: 'Imperial College London',
-          category: 'reach',
-          baselineAcceptanceRate: '11.5%',
-          estimatedAdmitRate: calcAdmitRate('11.5%', academicModifier * 0.9, 24),
-          matchScore: 93,
-          location: 'London, United Kingdom',
-          deadline: 'Jan 31',
-          round: 'UCAS Standard',
-          whyFit: 'Premier European STEM powerhouse with immediate industrial placement opportunities.',
-          keyFactor: 'Uncompromising math/physics depth and IELTS requirement met.',
-          strengthAlignment: 'very_high'
-        }
-      ];
-
-      targets = [
-        {
-          id: 'rec-ucl',
-          name: 'University College London (UCL)',
-          category: 'target',
-          baselineAcceptanceRate: '29.0%',
-          estimatedAdmitRate: calcAdmitRate('29.0%', academicModifier * 1.2, 58),
-          matchScore: 91,
-          location: 'London, United Kingdom',
-          deadline: 'Jan 31',
-          round: 'UCAS Standard',
-          whyFit: 'Global top 10 university with rich interdisciplinary research centers.',
-          keyFactor: 'UCAS Personal Statement academic alignment and IELTS score clearance.',
-          strengthAlignment: 'high'
-        },
-        {
-          id: 'rec-edinburgh',
-          name: 'University of Edinburgh',
-          category: 'target',
-          baselineAcceptanceRate: '33.0%',
-          estimatedAdmitRate: calcAdmitRate('33.0%', academicModifier * 1.25, 65),
-          matchScore: 89,
-          location: 'Edinburgh, Scotland',
-          deadline: 'Jan 31',
-          round: 'UCAS Standard',
-          whyFit: '4-year Scottish honors system allowing broader academic exploration.',
-          keyFactor: 'Consistent high school transcript and subject prerequisite grades.',
-          strengthAlignment: 'high'
-        }
-      ];
-
-      safeties = [
-        {
-          id: 'rec-manchester',
-          name: 'University of Manchester',
-          category: 'safety',
-          baselineAcceptanceRate: '56.0%',
-          estimatedAdmitRate: calcAdmitRate('56.0%', academicModifier * 1.35, 88),
-          matchScore: 87,
-          location: 'Manchester, United Kingdom',
-          deadline: 'Rolling',
-          round: 'UCAS Standard',
-          whyFit: 'Prestigious Russell Group member with high international graduate employability.',
-          keyFactor: 'Meeting minimum IELTS entry score and high school graduation criteria.',
-          strengthAlignment: 'high'
-        }
-      ];
+      if (isDeveloping) {
+        reaches = [
+          {
+            id: 'rec-manchester',
+            name: 'University of Manchester',
+            category: 'reach',
+            baselineAcceptanceRate: '56.0%',
+            estimatedAdmitRate: calcRealisticOdds('56.0%'),
+            matchScore: 82,
+            location: 'Manchester, UK',
+            deadline: 'Jan 31',
+            round: 'UCAS Standard',
+            whyFit: `Prestigious Russell Group university. Fits your current academic standing while providing room for high-caliber growth in ${major.toUpperCase()}.`,
+            keyFactor: 'Meeting minimum IELTS entry score and consistent year-12 subject performance.',
+            strengthAlignment: 'moderate'
+          },
+          {
+            id: 'rec-sheffield',
+            name: 'University of Sheffield',
+            category: 'reach',
+            baselineAcceptanceRate: '68.0%',
+            estimatedAdmitRate: calcRealisticOdds('68.0%'),
+            matchScore: 84,
+            location: 'Sheffield, UK',
+            deadline: 'Jan 31',
+            round: 'UCAS Standard',
+            whyFit: 'Strong technical and research facilities with accessible direct conditional entry schemes.',
+            keyFactor: 'UCAS Personal Statement focus and meeting subject prerequisites.',
+            strengthAlignment: 'high'
+          }
+        ];
+        targets = [
+          {
+            id: 'rec-sussex',
+            name: 'University of Sussex',
+            category: 'target',
+            baselineAcceptanceRate: '78.0%',
+            estimatedAdmitRate: calcRealisticOdds('78.0%'),
+            matchScore: 86,
+            location: 'Brighton, UK',
+            deadline: 'Jan 31',
+            round: 'UCAS Standard',
+            whyFit: 'Solid international student community with strong industry links and accessible admissions.',
+            keyFactor: 'Verified high school graduation certificate and IELTS clearance.',
+            strengthAlignment: 'high'
+          }
+        ];
+        safeties = [
+          {
+            id: 'rec-portsmouth',
+            name: 'University of Portsmouth',
+            category: 'safety',
+            baselineAcceptanceRate: '86.0%',
+            estimatedAdmitRate: calcRealisticOdds('86.0%'),
+            matchScore: 88,
+            location: 'Portsmouth, UK',
+            deadline: 'Rolling',
+            round: 'UCAS Direct',
+            whyFit: 'High student satisfaction and supportive foundation/direct degree programs.',
+            keyFactor: 'Standard academic completion and basic English proficiency.',
+            strengthAlignment: 'high'
+          }
+        ];
+      } else {
+        reaches = [
+          {
+            id: 'rec-oxford',
+            name: 'University of Oxford',
+            category: 'reach',
+            baselineAcceptanceRate: '14.5%',
+            estimatedAdmitRate: calcRealisticOdds('14.5%'),
+            matchScore: isElite ? 96 : 82,
+            location: 'Oxford, United Kingdom',
+            deadline: 'Oct 15',
+            round: 'UCAS Deadline',
+            whyFit: `World-leading tutorial pedagogy in ${major.toUpperCase()}. Demands top-percentile subject mastery and admissions test scores.`,
+            keyFactor: 'Oxbridge admissions test (MAT/PAT/TSA) score and rigorous academic interview.',
+            strengthAlignment: isElite ? 'very_high' : 'moderate'
+          },
+          {
+            id: 'rec-cambridge',
+            name: 'University of Cambridge',
+            category: 'reach',
+            baselineAcceptanceRate: '15.7%',
+            estimatedAdmitRate: calcRealisticOdds('15.7%'),
+            matchScore: isElite ? 95 : 80,
+            location: 'Cambridge, United Kingdom',
+            deadline: 'Oct 15',
+            round: 'UCAS Deadline',
+            whyFit: 'Premier academic supervision system and direct subject focus from matriculation.',
+            keyFactor: 'Subject-specific written assessment and mathematical problem-solving depth.',
+            strengthAlignment: isElite ? 'very_high' : 'moderate'
+          }
+        ];
+        targets = [
+          {
+            id: 'rec-ucl',
+            name: 'University College London (UCL)',
+            category: 'target',
+            baselineAcceptanceRate: '29.0%',
+            estimatedAdmitRate: calcRealisticOdds('29.0%'),
+            matchScore: 91,
+            location: 'London, United Kingdom',
+            deadline: 'Jan 31',
+            round: 'UCAS Standard',
+            whyFit: 'Global top 10 university with rich interdisciplinary research centers.',
+            keyFactor: 'UCAS Personal Statement academic alignment and IELTS score clearance.',
+            strengthAlignment: 'high'
+          },
+          {
+            id: 'rec-edinburgh',
+            name: 'University of Edinburgh',
+            category: 'target',
+            baselineAcceptanceRate: '33.0%',
+            estimatedAdmitRate: calcRealisticOdds('33.0%'),
+            matchScore: 89,
+            location: 'Edinburgh, Scotland',
+            deadline: 'Jan 31',
+            round: 'UCAS Standard',
+            whyFit: '4-year Scottish honors system allowing broader academic exploration.',
+            keyFactor: 'Consistent high school transcript and subject prerequisite grades.',
+            strengthAlignment: 'high'
+          }
+        ];
+        safeties = [
+          {
+            id: 'rec-manchester',
+            name: 'University of Manchester',
+            category: 'safety',
+            baselineAcceptanceRate: '56.0%',
+            estimatedAdmitRate: calcRealisticOdds('56.0%'),
+            matchScore: 87,
+            location: 'Manchester, United Kingdom',
+            deadline: 'Rolling',
+            round: 'UCAS Standard',
+            whyFit: 'Prestigious Russell Group member with high international graduate employability.',
+            keyFactor: 'Meeting minimum IELTS entry score and high school graduation criteria.',
+            strengthAlignment: 'high'
+          }
+        ];
+      }
     } else if (country.includes('canada')) {
-      reaches = [
-        {
-          id: 'rec-utoronto',
-          name: 'University of Toronto',
-          category: 'reach',
-          baselineAcceptanceRate: '43.0%',
-          estimatedAdmitRate: calcAdmitRate('43.0%', academicModifier * 1.1, 72),
-          matchScore: 94,
-          location: 'Toronto, ON, Canada',
-          deadline: 'Jan 15',
-          round: 'Early Consideration',
-          whyFit: '#1 university in Canada with massive research output and co-op opportunities.',
-          keyFactor: 'Supplementary Application video/essay response and IELTS 7.0+ standard.',
-          strengthAlignment: 'very_high'
-        },
-        {
-          id: 'rec-ubc',
-          name: 'University of British Columbia (UBC)',
-          category: 'reach',
-          baselineAcceptanceRate: '52.0%',
-          estimatedAdmitRate: calcAdmitRate('52.0%', academicModifier * 1.15, 78),
-          matchScore: 92,
-          location: 'Vancouver, BC, Canada',
-          deadline: 'Jan 15',
-          round: 'Standard Deadline',
-          whyFit: 'Top international faculty, Pacific Rim innovation hubs, and high quality of life.',
-          keyFactor: 'Personal Profile essays showcasing extracurricular engagement and leadership.',
-          strengthAlignment: 'high'
-        }
-      ];
-
-      targets = [
-        {
-          id: 'rec-waterloo',
-          name: 'University of Waterloo',
-          category: 'target',
-          baselineAcceptanceRate: '53.0%',
-          estimatedAdmitRate: calcAdmitRate('53.0%', academicModifier * 1.2, 82),
-          matchScore: 93,
-          location: 'Waterloo, ON, Canada',
-          deadline: 'Feb 1',
-          round: 'Standard Deadline',
-          whyFit: 'World-renowned Co-Op program connecting students directly to Silicon Valley tech.',
-          keyFactor: 'Admission Information Form (AIF) and Euclid Math Contest results.',
-          strengthAlignment: 'very_high'
-        },
-        {
-          id: 'rec-mcgill',
-          name: 'McGill University',
-          category: 'target',
-          baselineAcceptanceRate: '46.0%',
-          estimatedAdmitRate: calcAdmitRate('46.0%', academicModifier * 1.25, 76),
-          matchScore: 90,
-          location: 'Montreal, QC, Canada',
-          deadline: 'Jan 15',
-          round: 'Standard Deadline',
-          whyFit: 'Homeric academic tradition in vibrant bilingual Montreal, low tuition ratio.',
-          keyFactor: 'Pure high school GPA cutoff thresholds and test credentials.',
-          strengthAlignment: 'high'
-        }
-      ];
-
-      safeties = [
-        {
-          id: 'rec-sfu',
-          name: 'Simon Fraser University (SFU)',
-          category: 'safety',
-          baselineAcceptanceRate: '65.0%',
-          estimatedAdmitRate: calcAdmitRate('65.0%', academicModifier * 1.35, 90),
-          matchScore: 86,
-          location: 'Burnaby, BC, Canada',
-          deadline: 'Jan 31',
-          round: 'Standard Deadline',
-          whyFit: 'Excellent applied computing and business programs with flexible intake terms.',
-          keyFactor: 'Meeting general high school average requirements and IELTS clearance.',
-          strengthAlignment: 'high'
-        }
-      ];
-    } else if (country.includes('germany') || country.includes('europe')) {
-      reaches = [
-        {
-          id: 'rec-tum',
-          name: 'Technical University of Munich (TUM)',
-          category: 'reach',
-          baselineAcceptanceRate: '20.0%',
-          estimatedAdmitRate: calcAdmitRate('20.0%', academicModifier * 1.1, 62),
-          matchScore: 95,
-          location: 'Munich, Germany',
-          deadline: 'May 31',
-          round: 'Aptitude Assessment',
-          whyFit: 'Germany\'s premier engineering and tech university. Tuition-free/low-fee structure fits budget.',
-          keyFactor: 'Aptitude Assessment score, high school STEM transcript, and English B2/C1 proof.',
-          strengthAlignment: 'very_high'
-        },
-        {
-          id: 'rec-lmu',
-          name: 'LMU Munich',
-          category: 'reach',
-          baselineAcceptanceRate: '25.0%',
-          estimatedAdmitRate: calcAdmitRate('25.0%', academicModifier * 1.15, 68),
-          matchScore: 92,
-          location: 'Munich, Germany',
-          deadline: 'Jul 15',
-          round: 'Direct Intake',
-          whyFit: 'Top European research institution with world-class faculty and low semester fees.',
-          keyFactor: 'University entrance qualification (Hochschulzugangsberechtigung) equivalence.',
-          strengthAlignment: 'high'
-        }
-      ];
-
-      targets = [
-        {
-          id: 'rec-rwth',
-          name: 'RWTH Aachen University',
-          category: 'target',
-          baselineAcceptanceRate: '35.0%',
-          estimatedAdmitRate: calcAdmitRate('35.0%', academicModifier * 1.25, 78),
-          matchScore: 91,
-          location: 'Aachen, Germany',
-          deadline: 'Jul 15',
-          round: 'Standard Intake',
-          whyFit: 'Europe\'s largest engineering alliance university with direct industry partnerships.',
-          keyFactor: 'Solid quantitative background and formal English language certification.',
-          strengthAlignment: 'high'
-        },
-        {
-          id: 'rec-heidelberg',
-          name: 'Heidelberg University',
-          category: 'target',
-          baselineAcceptanceRate: '30.0%',
-          estimatedAdmitRate: calcAdmitRate('30.0%', academicModifier * 1.2, 72),
-          matchScore: 89,
-          location: 'Heidelberg, Germany',
-          deadline: 'Jul 15',
-          round: 'Standard Intake',
-          whyFit: 'Germany\'s oldest university with world-renowned medicine and life sciences.',
-          keyFactor: 'Subject specific high school diploma prerequisites.',
-          strengthAlignment: 'high'
-        }
-      ];
-
-      safeties = [
-        {
-          id: 'rec-tuberlin',
-          name: 'TU Berlin',
-          category: 'safety',
-          baselineAcceptanceRate: '50.0%',
-          estimatedAdmitRate: calcAdmitRate('50.0%', academicModifier * 1.35, 88),
-          matchScore: 87,
-          location: 'Berlin, Germany',
-          deadline: 'Jul 15',
-          round: 'Standard Intake',
-          whyFit: 'Vibrant capital city location with affordable tuition and high startup density.',
-          keyFactor: 'Meeting minimum IELTS requirements and document verification via uni-assist.',
-          strengthAlignment: 'high'
-        }
-      ];
-    } else if (country.includes('australia')) {
-      reaches = [
-        {
-          id: 'rec-unimelb',
-          name: 'University of Melbourne',
-          category: 'reach',
-          baselineAcceptanceRate: '70.0%',
-          estimatedAdmitRate: calcAdmitRate('70.0%', academicModifier * 1.1, 85),
-          matchScore: 94,
-          location: 'Melbourne, Australia',
-          deadline: 'Nov 30',
-          round: 'Semester 1 Intake',
-          whyFit: '#1 university in Australia with flexible Melbourne Model degree pathways.',
-          keyFactor: 'High school GPA / SAT score benchmark and IELTS 7.0 standard.',
-          strengthAlignment: 'very_high'
-        },
-        {
-          id: 'rec-usyd',
-          name: 'University of Sydney',
-          category: 'reach',
-          baselineAcceptanceRate: '30.0%',
-          estimatedAdmitRate: calcAdmitRate('30.0%', academicModifier * 1.15, 70),
-          matchScore: 92,
-          location: 'Sydney, Australia',
-          deadline: 'Jan 15',
-          round: 'Semester 1 Intake',
-          whyFit: 'Top international employability ranking and rich industry research programs.',
-          keyFactor: 'Meeting academic entry score cut-off and English language criteria.',
-          strengthAlignment: 'high'
-        }
-      ];
-
-      targets = [
-        {
-          id: 'rec-unsw',
-          name: 'UNSW Sydney',
-          category: 'target',
-          baselineAcceptanceRate: '60.0%',
-          estimatedAdmitRate: calcAdmitRate('60.0%', academicModifier * 1.25, 86),
-          matchScore: 91,
-          location: 'Sydney, Australia',
-          deadline: 'Nov 30',
-          round: 'Term 1 Intake',
-          whyFit: 'Leading engineering & technology faculty in Australia with trimesters.',
-          keyFactor: 'Direct entry GPA calculation and international scholarship review.',
-          strengthAlignment: 'high'
-        }
-      ];
-
-      safeties = [
-        {
-          id: 'rec-monash',
-          name: 'Monash University',
-          category: 'safety',
-          baselineAcceptanceRate: '70.0%',
-          estimatedAdmitRate: calcAdmitRate('70.0%', academicModifier * 1.3, 92),
-          matchScore: 88,
-          location: 'Melbourne, Australia',
-          deadline: 'Dec 31',
-          round: 'Semester 1 Intake',
-          whyFit: 'Member of Australia\'s Group of Eight with reliable international admissions.',
-          keyFactor: 'Standard IELTS sub-score verification.',
-          strengthAlignment: 'high'
-        }
-      ];
+      if (isDeveloping) {
+        reaches = [
+          {
+            id: 'rec-sfu',
+            name: 'Simon Fraser University (SFU)',
+            category: 'reach',
+            baselineAcceptanceRate: '65.0%',
+            estimatedAdmitRate: calcRealisticOdds('65.0%'),
+            matchScore: 83,
+            location: 'Burnaby, BC, Canada',
+            deadline: 'Jan 31',
+            round: 'Standard Deadline',
+            whyFit: 'Recognized Canadian institution with strong computing and business curriculum.',
+            keyFactor: 'Submitting strong senior-year marks and meeting IELTS cutoff.',
+            strengthAlignment: 'moderate'
+          }
+        ];
+        targets = [
+          {
+            id: 'rec-uvic',
+            name: 'University of Victoria',
+            category: 'target',
+            baselineAcceptanceRate: '75.0%',
+            estimatedAdmitRate: calcRealisticOdds('75.0%'),
+            matchScore: 86,
+            location: 'Victoria, BC, Canada',
+            deadline: 'Feb 28',
+            round: 'Standard Deadline',
+            whyFit: 'High student satisfaction and accessible comprehensive degree tracks.',
+            keyFactor: 'Meeting general high school average requirements and IELTS clearance.',
+            strengthAlignment: 'high'
+          }
+        ];
+        safeties = [
+          {
+            id: 'rec-carleton',
+            name: 'Carleton University',
+            category: 'safety',
+            baselineAcceptanceRate: '82.0%',
+            estimatedAdmitRate: calcRealisticOdds('82.0%'),
+            matchScore: 88,
+            location: 'Ottawa, ON, Canada',
+            deadline: 'Mar 1',
+            round: 'Rolling Intake',
+            whyFit: 'Capital city university with reliable international admissions and co-op options.',
+            keyFactor: 'Transcripts and standard language qualification.',
+            strengthAlignment: 'high'
+          }
+        ];
+      } else {
+        reaches = [
+          {
+            id: 'rec-utoronto',
+            name: 'University of Toronto',
+            category: 'reach',
+            baselineAcceptanceRate: '43.0%',
+            estimatedAdmitRate: calcRealisticOdds('43.0%'),
+            matchScore: 94,
+            location: 'Toronto, ON, Canada',
+            deadline: 'Jan 15',
+            round: 'Early Consideration',
+            whyFit: '#1 university in Canada with massive research output and co-op opportunities.',
+            keyFactor: 'Supplementary Application video/essay response and IELTS 7.0+ standard.',
+            strengthAlignment: 'very_high'
+          },
+          {
+            id: 'rec-ubc',
+            name: 'University of British Columbia (UBC)',
+            category: 'reach',
+            baselineAcceptanceRate: '52.0%',
+            estimatedAdmitRate: calcRealisticOdds('52.0%'),
+            matchScore: 92,
+            location: 'Vancouver, BC, Canada',
+            deadline: 'Jan 15',
+            round: 'Standard Deadline',
+            whyFit: 'Top international faculty, Pacific Rim innovation hubs, and high quality of life.',
+            keyFactor: 'Personal Profile essays showcasing extracurricular engagement and leadership.',
+            strengthAlignment: 'high'
+          }
+        ];
+        targets = [
+          {
+            id: 'rec-waterloo',
+            name: 'University of Waterloo',
+            category: 'target',
+            baselineAcceptanceRate: '53.0%',
+            estimatedAdmitRate: calcRealisticOdds('53.0%'),
+            matchScore: 93,
+            location: 'Waterloo, ON, Canada',
+            deadline: 'Feb 1',
+            round: 'Standard Deadline',
+            whyFit: 'World-renowned Co-Op program connecting students directly to Silicon Valley tech.',
+            keyFactor: 'Admission Information Form (AIF) and Euclid Math Contest results.',
+            strengthAlignment: 'very_high'
+          }
+        ];
+        safeties = [
+          {
+            id: 'rec-sfu',
+            name: 'Simon Fraser University (SFU)',
+            category: 'safety',
+            baselineAcceptanceRate: '65.0%',
+            estimatedAdmitRate: calcRealisticOdds('65.0%'),
+            matchScore: 86,
+            location: 'Burnaby, BC, Canada',
+            deadline: 'Jan 31',
+            round: 'Standard Deadline',
+            whyFit: 'Excellent applied computing and business programs with flexible intake terms.',
+            keyFactor: 'Meeting general high school average requirements and IELTS clearance.',
+            strengthAlignment: 'high'
+          }
+        ];
+      }
     } else {
       // Default: United States / Global
-      if (major === 'cs' || major === 'engineering') {
+      if (isDeveloping) {
+        // Calibrated realistic recommendations for a developing/low portfolio student
+        reaches = [
+          {
+            id: 'rec-pennstate',
+            name: 'Penn State University',
+            category: 'reach',
+            baselineAcceptanceRate: '55.0%',
+            estimatedAdmitRate: calcRealisticOdds('55.0%'),
+            matchScore: 84,
+            location: 'University Park, PA, USA',
+            deadline: 'Nov 1',
+            round: 'Early Action (EA)',
+            whyFit: `Prominent Big Ten research institution. Represents a realistic reach where strong essays and a solid upward GPA trend can secure admission in ${major.toUpperCase()}.`,
+            keyFactor: 'Consistent senior-year grades and applying early to the main University Park campus.',
+            strengthAlignment: 'moderate'
+          },
+          {
+            id: 'rec-msu',
+            name: 'Michigan State University',
+            category: 'reach',
+            baselineAcceptanceRate: '88.0%',
+            estimatedAdmitRate: calcRealisticOdds('88.0%'),
+            matchScore: 86,
+            location: 'East Lansing, MI, USA',
+            deadline: 'Nov 1',
+            round: 'Early Action (EA)',
+            whyFit: 'Top-tier undergraduate resources, extensive international support, and broad major flexibility.',
+            keyFactor: 'Early application submission and meeting core high school coursework distribution.',
+            strengthAlignment: 'high'
+          }
+        ];
+        targets = [
+          {
+            id: 'rec-asu',
+            name: 'Arizona State University (ASU)',
+            category: 'target',
+            baselineAcceptanceRate: '89.0%',
+            estimatedAdmitRate: calcRealisticOdds('89.0%'),
+            matchScore: 90,
+            location: 'Tempe, AZ, USA',
+            deadline: 'Rolling',
+            round: 'Rolling Admission',
+            whyFit: '#1 in Innovation with high-capacity engineering and business programs, welcoming diverse academic trajectories.',
+            keyFactor: 'Meeting standard competency requirements in math and laboratory sciences.',
+            strengthAlignment: 'high'
+          },
+          {
+            id: 'rec-oregonstate',
+            name: 'Oregon State University',
+            category: 'target',
+            baselineAcceptanceRate: '82.0%',
+            estimatedAdmitRate: calcRealisticOdds('82.0%'),
+            matchScore: 87,
+            location: 'Corvallis, OR, USA',
+            deadline: 'Feb 1',
+            round: 'Regular Decision',
+            whyFit: 'Respected research university with strong STEM pathways and practical co-op experiences.',
+            keyFactor: 'Demonstrated interest and completion of high school graduation prerequisites.',
+            strengthAlignment: 'high'
+          }
+        ];
+        safeties = [
+          {
+            id: 'rec-uta',
+            name: 'University of Texas at Arlington (UTA)',
+            category: 'safety',
+            baselineAcceptanceRate: '93.0%',
+            estimatedAdmitRate: calcRealisticOdds('93.0%'),
+            matchScore: 89,
+            location: 'Arlington, TX, USA',
+            deadline: 'Rolling',
+            round: 'Rolling Admission',
+            whyFit: 'High-access Carnegie R1 research university in the Dallas-Fort Worth metroplex with very favorable tuition and admission rates.',
+            keyFactor: 'Direct submission of transcripts and English proficiency proof.',
+            strengthAlignment: 'high'
+          }
+        ];
+      } else if (isCompetitive) {
+        // Competitive / Top 25% Contender
+        reaches = [
+          {
+            id: 'rec-umich',
+            name: 'University of Michigan',
+            category: 'reach',
+            baselineAcceptanceRate: '17.7%',
+            estimatedAdmitRate: calcRealisticOdds('17.7%'),
+            matchScore: 88,
+            location: 'Ann Arbor, MI, USA',
+            deadline: 'Nov 1',
+            round: 'Early Action (EA)',
+            whyFit: `World-class academic powerhouse for ${major.toUpperCase()}. Highly competitive out-of-state and international admissions pool.`,
+            keyFactor: 'Demonstrated rigor in advanced math/science and compelling Community Contribution essay.',
+            strengthAlignment: 'high'
+          },
+          {
+            id: 'rec-gatech',
+            name: 'Georgia Institute of Technology',
+            category: 'reach',
+            baselineAcceptanceRate: '15.0%',
+            estimatedAdmitRate: calcRealisticOdds('15.0%'),
+            matchScore: 89,
+            location: 'Atlanta, GA, USA',
+            deadline: 'Oct 15',
+            round: 'Early Action 1 (EA1)',
+            whyFit: 'Premier technological research university with top 10 engineering and computing departments.',
+            keyFactor: 'Quantitative excellence and tangible maker or programming portfolio.',
+            strengthAlignment: 'high'
+          }
+        ];
+        targets = [
+          {
+            id: 'rec-purdue',
+            name: 'Purdue University',
+            category: 'target',
+            baselineAcceptanceRate: '50.3%',
+            estimatedAdmitRate: calcRealisticOdds('50.3%'),
+            matchScore: 92,
+            location: 'West Lafayette, IN, USA',
+            deadline: 'Nov 1',
+            round: 'Early Action (EA)',
+            whyFit: 'World-renowned engineering and STEM programs with strong global ROI and industry placement.',
+            keyFactor: 'Applying by Nov 1 Early Action priority deadline is strictly essential.',
+            strengthAlignment: 'very_high'
+          },
+          {
+            id: 'rec-uiuc',
+            name: 'University of Illinois Urbana-Champaign (UIUC)',
+            category: 'target',
+            baselineAcceptanceRate: '28.0%',
+            estimatedAdmitRate: calcRealisticOdds('28.0%'),
+            matchScore: 91,
+            location: 'Urbana, IL, USA',
+            deadline: 'Nov 1',
+            round: 'Early Action (EA)',
+            whyFit: 'Superb departmental faculty and vast computing infrastructure.',
+            keyFactor: 'Direct-to-major essay specificity and balanced quantitative coursework.',
+            strengthAlignment: 'high'
+          }
+        ];
+        safeties = [
+          {
+            id: 'rec-asu',
+            name: 'Arizona State University (ASU)',
+            category: 'safety',
+            baselineAcceptanceRate: '89.0%',
+            estimatedAdmitRate: calcRealisticOdds('89.0%'),
+            matchScore: 88,
+            location: 'Tempe, AZ, USA',
+            deadline: 'Rolling',
+            round: 'Rolling Admission',
+            whyFit: 'Guaranteed admission tracks for solid GPA profiles with Honors College opportunities.',
+            keyFactor: 'Timely application for priority merit scholarship review.',
+            strengthAlignment: 'high'
+          }
+        ];
+      } else {
+        // Elite Candidate (Score >= 75)
         reaches = [
           {
             id: 'rec-mit',
-            name: 'MIT',
+            name: 'Massachusetts Institute of Technology (MIT)',
             category: 'reach',
             baselineAcceptanceRate: '3.9%',
-            estimatedAdmitRate: calcAdmitRate('3.9%', academicModifier * 0.9, 14),
-            matchScore: 94,
-            location: 'Cambridge, MA',
+            estimatedAdmitRate: calcRealisticOdds('3.9%'),
+            matchScore: 96,
+            location: 'Cambridge, MA, USA',
             deadline: 'Nov 1',
             round: 'Early Action (EA)',
-            whyFit: `World-class laboratory ecosystem for ${profile.intendedMajor || 'STEM'}. Evaluates quantitative problem-solving and maker portfolio. Fits budget & testing profile.`,
-            keyFactor: 'STEM research portfolio & Math/Science teacher recommendation depth.',
+            whyFit: `World-leading computing & engineering labs aligned with your ${major.toUpperCase()} portfolio. Evaluates deep mathematical problem solving and distinctive maker spike.`,
+            keyFactor: 'STEM project portfolio, Olympiad/research depth, and math/science recommendation letters.',
             strengthAlignment: 'very_high'
           },
           {
@@ -937,13 +1117,13 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
             name: 'Stanford University',
             category: 'reach',
             baselineAcceptanceRate: '3.6%',
-            estimatedAdmitRate: calcAdmitRate('3.6%', academicModifier * 0.85, 12),
-            matchScore: 92,
-            location: 'Stanford, CA',
+            estimatedAdmitRate: calcRealisticOdds('3.6%'),
+            matchScore: 94,
+            location: 'Stanford, CA, USA',
             deadline: 'Nov 1',
             round: 'Restrictive Early Action (REA)',
             whyFit: 'Silicon Valley proximity and interdisciplinary tech-innovation culture.',
-            keyFactor: 'Intellectual vitality essay & non-profit or startup entrepreneurial leadership.',
+            keyFactor: 'Intellectual vitality essay and distinctive extracurricular leadership.',
             strengthAlignment: 'very_high'
           },
           {
@@ -951,40 +1131,39 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
             name: 'Carnegie Mellon University (SCS)',
             category: 'reach',
             baselineAcceptanceRate: '7.0%',
-            estimatedAdmitRate: calcAdmitRate('7.0%', academicModifier * 1.0, 22),
-            matchScore: 96,
-            location: 'Pittsburgh, PA',
+            estimatedAdmitRate: calcRealisticOdds('7.0%'),
+            matchScore: 95,
+            location: 'Pittsburgh, PA, USA',
             deadline: 'Jan 3',
             round: 'Regular Decision (RD)',
-            whyFit: 'Top-tier pure computing and engineering curriculum with direct department admission.',
-            keyFactor: 'Exceptional AP Calculus BC and physics mastery plus coding projects.',
+            whyFit: 'Premier pure computing and engineering curriculum with direct department admission.',
+            keyFactor: 'Advanced math proficiency and coding project depth.',
             strengthAlignment: 'very_high'
           }
         ];
-
         targets = [
           {
             id: 'rec-umich',
-            name: 'University of Michigan (College of Engineering)',
+            name: 'University of Michigan',
             category: 'target',
             baselineAcceptanceRate: '17.7%',
-            estimatedAdmitRate: calcAdmitRate('17.7%', academicModifier * 1.25, 52),
-            matchScore: 89,
-            location: 'Ann Arbor, MI',
+            estimatedAdmitRate: calcRealisticOdds('17.7%'),
+            matchScore: 92,
+            location: 'Ann Arbor, MI, USA',
             deadline: 'Nov 1',
             round: 'Early Action (EA)',
             whyFit: 'Massive engineering research funding and high alumni network industry presence.',
             keyFactor: 'Why Michigan supplemental essay specificity and rigorous STEM course load.',
-            strengthAlignment: 'high'
+            strengthAlignment: 'very_high'
           },
           {
             id: 'rec-gatech',
             name: 'Georgia Institute of Technology',
             category: 'target',
             baselineAcceptanceRate: '15.0%',
-            estimatedAdmitRate: calcAdmitRate('15.0%', academicModifier * 1.2, 48),
-            matchScore: 91,
-            location: 'Atlanta, GA',
+            estimatedAdmitRate: calcRealisticOdds('15.0%'),
+            matchScore: 93,
+            location: 'Atlanta, GA, USA',
             deadline: 'Oct 15',
             round: 'Early Action 1 (EA1)',
             whyFit: 'Premier technological research institute with stellar co-op opportunities.',
@@ -992,16 +1171,15 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
             strengthAlignment: 'very_high'
           }
         ];
-
         safeties = [
           {
             id: 'rec-purdue',
             name: 'Purdue University',
             category: 'safety',
             baselineAcceptanceRate: '50.3%',
-            estimatedAdmitRate: calcAdmitRate('50.3%', academicModifier * 1.45, 88),
-            matchScore: 87,
-            location: 'West Lafayette, IN',
+            estimatedAdmitRate: calcRealisticOdds('50.3%'),
+            matchScore: 89,
+            location: 'West Lafayette, IN, USA',
             deadline: 'Nov 1',
             round: 'Early Action (EA)',
             whyFit: 'Outstanding engineering facilities, astronaut alumni heritage, and solid Honors College.',
@@ -1009,84 +1187,25 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
             strengthAlignment: 'high'
           }
         ];
-      } else {
-        reaches = [
-          {
-            id: 'rec-harvard',
-            name: 'Harvard University',
-            category: 'reach',
-            baselineAcceptanceRate: '3.4%',
-            estimatedAdmitRate: calcAdmitRate('3.4%', academicModifier * 0.85, 11),
-            matchScore: 93,
-            location: 'Cambridge, MA',
-            deadline: 'Nov 1',
-            round: 'Restricted Early Action (REA)',
-            whyFit: 'Unmatched undergraduate research endowments and pre-professional advising.',
-            keyFactor: 'National level distinction or deeply compelling narrative hook.',
-            strengthAlignment: 'very_high'
-          },
-          {
-            id: 'rec-upenn-wharton',
-            name: 'UPenn (Wharton School)',
-            category: 'reach',
-            baselineAcceptanceRate: '4.5%',
-            estimatedAdmitRate: calcAdmitRate('4.5%', academicModifier * 0.9, 15),
-            matchScore: 95,
-            location: 'Philadelphia, PA',
-            deadline: 'Nov 1',
-            round: 'Early Decision (ED)',
-            whyFit: 'Global leader in business, economics, and analytics.',
-            keyFactor: 'Leadership depth and financial/statistical acumen.',
-            strengthAlignment: 'very_high'
-          }
-        ];
-
-        targets = [
-          {
-            id: 'rec-unc',
-            name: 'UNC Chapel Hill',
-            category: 'target',
-            baselineAcceptanceRate: '17.0%',
-            estimatedAdmitRate: calcAdmitRate('17.0%', academicModifier * 1.25, 48),
-            matchScore: 90,
-            location: 'Chapel Hill, NC',
-            deadline: 'Oct 15',
-            round: 'Early Action (EA)',
-            whyFit: 'Top public research university with stellar biological and social sciences.',
-            keyFactor: 'Service leadership and intellectual curiosity in supplemental essays.',
-            strengthAlignment: 'high'
-          }
-        ];
-
-        safeties = [
-          {
-            id: 'rec-pitt',
-            name: 'University of Pittsburgh',
-            category: 'safety',
-            baselineAcceptanceRate: '56.0%',
-            estimatedAdmitRate: calcAdmitRate('56.0%', academicModifier * 1.4, 90),
-            matchScore: 86,
-            location: 'Pittsburgh, PA',
-            deadline: 'Rolling',
-            round: 'Rolling Admission',
-            whyFit: 'Guaranteed admissions tracks and high quality research facilities.',
-            keyFactor: 'Early application submission for priority merit scholarships.',
-            strengthAlignment: 'high'
-          }
-        ];
       }
     }
 
+    const tierLabel = isElite
+      ? 'Top 5% Highly Competitive (T20 Contender)'
+      : isCompetitive
+      ? 'Top 25% Competitive Contender'
+      : 'Foundational / Developing Portfolio';
+
     return {
-      summary: `Based on your GPA (${profile.unweightedGpa || '3.85'}), IELTS (${ielts}), preferred country (${profile.preferredCountry || 'United States'}), and budget (${budget}), you have strong positioning for top-tier institutions in ${profile.preferredCountry || 'your target destination'}.`,
-      academicCompetitivenessTier: academicModifier > 1.8 ? 'Top 5% Highly Competitive' : academicModifier > 1.3 ? 'Top 15% Competitive' : 'Solid Contender',
+      summary: `Based on your GPA (${profile.unweightedGpa || 'N/A'}), SAT (${profile.satScore || 'N/A'}), activities (${activitiesCount} recorded), and target destination in ${profile.preferredCountry || 'your preferred region'}, your profile aligns with ${tierLabel}. Reaches, targets, and safeties have been calibrated with realistic, uninflated admissions probabilities.`,
+      academicCompetitivenessTier: tierLabel,
       reachRecommendations: reaches,
       targetRecommendations: targets,
       safetyRecommendations: safeties,
       strategyNotes: [
-        `Recommended Country Focus: ${profile.preferredCountry || 'United States'}. Match your application timing to local intake deadlines.`,
-        `IELTS Score (${ielts}): Meets or exceeds entry requirements for top institutions in ${profile.preferredCountry || 'your target region'}.`,
-        `Budget Target (${budget}): Apply early for departmental merit scholarships and international financial aid.`
+        `Recommended Strategy: Reaches are calibrated to your current profile tier. Applying Early Action (EA) or Early Decision (ED) can yield a 1.5x - 2x boost in admit probability.`,
+        `Language & Prerequisites: Ensure IELTS (${ielts}) sub-scores meet minimum departmental cutoffs for your chosen major.`,
+        `Budget & Aid (${budget}): Target universities with strong institutional merit scholarships and submit early for financial aid consideration.`
       ]
     };
   }
@@ -1101,7 +1220,7 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
     try {
       const ai = getGeminiClient();
       if (!ai) {
-        const fallbackResult = generateIntelligentCollegeRecommendations(profile);
+        const fallbackResult = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
         return res.json({
           source: 'local_engine',
           success: true,
@@ -1109,8 +1228,9 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
         });
       }
 
-      const prompt = `You are a former Dean of Admissions and premier global College Counselor.
-Analyze the following high school student profile and generate tailored university recommendations categorized into Reach, Target, and Safety with realistic estimated personalized admission rates.
+      const activeCountry = filterRegion || profile.preferredCountry || 'United States';
+      const prompt = `You are a former Dean of Admissions at a top university and premier global College Counselor.
+Analyze the following high school student profile and generate tailored, realistic university recommendations categorized into Reach, Target, and Safety with statistically accurate, personalized admission probability rates.
 
 Student Profile:
 - Name: ${profile.name || 'Candidate'}
@@ -1118,43 +1238,46 @@ Student Profile:
 - Target Graduation Year: ${profile.graduationYear || '2026'}
 - Unweighted GPA: ${profile.unweightedGpa || 'N/A'} (out of 4.0)
 - IELTS Score: ${profile.ieltsScore || 'Not provided'}
-- Preferred Country/Region: ${profile.preferredCountry || 'United States'}
+- Preferred Country/Region: ${activeCountry}
 - Annual Budget for Tuition & Expenses: ${profile.budgetPerYear || 'Flexible'}
 - Advanced Coursework (AP/IB/Honors count): ${profile.apIbHonorsCount || 'N/A'}
 - SAT Score: ${profile.satScore || 'N/A'}
-- Extracurricular Activities: ${JSON.stringify(profile.activities || [])}
-- Honors & Awards: ${JSON.stringify(profile.awards || [])}
+- Extracurricular Activities (${(profile.activities || []).length} total): ${JSON.stringify(profile.activities || [])}
+- Honors & Awards (${(profile.awards || []).length} total): ${JSON.stringify(profile.awards || [])}
 - Context: ${profile.contextNotes || 'None'}
 ${filterTier ? `- Focus Tier: ${filterTier}` : ''}
 ${filterRegion ? `- Preferred Region: ${filterRegion}` : ''}
 
-CRITICAL MANDATES:
-1. Recommending institutions MUST strictly prioritize top universities located in or accepting students for the requested Preferred Country/Region: "${profile.preferredCountry || 'United States'}".
-2. Respect the student's Annual Budget (${profile.budgetPerYear || 'Flexible'}) and mention relevant scholarship/financial aid or tuition affordability factors in keyFactor.
-3. Validate their IELTS score (${profile.ieltsScore || '7.5'}) against entry requirements in whyFit.
-4. Recommend 2 to 3 Reach colleges, 2 to 3 Target colleges, and 1 to 2 Safety colleges matching their profile.
-2. For each college, calculate:
-   - "baselineAcceptanceRate": The school's overall general acceptance rate (e.g. "3.9%", "17.7%", "50.3%").
-   - "estimatedAdmitRate": The personalized calculated probability of admission specifically for THIS student given their GPA, testing, activities, and major competitiveness (e.g., if MIT is 3.9% overall, an elite 4.0/1560 candidate with STEM awards might have an estimated ~9.5% admit rate; or an in-state student applying to a target might have ~42%).
-   - "matchScore": Number from 70 to 98 indicating program fit.
-   - "whyFit": 1-2 sharp sentences explaining why this university matches their specific major and profile strengths.
-   - "keyFactor": The decisive factor that will make or break their application at this institution.
-   - "round": Recommended application plan (e.g. "Early Action (EA)", "Early Decision (ED)", "Regular Decision (RD)").
-   - "deadline": e.g. "Nov 1", "Nov 30", "Jan 1".
+CRITICAL ADMISSIONS CALCULATION & RECOMMENDATION MANDATES:
+1. REALISTIC, UNINFLATED ADMISSION PROBABILITIES:
+   - "baselineAcceptanceRate": The school's official overall general acceptance rate (e.g. "3.9%" for MIT, "3.6%" for Stanford, "17.7%" for Michigan, "50.3%" for Purdue, "89.0%" for Arizona State).
+   - "estimatedAdmitRate": The personalized calculated probability of admission specifically for THIS student given their GPA, test scores, course rigor, and extracurricular portfolio.
+   - HYPER-SELECTIVE PENALTY RULE: Hyper-selective institutions (MIT, Stanford, Harvard, Princeton, Caltech, Columbia, CMU CS, Oxford, Cambridge) reject 96%+ of the world's most elite 4.0/1550+ applicants. If THIS student has a weak, low, or developing portfolio (e.g. unweighted GPA < 3.6, low/no SAT, few or no extracurricular activities, no major awards), their estimated chance of admission to MIT or Stanford is VIRTUALLY ZERO (calculate as 0.1% to 0.4%, NEVER 3% or higher!).
+   - If the student is a strong/elite applicant (4.0 GPA, 1550+ SAT, national awards, strong leadership), their estimated admit rate at MIT or Stanford scales to ~8.0% to 15.0% (about 2-4x the baseline).
+2. CALIBRATED TIER SELECTION (DO NOT RECOMMEND MIT TO A LOW PORTFOLIO STUDENT):
+   - Categorize colleges strictly relative to THIS student's actual competitiveness bracket:
+     * If the student has a DEVELOPING/LOW PORTFOLIO (low GPA, low test scores, 0-2 minor activities): DO NOT recommend MIT, Harvard, or Stanford as their Reach colleges! Instead, recommend realistic Reaches (e.g., selective state flagships where their odds are ~12% - 25%), realistic Targets (where odds are ~45% - 68%), and realistic Safeties (where odds are ~82% - 95%).
+     * If the student has a MODERATE/COMPETITIVE PORTFOLIO: Recommend T30-T50 as Reaches (~8% - 18% odds), T50-T80 as Targets (~40% - 60% odds), and accessible public flagships as Safeties (~78% - 90% odds).
+     * If the student has an ELITE PORTFOLIO: Recommend T20 / Ivy Plus as Reaches (~8% - 15% odds), T25-T40 as Targets (~38% - 55% odds), and T50 flagships as Safeties (~78% - 90% odds).
+3. PRIORITIZE TARGET REGION & BUDGET:
+   - Strictly recommend universities located in or accepting students for the requested country: "${activeCountry}".
+   - Factor in budget (${profile.budgetPerYear || 'Flexible'}) and mention relevant financial aid/scholarship notes in keyFactor.
+   - Validate IELTS (${profile.ieltsScore || '7.5'}) against university language benchmarks.
+4. QUANTITIES: Recommend 2-3 Reach, 2-3 Target, and 1-2 Safety universities.
 
 Return ONLY a valid JSON object matching this schema without markdown code blocks:
 {
   "summary": "1-2 sentence executive assessment of their university positioning and admissions bracket.",
-  "academicCompetitivenessTier": "e.g. Top 5% Ivy/T20 Competitive or Strong Top 30 Contender",
+  "academicCompetitivenessTier": "e.g. Top 5% Highly Competitive (T20 Ready) OR Top 25% Competitive Contender OR Foundational / Developing Portfolio",
   "reachRecommendations": [
     {
       "id": "string",
       "name": "string",
       "category": "reach",
-      "baselineAcceptanceRate": "string (e.g. 3.9%)",
-      "estimatedAdmitRate": "string (e.g. 8.5%)",
+      "baselineAcceptanceRate": "string (e.g. 3.9% or 55.0%)",
+      "estimatedAdmitRate": "string (e.g. 0.2% for low portfolio at MIT, or 18.0% at Penn State)",
       "matchScore": number,
-      "location": "City, State",
+      "location": "City, State, Country",
       "deadline": "string",
       "round": "string",
       "whyFit": "string",
@@ -1170,7 +1293,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
       "baselineAcceptanceRate": "string",
       "estimatedAdmitRate": "string",
       "matchScore": number,
-      "location": "City, State",
+      "location": "City, State, Country",
       "deadline": "string",
       "round": "string",
       "whyFit": "string",
@@ -1186,7 +1309,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
       "baselineAcceptanceRate": "string",
       "estimatedAdmitRate": "string",
       "matchScore": number,
-      "location": "City, State",
+      "location": "City, State, Country",
       "deadline": "string",
       "round": "string",
       "whyFit": "string",
@@ -1202,7 +1325,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
 }`;
 
       const response = await generateContentWithRetry(ai, {
-        model: 'gemini-3.1-flash-lite',
+        model: 'gemini-3.7-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -1219,18 +1342,18 @@ Return ONLY a valid JSON object matching this schema without markdown code block
         parsed = JSON.parse(cleaned);
       }
 
-      if (!parsed || !parsed.reachRecommendations) {
-        parsed = generateIntelligentCollegeRecommendations(profile);
+      if (!parsed || !parsed.reachRecommendations || parsed.reachRecommendations.length === 0) {
+        parsed = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
       }
 
       return res.json({
-        source: 'gemini-3.1-flash-lite',
+        source: 'gemini-3.7-flash',
         success: true,
         data: parsed
       });
     } catch (err: any) {
       console.log('[AI College Matchmaker] Using deterministic admissions probability model.');
-      const fallbackResult = generateIntelligentCollegeRecommendations(profile);
+      const fallbackResult = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
       return res.json({
         source: 'local_engine',
         success: true,
