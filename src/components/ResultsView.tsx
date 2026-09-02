@@ -66,6 +66,70 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     testingScore = Math.min(98, Math.max(50, Math.round((parsedIelts / 9) * 98)));
   }
 
+  // Dynamic Profile Completeness & Statistical Confidence Model
+  // Evaluates populated fields across Academics (35%), Extracurriculars (30%), Honors (15%), College Target List (10%), and Strategic Context (10%)
+  const hasGpa = Boolean(userProfile.unweightedGpa && parseFloat(userProfile.unweightedGpa) > 0);
+  const hasTesting = (!isNaN(parsedSat) && parsedSat > 0) || (!isNaN(parsedIelts) && parsedIelts > 0);
+  const hasMajor = Boolean(userProfile.intendedMajor && userProfile.intendedMajor.trim().length > 0);
+  const hasRigor = Boolean(userProfile.apIbHonorsCount && parseInt(userProfile.apIbHonorsCount, 10) > 0);
+
+  let academicCompleteness = 0;
+  if (hasGpa) academicCompleteness += 12;
+  if (hasTesting) academicCompleteness += 12;
+  if (hasMajor) academicCompleteness += 6;
+  if (hasRigor) academicCompleteness += 5; // Max 35
+
+  const activityCount = userProfile.activities?.length || 0;
+  let ecCompleteness = 0;
+  if (activityCount >= 5) ecCompleteness = 30;
+  else if (activityCount >= 3) ecCompleteness = 22;
+  else if (activityCount === 2) ecCompleteness = 14;
+  else if (activityCount === 1) ecCompleteness = 7; // Max 30
+
+  let awardsCompleteness = 0;
+  if (awardsCount >= 2) awardsCompleteness = 15;
+  else if (awardsCount === 1) awardsCompleteness = 9; // Max 15
+
+  const collegesCount = userProfile.targetColleges?.length || 0;
+  let collegesCompleteness = 0;
+  if (collegesCount >= 3) collegesCompleteness = 10;
+  else if (collegesCount >= 1) collegesCompleteness = 5; // Max 10
+
+  const notesLength = userProfile.contextNotes?.trim().length || 0;
+  let contextCompleteness = 0;
+  if (notesLength > 20) contextCompleteness = 10;
+  else if (notesLength > 0) contextCompleteness = 5; // Max 10
+
+  const profileCompleteness = Math.min(
+    100,
+    Math.round(academicCompleteness + ecCompleteness + awardsCompleteness + collegesCompleteness + contextCompleteness)
+  );
+
+  // If profile completeness is below 50%, mark as sparse / preliminary estimate
+  const isLowCompleteness = profileCompleteness < 50;
+
+  // Margin of error dynamically widens when inputs are sparse
+  const marginOfError =
+    profileCompleteness < 30
+      ? '±12.0%'
+      : profileCompleteness < 50
+      ? '±8.5%'
+      : profileCompleteness < 70
+      ? '±6.0%'
+      : profileCompleteness < 85
+      ? '±4.5%'
+      : '±3.2%';
+
+  // Dynamic confidence score scaling with data completeness
+  const confidenceScore = Math.min(96, Math.max(45, Math.round(42 + profileCompleteness * 0.54)));
+  const confidenceTier = isLowCompleteness
+    ? 'Preliminary Estimate'
+    : confidenceScore >= 90
+    ? 'High Confidence'
+    : confidenceScore >= 78
+    ? 'Solid Confidence'
+    : 'Moderate Confidence';
+
   // Benchmark targets
   const benchmarkMultipliers = {
     t20: { targetName: 'Top 20 National Avg', rigor: 92, spike: 88, leadership: 86, awards: 84, cohesion: 88, testing: 93 },
@@ -305,25 +369,63 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             <h3 className="text-[26px] font-extrabold text-white">
               {analysis.overallRating}
             </h3>
-            <p className="text-[12px] text-slate-300">
-              Composite Profile Index: <strong className="text-indigo-300">{overallStandingScore}/100</strong>
-            </p>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-[12px] text-slate-300">
+                  Composite Profile Index: <strong className="text-indigo-300">{overallStandingScore}/100</strong>
+                </p>
+                {isLowCompleteness && (
+                  <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 inline-flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[10px]">info</span>
+                    Estimate based on limited data
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 text-[10.5px]">
+                {isLowCompleteness ? (
+                  <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px] text-amber-400">warning</span>
+                    Preliminary Estimate — Add more profile data for a refined score
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-200 font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px] text-emerald-400">verified</span>
+                    Confidence: {confidenceScore}% ({marginOfError})
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shadow-lg shadow-indigo-500/20">
+          <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shadow-lg shadow-indigo-500/20 shrink-0">
             <span className="material-symbols-outlined text-[28px]">stars</span>
           </div>
         </div>
 
-        <div className="md:col-span-8 glass-card rounded-2xl p-5 flex flex-col justify-center border border-white/10 shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="material-symbols-outlined text-indigo-400 text-[18px]">psychology</span>
-            <h3 className="text-[11px] text-indigo-400 font-bold uppercase tracking-wider">
-              Strategic Admissions Committee Assessment
-            </h3>
+        <div className="md:col-span-8 glass-card rounded-2xl p-5 flex flex-col justify-between border border-white/10 shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-400 text-[18px]">psychology</span>
+                <h3 className="text-[11px] text-indigo-400 font-bold uppercase tracking-wider">
+                  Strategic Admissions Committee Assessment
+                </h3>
+              </div>
+              <span className="text-[10px] text-slate-400 bg-white/[0.04] px-2 py-0.5 rounded border border-white/10 flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${isLowCompleteness ? 'bg-amber-400' : 'bg-indigo-400'}`}></span>
+                {isLowCompleteness ? `Preliminary Estimate (${marginOfError})` : `Self-Reported Estimate (${marginOfError})`}
+              </span>
+            </div>
+            <p className="text-[13px] md:text-[13.5px] text-slate-200 leading-relaxed font-normal">
+              "{analysis.aiInsight}"
+            </p>
           </div>
-          <p className="text-[13.5px] md:text-[14px] text-slate-200 leading-relaxed font-normal">
-            "{analysis.aiInsight}"
-          </p>
+          <div className="pt-2.5 mt-2.5 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400">
+            <span className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-[13px] text-indigo-400">info</span>
+              Calculated from {profileCompleteness}% profile data ({userProfile.unweightedGpa ? `GPA: ${userProfile.unweightedGpa}` : 'GPA pending'}, {userProfile.activities.length} {userProfile.activities.length === 1 ? 'activity' : 'activities'}, {userProfile.awards.length} {userProfile.awards.length === 1 ? 'award' : 'awards'}).
+            </span>
+            <span className="text-slate-400 font-medium">Model Margin: <strong className={isLowCompleteness ? 'text-amber-300 font-bold' : 'text-slate-200'}>{marginOfError}</strong></span>
+          </div>
         </div>
       </div>
 
@@ -502,12 +604,19 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
               {/* Active Dimension Details */}
               <div className="bg-white/[0.04] p-4 rounded-xl border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10.5px] font-bold text-indigo-400 uppercase tracking-wider">
-                    Dimension Evaluation
-                  </span>
-                  <span className="text-[12px] font-extrabold text-white">
-                    {activeRadarDim.studentScore}% <span className="text-slate-400 text-[10.5px] font-normal">vs {activeRadarDim.benchmarkScore}% pool</span>
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10.5px] font-bold text-indigo-400 uppercase tracking-wider">
+                      Dimension Evaluation
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400 bg-white/[0.05] px-1.5 py-0.2 rounded border border-white/10" title="Statistical margin of error based on self-reported inputs">
+                      {marginOfError}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[12px] font-extrabold text-white">
+                      {activeRadarDim.studentScore}% <span className="text-[10px] text-slate-400 font-normal">({marginOfError})</span> <span className="text-slate-400 text-[10.5px] font-normal">vs {activeRadarDim.benchmarkScore}% pool</span>
+                    </span>
+                  </div>
                 </div>
                 <p className="text-[12.5px] text-slate-200 leading-relaxed">
                   {activeRadarDim.description}
@@ -651,7 +760,17 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                         </div>
 
                         <div className="flex items-center gap-2.5">
-                          <span className="text-[14px] font-extrabold text-white">{d.studentScore}%</span>
+                          <div className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="text-[14px] font-extrabold text-white">{d.studentScore}%</span>
+                              <span className="text-[10px] font-mono text-slate-400 bg-white/[0.05] px-1 py-0.2 rounded border border-white/10" title="Statistical margin of error based on self-reported inputs">
+                                {marginOfError}
+                              </span>
+                            </div>
+                            <span className="text-[9.5px] text-slate-400">
+                              {isLowCompleteness ? 'Preliminary Est.' : 'Est. Self-Reported'}
+                            </span>
+                          </div>
                           <span
                             className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold uppercase border ${
                               isAhead
@@ -791,6 +910,29 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
       {/* TAB 2: ADMISSIONS ODDS SIMULATOR */}
       {activeTab === 'simulator' && (
         <div className="space-y-5 animate-fade-in">
+          {/* Estimation Disclaimer & Confidence Bar */}
+          <div className="p-3.5 rounded-xl bg-gradient-to-r from-indigo-950/30 via-[#131322] to-purple-950/20 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px]">
+            <div className="flex items-center gap-2 text-slate-300">
+              <span className="material-symbols-outlined text-indigo-400 text-[18px] shrink-0">analytics</span>
+              <span>
+                <strong>Self-Reported Model Estimates:</strong> Admissions odds are calculated with a <strong className="text-white">{marginOfError}</strong> margin of error based on your self-reported metrics.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {isLowCompleteness ? (
+                <span className="text-[11px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[13px]">warning</span>
+                  Preliminary Estimate — Limited Data
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[13px]">verified</span>
+                  Confidence: {confidenceScore}% ({confidenceTier})
+                </span>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Reach Schools Card */}
             <div className="glass-card rounded-2xl p-5 border border-rose-500/30 bg-gradient-to-b from-rose-950/20 to-transparent space-y-4">
@@ -804,10 +946,18 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 </span>
               </div>
 
-              <div className="space-y-1">
-                <div className="flex justify-between text-[12px]">
-                  <span className="text-slate-400">Simulated Admit Probability</span>
-                  <span className="text-rose-300 font-bold">14% - 22%</span>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-[12px]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400">Simulated Admit Probability</span>
+                    <span className="text-[9.5px] font-mono text-rose-300 bg-rose-500/15 px-1.5 py-0.2 rounded border border-rose-500/25" title="Statistical margin of error based on self-reported inputs">
+                      {marginOfError}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-rose-300 font-bold">14% - 22%</span>
+                    <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
+                  </div>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                   <div className="h-full bg-rose-500 rounded-full" style={{ width: '20%' }}></div>
@@ -840,10 +990,18 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 </span>
               </div>
 
-              <div className="space-y-1">
-                <div className="flex justify-between text-[12px]">
-                  <span className="text-slate-400">Simulated Admit Probability</span>
-                  <span className="text-amber-300 font-bold">48% - 65%</span>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-[12px]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400">Simulated Admit Probability</span>
+                    <span className="text-[9.5px] font-mono text-amber-300 bg-amber-500/15 px-1.5 py-0.2 rounded border border-amber-500/25" title="Statistical margin of error based on self-reported inputs">
+                      {marginOfError}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-amber-300 font-bold">48% - 65%</span>
+                    <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
+                  </div>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                   <div className="h-full bg-amber-500 rounded-full" style={{ width: '58%' }}></div>
@@ -876,10 +1034,18 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 </span>
               </div>
 
-              <div className="space-y-1">
-                <div className="flex justify-between text-[12px]">
-                  <span className="text-slate-400">Simulated Admit Probability</span>
-                  <span className="text-emerald-300 font-bold">85% - 94%</span>
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-[12px]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400">Simulated Admit Probability</span>
+                    <span className="text-[9.5px] font-mono text-emerald-300 bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/25" title="Statistical margin of error based on self-reported inputs">
+                      {marginOfError}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-emerald-300 font-bold">85% - 94%</span>
+                    <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
+                  </div>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                   <div className="h-full bg-emerald-500 rounded-full" style={{ width: '90%' }}></div>
@@ -897,6 +1063,22 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
 
               <p className="text-[11.5px] text-slate-300 italic">
                 Comfortable safety margins; ideal for early merit scholarship consideration.
+              </p>
+            </div>
+          </div>
+
+          {/* Self-Reported Estimation Explanatory Card */}
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 flex items-start gap-3 text-[12px] text-slate-300">
+            <span className="material-symbols-outlined text-indigo-400 text-[18px] shrink-0 mt-0.5">info</span>
+            <div className="space-y-1">
+              <div className="font-semibold text-white flex items-center gap-2">
+                <span>Self-Reported Admissions Probability Model Disclaimer</span>
+                <span className="text-[10.5px] font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">
+                  Margin of Error: {marginOfError}
+                </span>
+              </div>
+              <p className="text-slate-400 leading-relaxed text-[11.5px]">
+                These simulated admit probabilities and percentages are algorithmic estimates calculated from your self-reported academic metrics (GPA: {userProfile.unweightedGpa || 'N/A'}, standardized tests, AP/IB rigor) and extracurricular profile. Actual admissions decisions at selective universities depend on holistic factors including supplemental essays, letters of recommendation, and shifting institutional priorities.
               </p>
             </div>
           </div>

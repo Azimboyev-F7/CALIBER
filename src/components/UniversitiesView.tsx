@@ -45,36 +45,48 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
   const inProgressCount = colleges.filter((c) => c.status === 'in_progress' || c.status === 'ready').length;
   const notStartedCount = colleges.filter((c) => !c.status || c.status === 'not_started').length;
 
-  // Portfolio Health Assessment
+  // Portfolio Health Assessment based on real ratio & distribution
   const getPortfolioAdvice = () => {
     if (colleges.length === 0) {
       return {
-        status: 'Empty List',
+        status: 'Empty Portfolio',
         badgeColor: 'bg-slate-500/20 text-slate-300 border-slate-500/40',
-        message: 'Start by adding 2-3 Reach schools, 2-3 Target schools, and 2 reliable Safety schools to build a resilient admissions strategy.',
+        message: 'Start by adding Reach, Target, and Safety schools to build a resilient admissions strategy.',
         healthScore: 0
       };
     }
+    // Condition 1: Missing Safety Schools (flagged if Safety count is 0 regardless of other counts)
     if (safeties.length === 0) {
       return {
-        status: 'Needs Safety Schools ⚠️',
+        status: 'Missing Safety Schools',
         badgeColor: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
-        message: 'Your list has no Safety schools (> 40% admit rate). Add at least 2 foundation schools to ensure you secure an admission.',
-        healthScore: 50
+        message: 'Your list has no Safety schools (> 40% admit rate). Add at least 1-2 safety universities to ensure admission safety net.',
+        healthScore: 40
       };
     }
-    if (reaches.length > targets.length + safeties.length + 3) {
+    // Condition 2: Reach count > (Target + Safety count) combined
+    if (reaches.length > targets.length + safeties.length) {
       return {
-        status: 'Top-Heavy Reach Bias ⚠️',
+        status: 'Reach-Heavy Portfolio',
         badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-        message: 'Your list is heavily skewed toward low-acceptance Reach schools. Add 2 more solid Target schools to improve your overall yield.',
-        healthScore: 70
+        message: `Reach schools (${reaches.length}) outnumber Target and Safety schools combined (${targets.length + safeties.length}). Consider adding more Target/Safety schools to balance admission odds.`,
+        healthScore: 60
       };
     }
+    // Condition 3: Safety count < Target count (not yet well-balanced)
+    if (safeties.length < targets.length) {
+      return {
+        status: 'Target-Heavy Portfolio',
+        badgeColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
+        message: `You have solid match targets (${targets.length}), but fewer safety schools (${safeties.length}). Consider adding more safety options so Safeties equal or exceed Targets.`,
+        healthScore: 80
+      };
+    }
+    // Condition 4: Only label "Well-Balanced Portfolio" when Safety >= Target and not Reach-dominant
     return {
-      status: 'Well-Balanced Portfolio 🎯',
+      status: 'Well-Balanced Portfolio',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-      message: 'Great strategy! You have a healthy distribution of aspirational reaches, competitive target matches, and safe foundation colleges.',
+      message: `Great strategy! You have a healthy distribution of aspirational reaches (${reaches.length}), competitive target matches (${targets.length}), and safe foundation colleges (${safeties.length}).`,
       healthScore: 100
     };
   };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ActiveScreen, AuthUser } from '../types';
 import { TopNavBar } from './TopNavBar';
+import DarkVeil from './DarkVeil';
 
 interface LandingViewProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -69,7 +70,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
   const dynamicTip = majorTips[demoMajor] || majorTips['Computer Science'];
 
   return (
-    <div className="bg-[#0a0a0f] text-[#f1f5f9] flex flex-col min-h-screen relative overflow-hidden">
+    <div className="bg-[#06020E] text-[#f1f5f9] flex flex-col min-h-screen relative overflow-hidden">
       <TopNavBar
         onNavigate={onNavigate}
         onOpenPricing={onOpenUpgrade}
@@ -85,6 +86,29 @@ export const LandingView: React.FC<LandingViewProps> = ({
       <main className="flex-grow relative">
         {/* Hero Section */}
         <section className="relative pt-12 md:pt-20 pb-16 overflow-hidden">
+          {/* DarkVeil Animated Background Container */}
+          <div
+            className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden"
+            style={{ position: 'absolute', width: '100%', height: '100%', zIndex: -1 }}
+          >
+            <DarkVeil
+              hueShift={0}
+              noiseIntensity={0}
+              scanlineIntensity={0}
+              speed={0.5}
+              scanlineFrequency={0}
+              warpAmount={0}
+            />
+            {/* Subtle dot matrix grid overlay */}
+            <div
+              className="absolute inset-0 pointer-events-none opacity-20"
+              style={{
+                backgroundImage: 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 1px, transparent 1px)',
+                backgroundSize: '28px 28px',
+              }}
+            />
+          </div>
+
           {/* Decorative background frosted glows */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[550px] md:w-[750px] h-[550px] md:h-[750px] bg-gradient-to-br from-indigo-500/15 via-purple-500/12 to-pink-500/8 rounded-full blur-[120px] -z-10 pointer-events-none animate-breathe origin-top"></div>
 

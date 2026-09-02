@@ -174,8 +174,9 @@ export const CollegeProgressTracker: React.FC<CollegeProgressTrackerProps> = ({
   // Portfolio balance advisory
   const getPortfolioAdvisory = () => {
     if (colleges.length === 0) return { title: 'Add Target Schools', tip: 'Start building your dream college list with a balance of reach, target, and safety options.', color: 'text-amber-400' };
-    if (safetyColleges.length === 0) return { title: 'Need Safety Schools', tip: 'Add at least 1-2 reliable safety institutions (acceptance rate > 40%) to protect your admissions outcomes.', color: 'text-rose-400' };
-    if (reachColleges.length > targetColleges.length + safetyColleges.length + 2) return { title: 'Ambitious Reach Bias', tip: 'Your list is top-heavy. Consider balancing with 2 more solid Target schools.', color: 'text-amber-400' };
+    if (safetyColleges.length === 0) return { title: 'Missing Safety Schools', tip: 'Your list has no Safety schools (> 40% admit rate). Add at least 1-2 safety universities to ensure admission safety net.', color: 'text-rose-400' };
+    if (reachColleges.length > targetColleges.length + safetyColleges.length) return { title: 'Reach-Heavy Portfolio', tip: `Reach schools (${reachColleges.length}) outnumber Target and Safety schools combined (${targetColleges.length + safetyColleges.length}). Consider adding more Target/Safety schools to balance admission odds.`, color: 'text-amber-400' };
+    if (safetyColleges.length < targetColleges.length) return { title: 'Target-Heavy Portfolio', tip: `You have ${targetColleges.length} targets and ${safetyColleges.length} safeties. Consider adding more Safety schools so your foundation matches or exceeds your targets.`, color: 'text-indigo-300' };
     return { title: 'Well-Balanced Portfolio', tip: 'Strong mix of aspirational Reach, competitive Target, and safe foundation colleges.', color: 'text-emerald-400' };
   };
 
