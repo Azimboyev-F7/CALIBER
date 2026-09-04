@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ActiveScreen, AdmissionsAnalysis, UserProfile } from '../types';
 import { TargetCollegesSummaryWidget } from './TargetCollegesSummaryWidget';
 import { CollegeApplicationTimeline } from './CollegeApplicationTimeline';
+import { ExportPDFModal } from './ExportPDFModal';
+import { PDFPreviewModal } from './PDFPreviewModal';
+import { exportProfileToPDF } from '../utils/exportProfilePDF';
 
 interface DashboardViewProps {
   userProfile: UserProfile;
@@ -29,10 +32,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showCompletenessDetails, setShowCompletenessDetails] = useState<boolean>(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isExportingDirectly, setIsExportingDirectly] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleExportPDF = async () => {
+    if (isExportingDirectly) return;
+    setIsExportingDirectly(true);
+    showToast('Compiling complete candidate PDF dossier...');
+    try {
+      await exportProfileToPDF(userProfile, analysis, {
+        onProgress: (status) => setToastMessage(status)
+      });
+      showToast(`✓ Downloaded Caliber_Admissions_Portfolio_${(userProfile.name || 'Candidate').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf!`);
+    } catch (err) {
+      console.error('PDF Export Error:', err);
+      showToast('Export failed. Please try again.');
+    } finally {
+      setIsExportingDirectly(false);
+    }
   };
 
   const totalPursuits = userProfile.activities.length;
@@ -186,6 +209,39 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>View Results &amp; Spike</span>
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </button>
+
+            {/* In-App PDF Preview Button */}
+            <button
+              onClick={() => setIsPreviewModalOpen(true)}
+              className="glass-btn-secondary px-3.5 py-2 rounded-xl text-[12.5px] font-semibold flex items-center gap-1.5 cursor-pointer hover:border-indigo-400/40 text-slate-200 hover:text-white transition-colors"
+              title="Review candidate admissions report in-app before downloading"
+            >
+              <span className="material-symbols-outlined text-[16px] text-indigo-400">preview</span>
+              <span>Preview PDF</span>
+            </button>
+
+            <div className="flex items-center rounded-xl glass-btn-secondary overflow-hidden p-0.5 border border-white/10 hover:border-indigo-400/40 transition-colors">
+              <button
+                onClick={handleExportPDF}
+                disabled={isExportingDirectly}
+                className="px-3 py-1.5 text-[12.5px] font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 hover:text-white transition-colors"
+                title="Download complete admissions profile & analysis as PDF"
+              >
+                <span className={`material-symbols-outlined text-[16px] text-rose-400 ${isExportingDirectly ? 'animate-spin' : ''}`}>
+                  {isExportingDirectly ? 'progress_activity' : 'picture_as_pdf'}
+                </span>
+                <span>{isExportingDirectly ? 'Exporting...' : 'Export PDF'}</span>
+              </button>
+              <div className="h-4 w-[1px] bg-white/15" />
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                disabled={isExportingDirectly}
+                className="px-2 py-1.5 text-[12px] text-slate-400 hover:text-white hover:bg-white/10 rounded-r-lg transition-colors cursor-pointer"
+                title="PDF export options"
+              >
+                <span className="material-symbols-outlined text-[15px]">tune</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -594,6 +650,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         userProfile={userProfile}
         onNavigate={onNavigate}
         onUpdateProfile={onUpdateProfile || (() => {})}
+      />
+
+      {/* Export PDF Dossier Modal */}
+      <ExportPDFModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        userProfile={userProfile}
+        analysis={analysis}
+        onSuccessToast={showToast}
+        onOpenPreview={() => setIsPreviewModalOpen(true)}
+      />
+
+      {/* In-App PDF Preview Modal */}
+      <PDFPreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        userProfile={userProfile}
+        analysis={analysis}
+        onSuccessToast={showToast}
       />
     </div>
   );

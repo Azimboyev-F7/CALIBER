@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { ActiveScreen, AdmissionsAnalysis, UserProfile } from '../types';
 import { SpikeRadarChart, RadarDimension } from './SpikeRadarChart';
 import { ProfileGrowthHistoryChart } from './ProfileGrowthHistoryChart';
+import { ExportPDFModal } from './ExportPDFModal';
+import { PDFPreviewModal } from './PDFPreviewModal';
+import { exportProfileToPDF } from '../utils/exportProfilePDF';
 
 interface ResultsViewProps {
   userProfile: UserProfile;
@@ -30,14 +33,30 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   const [benchmarkTarget, setBenchmarkTarget] = useState<BenchmarkTarget>('t20');
   const [activeTab, setActiveTab] = useState<ResultsTab>('radar');
   const [selectedPillarKey, setSelectedPillarKey] = useState<string>('Spike');
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isExportingDirectly, setIsExportingDirectly] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleExportPDF = () => {
-    window.print();
+  const handleExportPDF = async () => {
+    if (isExportingDirectly) return;
+    setIsExportingDirectly(true);
+    showToast('Compiling complete candidate PDF dossier...');
+    try {
+      await exportProfileToPDF(userProfile, analysis, {
+        onProgress: (status) => setToastMessage(status)
+      });
+      showToast(`✓ Downloaded Caliber_Admissions_Portfolio_${(userProfile.name || 'Candidate').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf!`);
+    } catch (err) {
+      console.error('PDF Export Error:', err);
+      showToast('Export failed. Please try again.');
+    } finally {
+      setIsExportingDirectly(false);
+    }
   };
 
   const handleAddNewStep = (e: React.FormEvent) => {
@@ -332,13 +351,39 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Preview PDF Button */}
           <button
-            onClick={handleExportPDF}
-            className="px-3.5 py-2 glass-btn-secondary text-[12.5px] font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer"
+            onClick={() => setIsPreviewModalOpen(true)}
+            className="glass-btn-secondary px-3.5 py-1.5 rounded-xl text-[12.5px] font-semibold flex items-center gap-1.5 cursor-pointer hover:border-indigo-400/40 text-slate-200 hover:text-white transition-colors"
+            title="Review rendered admissions dossier before downloading"
           >
-            <span className="material-symbols-outlined text-[16px]">print</span>
-            <span>Export Report</span>
+            <span className="material-symbols-outlined text-[16px] text-indigo-400">preview</span>
+            <span>Preview PDF</span>
           </button>
+
+          <div className="flex items-center rounded-xl glass-btn-secondary overflow-hidden p-0.5 border border-white/15 hover:border-indigo-400/40 transition-colors">
+            <button
+              onClick={handleExportPDF}
+              disabled={isExportingDirectly}
+              className="px-3 py-1.5 text-[12.5px] font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 hover:text-white transition-colors"
+              title="Download complete admissions profile & analysis as PDF"
+            >
+              <span className={`material-symbols-outlined text-[16px] text-rose-400 ${isExportingDirectly ? 'animate-spin' : ''}`}>
+                {isExportingDirectly ? 'progress_activity' : 'picture_as_pdf'}
+              </span>
+              <span>{isExportingDirectly ? 'Exporting...' : 'Export PDF'}</span>
+            </button>
+            <div className="h-4 w-[1px] bg-white/15" />
+            <button
+              onClick={() => setIsExportModalOpen(true)}
+              disabled={isExportingDirectly}
+              className="px-2 py-1.5 text-[12px] text-slate-400 hover:text-white hover:bg-white/10 rounded-r-lg transition-colors cursor-pointer"
+              title="Customize PDF export options"
+            >
+              <span className="material-symbols-outlined text-[15px]">tune</span>
+            </button>
+          </div>
+
           <button
             onClick={() => onNavigate('coach')}
             className="px-4 py-2 glass-btn-primary text-[12.5px] font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-indigo-500/25"
@@ -1288,6 +1333,70 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Download Full Official Dossier Card */}
+      <div className="glass-panel p-5 md:p-6 rounded-2xl border border-indigo-500/25 bg-gradient-to-r from-indigo-950/40 via-[#121222] to-[#0c0c16] flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-rose-400 shrink-0">
+            <span className="material-symbols-outlined text-[26px]">picture_as_pdf</span>
+          </div>
+          <div>
+            <h4 className="text-[15px] font-bold text-white">
+              Download Complete Admissions Dossier (PDF)
+            </h4>
+            <p className="text-[12.5px] text-slate-300">
+              Export high-resolution report containing full academic profile, extracurricular spike audit, target university balance, and personalized roadmap.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <button
+            onClick={() => setIsPreviewModalOpen(true)}
+            className="px-3.5 py-2 glass-btn-secondary text-[12px] font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer hover:border-indigo-400/40 text-slate-200 hover:text-white transition-colors"
+            title="Preview rendered admissions dossier before downloading"
+          >
+            <span className="material-symbols-outlined text-[16px] text-indigo-400">preview</span>
+            <span>Preview Dossier</span>
+          </button>
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="px-3 py-2 glass-btn-secondary text-[12px] font-semibold rounded-xl flex items-center gap-1.5 cursor-pointer hover:border-indigo-400/40"
+          >
+            <span className="material-symbols-outlined text-[15px]">tune</span>
+            <span>Options</span>
+          </button>
+          <button
+            onClick={handleExportPDF}
+            disabled={isExportingDirectly}
+            className="px-4 py-2 glass-btn-primary text-[12.5px] font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-indigo-500/30 disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined text-[16px] ${isExportingDirectly ? 'animate-spin' : ''}`}>
+              {isExportingDirectly ? 'progress_activity' : 'download'}
+            </span>
+            <span>{isExportingDirectly ? 'Compiling PDF...' : 'Download PDF'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Export PDF Dossier Modal */}
+      <ExportPDFModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        userProfile={userProfile}
+        analysis={analysis}
+        onSuccessToast={showToast}
+        onOpenPreview={() => setIsPreviewModalOpen(true)}
+      />
+
+      {/* In-App PDF Preview Modal */}
+      <PDFPreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        userProfile={userProfile}
+        analysis={analysis}
+        onSuccessToast={showToast}
+      />
     </div>
   );
 };
