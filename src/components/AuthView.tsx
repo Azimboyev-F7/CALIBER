@@ -10,7 +10,7 @@ import {
 interface AuthViewProps {
   onNavigate: (screen: ActiveScreen) => void;
   currentUser: AuthUser | null;
-  onUserChange: (user: AuthUser | null) => void;
+  onUserChange: (user: AuthUser | null, targetScreen?: ActiveScreen) => void;
   pendingScreen?: ActiveScreen | null;
 }
 
@@ -63,11 +63,11 @@ export const AuthView: React.FC<AuthViewProps> = ({
       } else if (user) {
         const targetScreen = (pendingScreen && pendingScreen !== 'landing' && pendingScreen !== 'auth') ? pendingScreen : 'dashboard';
         const screenTitle = SCREEN_TITLES[targetScreen] || 'Dashboard';
-        onUserChange(user);
         setSuccessMsg(`Successfully signed in! Opening ${screenTitle}...`);
+        onUserChange(user, targetScreen);
         setTimeout(() => {
           onNavigate(targetScreen);
-        }, 500);
+        }, 250);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'An unexpected error occurred.');
@@ -115,11 +115,11 @@ export const AuthView: React.FC<AuthViewProps> = ({
       } else if (user) {
         const targetScreen = (pendingScreen && pendingScreen !== 'landing' && pendingScreen !== 'auth') ? pendingScreen : 'dashboard';
         const screenTitle = SCREEN_TITLES[targetScreen] || 'Dashboard';
-        onUserChange(user);
-        setSuccessMsg(`Account created successfully! Opening ${screenTitle}...`);
+        setSuccessMsg(`Account created successfully! Directing to ${screenTitle}...`);
+        onUserChange(user, targetScreen);
         setTimeout(() => {
           onNavigate(targetScreen);
-        }, 500);
+        }, 250);
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'An unexpected error occurred during registration.');
@@ -155,7 +155,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
 
   const handleQuickDemoLogin = () => {
     const targetScreen = (pendingScreen && pendingScreen !== 'landing' && pendingScreen !== 'auth') ? pendingScreen : 'dashboard';
-    onUserChange(DEMO_USER);
+    onUserChange(DEMO_USER, targetScreen);
     onNavigate(targetScreen);
   };
 

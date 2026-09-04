@@ -81,6 +81,9 @@ export default function App() {
     return INITIAL_USER_PROFILE;
   });
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredAuthUser());
+  const currentUserRef = useRef<AuthUser | null>(currentUser);
+  currentUserRef.current = currentUser;
+
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult>(INITIAL_ANALYSIS_RESULT);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -90,7 +93,8 @@ export default function App() {
 
   // Central Navigation handler with auth enforcement
   const handleNavigate = (targetScreen: ActiveScreen) => {
-    if (!currentUser && targetScreen !== 'landing' && targetScreen !== 'auth') {
+    const user = currentUserRef.current || getStoredAuthUser();
+    if (!user && targetScreen !== 'landing' && targetScreen !== 'auth') {
       setPendingScreen(targetScreen);
       setActiveScreen('auth');
     } else {
@@ -109,7 +113,8 @@ export default function App() {
 
   // Guard protected screens if user becomes unauthenticated
   useEffect(() => {
-    if (!currentUser && activeScreen !== 'landing' && activeScreen !== 'auth') {
+    const user = currentUser || getStoredAuthUser();
+    if (!user && activeScreen !== 'landing' && activeScreen !== 'auth') {
       setPendingScreen(activeScreen);
       setActiveScreen('auth');
     }
@@ -119,6 +124,7 @@ export default function App() {
   useEffect(() => {
     const stored = getStoredAuthUser();
     if (stored) {
+      currentUserRef.current = stored;
       setCurrentUser(stored);
       if (stored.name) {
         setUserProfile((prev) => ({ ...prev, name: stored.name || prev.name }));
@@ -128,14 +134,29 @@ export default function App() {
 
   const handleSignOut = async () => {
     await signOutUser();
+    currentUserRef.current = null;
     setCurrentUser(null);
+    setPendingScreen(null);
     setActiveScreen('landing');
   };
 
-  const handleUserChange = (user: AuthUser | null) => {
+  const handleUserChange = (user: AuthUser | null, targetScreen?: ActiveScreen) => {
+    currentUserRef.current = user;
     setCurrentUser(user);
     if (user?.name) {
-      setUserProfile((prev) => ({ ...prev, name: user.name || prev.name }));
+      setUserProfile((prev) => {
+        const next = { ...prev, name: user.name || prev.name };
+        try {
+          localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(next));
+        } catch (e) {
+          console.warn('Failed to persist profile:', e);
+        }
+        return next;
+      });
+    }
+    if (user && targetScreen) {
+      setPendingScreen(null);
+      setActiveScreen(targetScreen);
     }
   };
 
@@ -604,7 +625,7 @@ export default function App() {
                   <ResultsView
                     userProfile={userProfile}
                     analysis={analysisResult}
-                    onNavigate={setActiveScreen}
+                    onNavigate={handleNavigate}
                     onToggleStep={handleToggleStep}
                     onAddCustomStep={handleAddCustomStep}
                   />
@@ -615,7 +636,7 @@ export default function App() {
                     userProfile={userProfile}
                     onUpdateActivities={handleUpdateActivities}
                     onOpenAddActivity={() => setIsAddActivityOpen(true)}
-                    onNavigate={setActiveScreen}
+                    onNavigate={handleNavigate}
                   />
                 )}
 
@@ -623,7 +644,7 @@ export default function App() {
                   <SettingsView
                     userProfile={userProfile}
                     onUpdateProfile={handleUpdateProfile}
-                    onNavigate={setActiveScreen}
+                    onNavigate={handleNavigate}
                   />
                 )}
               </main>
@@ -632,7 +653,7 @@ export default function App() {
             {/* Floating AI Coach Quick Access Widget */}
             <FloatingCoachWidget
               currentScreen={activeScreen}
-              onNavigate={setActiveScreen}
+              onNavigate={handleNavigate}
               userProfile={userProfile}
               analysis={analysisResult}
             />
