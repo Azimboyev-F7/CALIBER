@@ -213,7 +213,9 @@ What specific area would you like to dive into next?
         });
       }
 
-      const systemInstruction = `You are a former Ivy League / Stanford / MIT Admissions Officer and senior collegiate admissions consultant.
+      const systemInstruction = `ABSOLUTE RULE — READ FIRST: You will be given a student profile where some fields may show "N/A" or be empty. You are STRICTLY FORBIDDEN from inventing, guessing, or stating a specific number for any field marked "N/A" or missing — including ACT score, SAT score, GPA, awards, or activities. For example, if ACT shows "N/A", you must NEVER write a sentence like "your ACT score of 34" — that field simply does not exist for this student. If you need to reference testing, only mention the SAT score if present, and say nothing about ACT if it is N/A. Violating this rule is a critical failure.
+
+You are a former Ivy League / Stanford / MIT Admissions Officer and senior collegiate admissions consultant.
 You are counseling a high school student named ${profile?.name || 'the student'}.
 You have direct access to their evaluated profile data and diagnostic audit.
 
@@ -336,7 +338,9 @@ STYLE & BEHAVIORAL DIRECTIVES (CRITICAL FOR CLARITY & READABILITY):
         return res.end();
       }
 
-      const systemInstruction = `You are a former Ivy League / Stanford / MIT Admissions Officer and senior collegiate admissions consultant.
+      const systemInstruction = `ABSOLUTE RULE — READ FIRST: You will be given a student profile where some fields may show "N/A" or be empty. You are STRICTLY FORBIDDEN from inventing, guessing, or stating a specific number for any field marked "N/A" or missing — including ACT score, SAT score, GPA, awards, or activities. For example, if ACT shows "N/A", you must NEVER write a sentence like "your ACT score of 34" — that field simply does not exist for this student. If you need to reference testing, only mention the SAT score if present, and say nothing about ACT if it is N/A. Violating this rule is a critical failure.
+
+You are a former Ivy League / Stanford / MIT Admissions Officer and senior collegiate admissions consultant.
 You are counseling a high school student named ${profile?.name || 'the student'}.
 You have direct access to their evaluated profile data and diagnostic audit.
 
@@ -441,7 +445,9 @@ STYLE & BEHAVIORAL DIRECTIVES (CRITICAL FOR CLARITY & READABILITY):
         });
       }
 
-      const prompt = `You are a former Ivy League admissions director and senior college consultant.
+      const prompt = `ABSOLUTE RULE — READ FIRST: You will be given a student profile where some fields may show "N/A" or be empty. You are STRICTLY FORBIDDEN from inventing, guessing, or stating a specific number for any field marked "N/A" or missing — including ACT score, SAT score, GPA, awards, or activities. For example, if ACT shows "N/A", you must NEVER write a sentence like "your ACT score of 34" — that field simply does not exist for this student. If you need to reference testing, only mention the SAT score if present, and say nothing about ACT if it is N/A. Violating this rule is a critical failure.
+
+You are a former Ivy League admissions director and senior college consultant.
 Evaluate the following high school student profile and return a JSON object evaluating their candidacy:
 
 Student Profile:
@@ -558,14 +564,10 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
     }
   });
 
-  // Helper for generating deterministic intelligent college recommendations with realistic, calibrated personalized admit rates
-  function generateIntelligentCollegeRecommendations(profile: any, filterTier?: string, filterRegion?: string): any {
+  // Portfolio scoring logic & realistic calibrated admissions odds calculator
+  function createRealisticOddsCalculator(profile: any) {
     const uwGpa = parseFloat(profile?.unweightedGpa || '3.5');
-    const sat = parseInt(profile?.satScore || '1350', 10);
-    const major = (profile?.intendedMajor || 'Computer Science').toLowerCase();
-    const country = (filterRegion || profile?.preferredCountry || 'United States').toLowerCase();
-    const budget = profile?.budgetPerYear || 'Flexible';
-    const ielts = profile?.ieltsScore || '7.0';
+    const sat = parseInt(profile?.satScore || '0', 10);
     const rigor = parseInt(profile?.apIbHonorsCount || '4', 10);
     const activities = Array.isArray(profile?.activities) ? profile.activities : [];
     const activitiesCount = activities.length;
@@ -582,7 +584,7 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
     else if (uwGpa >= 2.80) academicScore += 3;
     else academicScore += 1;
 
-    if (!isNaN(sat)) {
+    if (!isNaN(sat) && sat > 0) {
       if (sat >= 1550) academicScore += 12;
       else if (sat >= 1480) academicScore += 9;
       else if (sat >= 1400) academicScore += 6;
@@ -620,7 +622,7 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
     // Realistic uninflated odds calculator:
     // If a student has low portfolio (<50), their odds at a 3.9% baseline school (like MIT) should be ~0.1% to 0.3%, NEVER 3.2%!
     const calcRealisticOdds = (baseRateStr: string): string => {
-      const base = parseFloat(baseRateStr.replace('%', '')) || 10;
+      const base = parseFloat((baseRateStr || '10').replace('%', '').trim()) || 10;
       let calculatedOdds = 0;
 
       if (base <= 5.0) {
@@ -676,6 +678,24 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
 
       return `${calculatedOdds.toFixed(1)}%`;
     };
+
+    return {
+      calcRealisticOdds,
+      totalPortfolioScore,
+      isElite,
+      isCompetitive,
+      isDeveloping
+    };
+  }
+
+  // Helper for generating deterministic intelligent college recommendations with realistic, calibrated personalized admit rates
+  function generateIntelligentCollegeRecommendations(profile: any, filterTier?: string, filterRegion?: string): any {
+    const major = (profile?.intendedMajor || 'Computer Science').toLowerCase();
+    const country = (filterRegion || profile?.preferredCountry || 'United States').toLowerCase();
+    const budget = profile?.budgetPerYear || 'Flexible';
+    const ielts = profile?.ieltsScore || '7.0';
+    const activitiesCount = Array.isArray(profile?.activities) ? profile.activities.length : 0;
+    const { calcRealisticOdds, isElite, isCompetitive, isDeveloping } = createRealisticOddsCalculator(profile);
 
     let reaches: any[] = [];
     let targets: any[] = [];
@@ -1221,6 +1241,19 @@ Provide ONLY the polished 1-2 sentence Common App description (max 150 character
       const ai = getGeminiClient();
       if (!ai) {
         const fallbackResult = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
+        const { calcRealisticOdds } = createRealisticOddsCalculator(profile);
+        const applyDeterministicOdds = (colleges: any[]) => {
+          if (!Array.isArray(colleges)) return;
+          for (const college of colleges) {
+            const baseRate = college.baselineAcceptanceRate || college.acceptanceRate || '10.0%';
+            college.estimatedAdmitRate = calcRealisticOdds(baseRate);
+          }
+        };
+
+        applyDeterministicOdds(fallbackResult.reachRecommendations);
+        applyDeterministicOdds(fallbackResult.targetRecommendations);
+        applyDeterministicOdds(fallbackResult.safetyRecommendations);
+
         return res.json({
           source: 'local_engine',
           success: true,
@@ -1346,6 +1379,22 @@ Return ONLY a valid JSON object matching this schema without markdown code block
         parsed = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
       }
 
+      // ALWAYS-ON source of truth for estimatedAdmitRate:
+      // Override the estimatedAdmitRate field on every returned college using calcRealisticOdds()
+      // computed from the real profile data, using each school's actual base acceptance rate as input.
+      const { calcRealisticOdds } = createRealisticOddsCalculator(profile);
+      const applyDeterministicOdds = (colleges: any[]) => {
+        if (!Array.isArray(colleges)) return;
+        for (const college of colleges) {
+          const baseRate = college.baselineAcceptanceRate || college.acceptanceRate || '10.0%';
+          college.estimatedAdmitRate = calcRealisticOdds(baseRate);
+        }
+      };
+
+      applyDeterministicOdds(parsed.reachRecommendations);
+      applyDeterministicOdds(parsed.targetRecommendations);
+      applyDeterministicOdds(parsed.safetyRecommendations);
+
       return res.json({
         source: 'gemini-3.7-flash',
         success: true,
@@ -1354,6 +1403,19 @@ Return ONLY a valid JSON object matching this schema without markdown code block
     } catch (err: any) {
       console.log('[AI College Matchmaker] Using deterministic admissions probability model.');
       const fallbackResult = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
+      const { calcRealisticOdds } = createRealisticOddsCalculator(profile);
+      const applyDeterministicOdds = (colleges: any[]) => {
+        if (!Array.isArray(colleges)) return;
+        for (const college of colleges) {
+          const baseRate = college.baselineAcceptanceRate || college.acceptanceRate || '10.0%';
+          college.estimatedAdmitRate = calcRealisticOdds(baseRate);
+        }
+      };
+
+      applyDeterministicOdds(fallbackResult.reachRecommendations);
+      applyDeterministicOdds(fallbackResult.targetRecommendations);
+      applyDeterministicOdds(fallbackResult.safetyRecommendations);
+
       return res.json({
         source: 'local_engine',
         success: true,

@@ -69,6 +69,8 @@ export interface CollegeTarget {
   round?: string;
   notes?: string;
   checklist?: ApplicationChecklistItem[];
+  estimatedAdmitRate?: string;
+  baselineAcceptanceRate?: string;
 }
 
 export interface AnalysisHistoryEntry {

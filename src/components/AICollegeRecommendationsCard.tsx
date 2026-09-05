@@ -181,6 +181,8 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
       name: rec.name,
       category: rec.category,
       acceptanceRate: rec.baselineAcceptanceRate,
+      baselineAcceptanceRate: rec.baselineAcceptanceRate,
+      estimatedAdmitRate: rec.estimatedAdmitRate,
       location: rec.location,
       deadline: rec.deadline,
       round: rec.round,

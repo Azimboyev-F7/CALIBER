@@ -278,7 +278,7 @@ export const AdmissionsCoachView: React.FC<AdmissionsCoachViewProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 glass-panel p-5 rounded-2xl border border-white/10 space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="material-symbols-outlined text-amber-400 text-[20px]">flare</span>
                 <h3 className="text-[16px] font-bold text-white">Your Evaluated Spike: {analysis.spikeCategory}</h3>
               </div>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { UserProfile, AnalysisResult } from '../types';
+import { getAdmissionsRadarDimensions } from '../utils/scoringEngine';
 
 export interface ChatMessage {
   id: string;
@@ -19,7 +20,7 @@ interface CoachChatContextType {
 
 const CoachChatContext = createContext<CoachChatContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'caliber_coach_messages_v1';
+const STORAGE_KEY = 'caliber_coach_messages_v4';
 
 export const CoachChatProvider: React.FC<{
   children: React.ReactNode;
@@ -34,50 +35,65 @@ export const CoachChatProvider: React.FC<{
     analysisRef.current = analysis;
   }, [userProfile, analysis]);
 
-  const studentFirstName = userProfile.name.split(' ')[0] || 'Student';
+  const studentFirstName = userProfile.name?.split(' ')[0] || 'Student';
 
-  const buildInitialGreeting = useCallback((): string => {
-    const gapsList: Array<{ title: string; suggestion: string }> =
-      analysis.gapsToAddress && analysis.gapsToAddress.length > 0
-        ? analysis.gapsToAddress
-        : [
-            {
-              title: 'Limited external validation in intended major',
-              suggestion: 'Target recognized state/national competitions and research preprints before application deadlines.'
-            },
-            {
-              title: 'Activity descriptions lack quantified scope and impact metrics',
-              suggestion: 'Quantify members managed, funds raised, or users impacted across your top extracurriculars.'
-            }
-          ];
+  const buildInitialGreeting = useCallback(
+    (profile: UserProfile, ana: AnalysisResult): string => {
+      const gapsList: Array<{ title: string; suggestion: string }> =
+        ana.gapsToAddress && ana.gapsToAddress.length > 0
+          ? ana.gapsToAddress
+          : [
+              {
+                title: 'Limited external validation in intended major',
+                suggestion: 'Target recognized state/national competitions and research preprints before application deadlines.'
+              },
+              {
+                title: 'Activity descriptions lack quantified scope and impact metrics',
+                suggestion: 'Quantify members managed, funds raised, or users impacted across your top extracurriculars.'
+              }
+            ];
 
-    return `### 🎓 Admissions Diagnostic Briefing for **${studentFirstName}**
+      // Use the single centralized source of truth for the 6 collegiate dimensions
+      const radarDims = getAdmissionsRadarDimensions(profile, ana, 't20');
+      const radarChartData = radarDims.map((d) => ({
+        label: d.name,
+        shortLabel: d.shortName,
+        current: d.studentScore,
+        value: d.studentScore,
+        benchmark: d.benchmarkScore
+      }));
 
-**Candidate:** ${userProfile.name} | **Target Field:** ${userProfile.intendedMajor} (Class of '${userProfile.graduationYear.slice(-2)})
+      const chartJson = JSON.stringify(
+        {
+          title: 'Admissions Standing vs. Top-20 Collegiate Standards',
+          type: 'radar',
+          data: radarChartData
+        },
+        null,
+        2
+      );
+
+      return `### 🎓 Admissions Diagnostic Briefing for **${studentFirstName}**
+
+**Candidate:** ${profile.name || 'Candidate'} | **Target Field:** ${profile.intendedMajor || 'Undecided'} (Class of '${(profile.graduationYear || '2026').slice(-2)})
 
 \`\`\`chart
-{
-  "title": "Admissions Standing vs. Top-20 Collegiate Standards",
-  "data": [
-    {"label": "Academic Rigor", "current": ${analysis.academicRigorScore || 85}, "benchmark": 92},
-    {"label": "Spike Depth", "current": ${analysis.extracurricularDepthScore || 82}, "benchmark": 88},
-    {"label": "Narrative Cohesion", "current": ${analysis.narrativeCohesionScore || 80}, "benchmark": 90},
-    {"label": "Admissions Overall", "current": ${Math.round(((analysis.academicRigorScore || 85) + (analysis.extracurricularDepthScore || 82) + (analysis.narrativeCohesionScore || 80)) / 3)}, "benchmark": 90}
-  ]
-}
+${chartJson}
 \`\`\`
 
-> 💡 **Admissions Officer Assessment:** You possess strong foundational credibility in **${analysis.spikeCategory}** (${analysis.overallRating} rating). However, elite admissions committees will scrutinize a few tactical areas:
+> 💡 **Admissions Officer Assessment:** You possess strong foundational credibility in **${ana.spikeCategory || 'Developing Hook'}** (${ana.overallRating || 'Strong'} rating). However, elite admissions committees will scrutinize a few tactical areas:
 
 ---
 
 ### ⚠️ Priority Red Flags to Address:
 ${gapsList.map((gap, i) => `${i + 1}. **${gap.title}** — *${gap.suggestion}*`).join('\n')}
 
-${analysis.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${analysis.priorityRecommendation.title} — *${analysis.priorityRecommendation.description}*` : ''}
+${ana.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${ana.priorityRecommendation.title} — *${ana.priorityRecommendation.description}*` : ''}
 
 [Suggested Follow-ups: "How do I fix the vulnerabilities in my profile?" | "What is the best hook for my Common App essay?" | "How do I elevate my extracurriculars to Tier 1?"]`;
-  }, [analysis, studentFirstName, userProfile.graduationYear, userProfile.intendedMajor, userProfile.name]);
+    },
+    [studentFirstName]
+  );
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -95,7 +111,7 @@ ${analysis.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${analysis.
       {
         id: 'initial-coach-greeting',
         sender: 'coach',
-        text: buildInitialGreeting(),
+        text: buildInitialGreeting(userProfile, analysis),
         timestamp: 'Just now'
       }
     ];
@@ -103,6 +119,25 @@ ${analysis.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${analysis.
 
   const [isLoading, setIsLoading] = useState(false);
   const [activePrompt, setActivePrompt] = useState('');
+
+  // Keep initial briefing message dynamically linked to live profile & analysis updates
+  useEffect(() => {
+    setMessages((prev) => {
+      const initialIdx = prev.findIndex((m) => m.id === 'initial-coach-greeting');
+      if (initialIdx !== -1) {
+        const updatedGreeting = buildInitialGreeting(userProfile, analysis);
+        if (prev[initialIdx].text !== updatedGreeting) {
+          const newMessages = [...prev];
+          newMessages[initialIdx] = {
+            ...newMessages[initialIdx],
+            text: updatedGreeting
+          };
+          return newMessages;
+        }
+      }
+      return prev;
+    });
+  }, [userProfile, analysis, buildInitialGreeting]);
 
   // Persist messages across screen transitions and page reloads
   useEffect(() => {
@@ -237,13 +272,23 @@ ${analysis.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${analysis.
         }
       } catch (err: any) {
         console.error('Coach Chat error:', err);
-        const errorMsg: ChatMessage = {
-          id: `coach-error-${Date.now()}`,
-          sender: 'coach',
-          text: `> ⚠️ **Notice:** The live connection timed out. Showing tactical profile guidance: Ensure your activity descriptions quantify metrics and your essays convey intellectual vitality.`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setMessages((prev) => [...prev, errorMsg]);
+        const errorReply =
+          '⚠️ Strategic connection disrupted. Please check your network and ask your question again.';
+        if (hasAddedCoachPlaceholder) {
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === coachMsgId ? { ...msg, text: errorReply } : msg))
+          );
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: coachMsgId,
+              sender: 'coach',
+              text: errorReply,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }
+          ]);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -252,21 +297,19 @@ ${analysis.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${analysis.
   );
 
   const clearChat = useCallback(() => {
-    const initial: ChatMessage[] = [
-      {
-        id: `reset-${Date.now()}`,
-        sender: 'coach',
-        text: buildInitialGreeting(),
-        timestamp: 'Just now'
-      }
-    ];
-    setMessages(initial);
+    const initialMsg: ChatMessage = {
+      id: 'initial-coach-greeting',
+      sender: 'coach',
+      text: buildInitialGreeting(userProfile, analysis),
+      timestamp: 'Just now'
+    };
+    setMessages([initialMsg]);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([initialMsg]));
     } catch (e) {
-      console.warn('Could not save reset state:', e);
+      console.warn('Could not reset coach chat storage:', e);
     }
-  }, [buildInitialGreeting]);
+  }, [analysis, buildInitialGreeting, userProfile]);
 
   return (
     <CoachChatContext.Provider

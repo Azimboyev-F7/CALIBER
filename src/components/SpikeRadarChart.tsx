@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as d3 from 'd3';
+import { ScoreEvaluationBadge } from './ScoreEvaluationBadge';
 
 export interface RadarDimension {
   key: string;
@@ -12,6 +13,7 @@ export interface RadarDimension {
   color: string;
   description: string;
   rubricRating?: string;
+  evalType?: 'calculated' | 'ai-evaluated';
 }
 
 interface SpikeRadarChartProps {
@@ -417,6 +419,16 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
                   className="transition-colors group-hover:fill-indigo-300"
                 >
                   {dim.shortName || dim.name}
+                  {dim.evalType === 'calculated' && (
+                    <tspan dx="4" fill="#94a3b8" fontSize="8" fontWeight="700">
+                      • Calculated
+                    </tspan>
+                  )}
+                  {dim.evalType === 'ai-evaluated' && (
+                    <tspan dx="4" fill="#c084fc" fontSize="8" fontWeight="700">
+                      • AI-Evaluated
+                    </tspan>
+                  )}
                 </text>
 
                 {/* Subtitle / delta indicator */}
@@ -468,6 +480,9 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
                 <span className="text-[12.5px] font-bold text-white truncate">
                   {hoveredDimension.name}
                 </span>
+                {hoveredDimension.evalType && (
+                  <ScoreEvaluationBadge type={hoveredDimension.evalType} />
+                )}
                 <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   {hoveredDimension.rubricRating || 'Tier 1/2'}
                 </span>

@@ -5,6 +5,7 @@ import { TargetCollegesSummaryWidget } from './TargetCollegesSummaryWidget';
 import { CollegeApplicationTimeline } from './CollegeApplicationTimeline';
 import { ExportPDFModal } from './ExportPDFModal';
 import { PDFPreviewModal } from './PDFPreviewModal';
+import { ScoreEvaluationBadge } from './ScoreEvaluationBadge';
 import { exportProfileToPDF } from '../utils/exportProfilePDF';
 
 interface DashboardViewProps {
@@ -264,8 +265,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   {analysis.overallRating}
                 </span>
               </h2>
-              <p className="text-[13px] md:text-[14px] text-slate-300 max-w-xl leading-relaxed">
-                Your narrative spike in <strong className="text-white">{analysis.spikeCategory}</strong> provides a distinctive competitive angle for top institutions.
+              <p className="text-[13px] md:text-[14px] text-slate-300 max-w-xl leading-relaxed flex items-center gap-1.5 flex-wrap">
+                <span>Your narrative spike in <strong className="text-white">{analysis.spikeCategory}</strong></span>
+                <ScoreEvaluationBadge type="ai-evaluated" />
+                <span>provides a distinctive competitive angle for top institutions.</span>
               </p>
             </div>
 
@@ -441,8 +444,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex flex-col gap-4 mb-4">
               {/* Academic Rigor */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-[13px]">
-                  <span className="text-slate-200 font-medium">Academic Rigor</span>
+                <div className="flex justify-between items-center text-[13px]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-200 font-medium">Academic Rigor</span>
+                    <ScoreEvaluationBadge type="calculated" />
+                  </div>
                   <motion.span 
                     key={analysis.academicRigorScore}
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -466,8 +472,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               {/* Extracurriculars */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-[13px]">
-                  <span className="text-slate-200 font-medium">Extracurricular Depth</span>
+                <div className="flex justify-between items-center text-[13px]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-200 font-medium">Extracurricular Depth</span>
+                    <ScoreEvaluationBadge type="calculated" />
+                  </div>
                   <motion.span 
                     key={analysis.extracurricularDepthScore}
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -491,8 +500,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               {/* Narrative Cohesion */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-[13px]">
-                  <span className="text-slate-200 font-medium">Narrative Cohesion</span>
+                <div className="flex justify-between items-center text-[13px]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-200 font-medium">Narrative Cohesion</span>
+                    <ScoreEvaluationBadge type="ai-evaluated" />
+                  </div>
                   <motion.span 
                     key={analysis.narrativeCohesionScore}
                     initial={{ opacity: 0, scale: 0.9 }}

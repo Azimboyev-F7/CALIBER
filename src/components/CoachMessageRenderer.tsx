@@ -1,14 +1,6 @@
 import React from 'react';
 import Markdown from 'react-markdown';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
+import { CoachRadarChart, RadarChartItem } from './CoachRadarChart';
 
 interface CoachMessageRendererProps {
   content: string;
@@ -16,16 +8,9 @@ interface CoachMessageRendererProps {
 }
 
 interface ChartBlockData {
-  type?: 'bar' | 'comparison' | 'meter';
+  type?: 'radar' | 'bar' | 'comparison' | 'meter';
   title?: string;
-  data: Array<{
-    label: string;
-    current?: number;
-    benchmark?: number;
-    value?: number;
-    max?: number;
-    color?: string;
-  }>;
+  data: RadarChartItem[];
 }
 
 export const CoachMessageRenderer: React.FC<CoachMessageRendererProps> = ({
@@ -82,101 +67,11 @@ export const CoachMessageRenderer: React.FC<CoachMessageRendererProps> = ({
           try {
             const parsed: ChartBlockData = JSON.parse(part.data);
             return (
-              <div
+              <CoachRadarChart
                 key={`chart-${index}`}
-                className="my-3 p-3.5 rounded-xl bg-[#0d0d16]/90 border border-indigo-500/30 shadow-lg shadow-black/40 space-y-2.5 backdrop-blur-md"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-indigo-400 text-[18px]">
-                      leaderboard
-                    </span>
-                    <h4 className="text-[12.5px] font-bold text-white tracking-wide">
-                      {parsed.title || 'Admissions Pillar Benchmark'}
-                    </h4>
-                  </div>
-                  <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                    Live Model Diagnostic
-                  </span>
-                </div>
-
-                <div className="w-full h-[160px] pt-1">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={parsed.data}
-                      margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
-                      barCategoryGap={12}
-                    >
-                      <XAxis
-                        dataKey="label"
-                        stroke="#94a3b8"
-                        fontSize={10}
-                        tickLine={false}
-                        axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                      />
-                      <YAxis
-                        stroke="#94a3b8"
-                        fontSize={10}
-                        domain={[0, 100]}
-                        tickLine={false}
-                        axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                        ticks={[0, 50, 100]}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#0f172a',
-                          border: '1px solid rgba(255,255,255,0.15)',
-                          borderRadius: '8px',
-                          fontSize: '11px'
-                        }}
-                      />
-                      {parsed.data[0]?.current !== undefined ? (
-                        <>
-                          <Bar
-                            name="Your Score"
-                            dataKey="current"
-                            fill="#818cf8"
-                            radius={[4, 4, 0, 0]}
-                          />
-                          <Bar
-                            name="T20 Target"
-                            dataKey="benchmark"
-                            fill="#c084fc"
-                            radius={[4, 4, 0, 0]}
-                            opacity={0.8}
-                          />
-                        </>
-                      ) : (
-                        <Bar
-                          name="Score"
-                          dataKey="value"
-                          fill="#818cf8"
-                          radius={[4, 4, 0, 0]}
-                        >
-                          {parsed.data.map((entry, idx) => (
-                            <Cell
-                              key={`cell-${idx}`}
-                              fill={entry.color || '#818cf8'}
-                            />
-                          ))}
-                        </Bar>
-                      )}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Score Summary Footnote */}
-                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/10">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-                    Your Rating
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-                    Top-20 Target Baseline
-                  </span>
-                </div>
-              </div>
+                title={parsed.title || 'Admissions Standing vs. Top-20 Collegiate Standards'}
+                data={parsed.data}
+              />
             );
           } catch (e) {
             return (

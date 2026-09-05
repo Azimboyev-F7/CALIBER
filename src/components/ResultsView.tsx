@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import { ActiveScreen, AdmissionsAnalysis, UserProfile } from '../types';
 import { SpikeRadarChart, RadarDimension } from './SpikeRadarChart';
-import { ProfileGrowthHistoryChart } from './ProfileGrowthHistoryChart';
 import { ExportPDFModal } from './ExportPDFModal';
 import { PDFPreviewModal } from './PDFPreviewModal';
+import { ScoreEvaluationBadge } from './ScoreEvaluationBadge';
 import { exportProfileToPDF } from '../utils/exportProfilePDF';
+import {
+  calculateAcademicRigorScore,
+  calculateExtracurricularDepthScore,
+  calculateLeadershipScore,
+  calculateAwardsScore,
+  calculateTestingScore,
+  getAdmissionsRadarDimensions,
+  ADMISSION_BENCHMARK_TARGETS
+} from '../utils/scoringEngine';
+import { computeTierAdmitSummary } from '../utils/admissionsOdds';
 
 interface ResultsViewProps {
   userProfile: UserProfile;
@@ -16,7 +26,7 @@ interface ResultsViewProps {
 }
 
 type BenchmarkTarget = 't20' | 't50' | 'liberalArts';
-type ResultsTab = 'radar' | 'history' | 'matrix' | 'simulator' | 'rubric';
+type ResultsTab = 'radar' | 'matrix' | 'simulator' | 'rubric';
 
 export const ResultsView: React.FC<ResultsViewProps> = ({
   userProfile,
@@ -26,6 +36,9 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   onToggleActionStep,
   onAddCustomStep
 }) => {
+  const academicRigorScore = calculateAcademicRigorScore(userProfile);
+  const extracurricularDepthScore = calculateExtracurricularDepthScore(userProfile);
+
   const toggleHandler = onToggleStep || onToggleActionStep || (() => {});
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [newStepText, setNewStepText] = useState('');
@@ -68,22 +81,14 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     showToast('Action item added to admissions roadmap!');
   };
 
-  // Compute pillar scores based on user profile & analysis
+  // Compute pillar scores based on user profile & analysis (Centralized scoring engine)
+  const leadershipScore = calculateLeadershipScore(userProfile);
+  const awardsScore = calculateAwardsScore(userProfile);
+  const testingScore = calculateTestingScore(userProfile);
   const leadershipCount = userProfile.activities.filter((a) => a.isLeadership || a.tier <= 2).length;
-  const leadershipScore = Math.min(96, Math.max(50, 60 + leadershipCount * 8));
-
   const awardsCount = userProfile.awards.length;
-  const awardsScore = Math.min(95, Math.max(45, 55 + awardsCount * 12));
-
-  // Compute standardized testing readiness score (0-100)
   const parsedSat = parseInt(userProfile.satScore, 10);
   const parsedIelts = parseFloat(userProfile.ieltsScore || '0');
-  let testingScore = 78;
-  if (!isNaN(parsedSat) && parsedSat > 0) {
-    testingScore = Math.min(99, Math.max(50, Math.round(((parsedSat - 1100) / 500) * 45 + 54)));
-  } else if (!isNaN(parsedIelts) && parsedIelts > 0) {
-    testingScore = Math.min(98, Math.max(50, Math.round((parsedIelts / 9) * 98)));
-  }
 
   // Dynamic Profile Completeness & Statistical Confidence Model
   // Evaluates populated fields across Academics (35%), Extracurriculars (30%), Honors (15%), College Target List (10%), and Strategic Context (10%)
@@ -149,120 +154,42 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     ? 'Solid Confidence'
     : 'Moderate Confidence';
 
-  // Benchmark targets
-  const benchmarkMultipliers = {
-    t20: { targetName: 'Top 20 National Avg', rigor: 92, spike: 88, leadership: 86, awards: 84, cohesion: 88, testing: 93 },
-    t50: { targetName: 'Top 50 National Avg', rigor: 82, spike: 75, leadership: 74, awards: 70, cohesion: 75, testing: 82 },
-    liberalArts: { targetName: 'Top LAC Avg', rigor: 88, spike: 82, leadership: 90, awards: 78, cohesion: 92, testing: 87 }
-  };
+  const currentBenchmark = ADMISSION_BENCHMARK_TARGETS[benchmarkTarget] || ADMISSION_BENCHMARK_TARGETS.t20;
 
-  const currentBenchmark = benchmarkMultipliers[benchmarkTarget];
-
-  // Data for the 6 Admissions Radar Dimensions
-  const radarDimensions: RadarDimension[] = [
-    {
-      key: 'rigor',
-      name: 'Academic Rigor & GPA',
-      shortName: 'Academic Rigor',
-      studentScore: analysis.academicRigorScore,
-      benchmarkScore: currentBenchmark.rigor,
-      nationalAvg: 64,
-      icon: 'menu_book',
-      color: '#818cf8',
-      description: `Unweighted ${userProfile.unweightedGpa} GPA with ${userProfile.apIbHonorsCount} advanced AP/IB courses.`,
-      rubricRating: analysis.academicRigorScore >= 90 ? 'Tier 1 (Elite Course Load)' : 'Tier 2 (Competitive)'
-    },
-    {
-      key: 'spike',
-      name: 'Extracurricular Spike',
-      shortName: 'Spike',
-      studentScore: analysis.extracurricularDepthScore,
-      benchmarkScore: currentBenchmark.spike,
-      nationalAvg: 52,
-      icon: 'bolt',
-      color: '#a855f7',
-      description: `Distinctive focus area: "${analysis.spikeCategory}" with concentrated initiative.`,
-      rubricRating: analysis.extracurricularDepthScore >= 88 ? 'Tier 1 (Memorable Hook)' : 'Tier 2 (Solid Specialization)'
-    },
-    {
-      key: 'leadership',
-      name: 'Leadership & Real-World Impact',
-      shortName: 'Leadership',
-      studentScore: leadershipScore,
-      benchmarkScore: currentBenchmark.leadership,
-      nationalAvg: 58,
-      icon: 'groups',
-      color: '#38bdf8',
-      description: `${leadershipCount} leadership & founding initiatives across ${userProfile.activities.length} logged pursuits.`,
-      rubricRating: leadershipScore >= 85 ? 'Tier 1-2 (Initiator/Leader)' : 'Tier 2-3 (Active Contributor)'
-    },
-    {
-      key: 'honors',
-      name: 'Honors & External Validation',
-      shortName: 'Honors',
-      studentScore: awardsScore,
-      benchmarkScore: currentBenchmark.awards,
-      nationalAvg: 46,
-      icon: 'military_tech',
-      color: '#f59e0b',
-      description: `${awardsCount} verified honors, STEM, or regional recognitions.`,
-      rubricRating: awardsScore >= 80 ? 'State/National Recognized' : 'School/Local Level'
-    },
-    {
-      key: 'narrative',
-      name: 'Narrative Cohesion & Major Fit',
-      shortName: 'Narrative',
-      studentScore: analysis.narrativeCohesionScore,
-      benchmarkScore: currentBenchmark.cohesion,
-      nationalAvg: 50,
-      icon: 'auto_stories',
-      color: '#ec4899',
-      description: `Harmonious story aligning ${userProfile.intendedMajor} with coursework and essays.`,
-      rubricRating: analysis.narrativeCohesionScore >= 85 ? 'High Cohesion Arc' : 'Developing Arc'
-    },
-    {
-      key: 'testing',
-      name: 'Standardized Testing & Readiness',
-      shortName: 'Testing',
-      studentScore: testingScore,
-      benchmarkScore: currentBenchmark.testing,
-      nationalAvg: 56,
-      icon: 'psychology_alt',
-      color: '#10b981',
-      description: userProfile.satScore ? `SAT score: ${userProfile.satScore} / IELTS: ${userProfile.ieltsScore || 'N/A'}` : 'Holistic testing profile',
-      rubricRating: testingScore >= 90 ? '99th Percentile' : 'Competitive Tier'
-    }
-  ];
+  // Data for the 6 Admissions Radar Dimensions (Centralized and unified across Results & Coach)
+  const radarDimensions: RadarDimension[] = getAdmissionsRadarDimensions(userProfile, analysis, benchmarkTarget);
 
   // Data for the 5 Admissions Pillars
   const pillarsData = [
     {
       pillar: 'Academic Rigor & Grades',
       shortName: 'Rigor',
-      studentScore: analysis.academicRigorScore,
+      studentScore: academicRigorScore,
       benchmarkScore: currentBenchmark.rigor,
       nationalAvg: 64,
       icon: 'menu_book',
       color: '#818cf8',
-      rubricRating: analysis.academicRigorScore >= 90 ? 'Tier 1 (Elite)' : analysis.academicRigorScore >= 80 ? 'Tier 2 (Strong)' : 'Tier 3 (Average)',
+      rubricRating: academicRigorScore >= 90 ? 'Tier 1 (Elite)' : academicRigorScore >= 80 ? 'Tier 2 (Strong)' : 'Tier 3 (Average)',
       rubricScale: '1 / 5 (Ivy Scale)',
       committeeLens: 'How much did the student challenge themselves relative to the most demanding courses offered at their high school?',
       rationale: `Computed from your unweighted ${userProfile.unweightedGpa} GPA and ${userProfile.apIbHonorsCount} AP/IB/Honors courses taken across high school.`,
-      tacticalMove: 'Protect GPA in senior fall while maintaining highest available rigor in core STEM / Humanities subjects.'
+      tacticalMove: 'Protect GPA in senior fall while maintaining highest available rigor in core STEM / Humanities subjects.',
+      evalType: 'calculated' as const
     },
     {
       pillar: 'Extracurricular Spike',
       shortName: 'Spike',
-      studentScore: analysis.extracurricularDepthScore,
+      studentScore: extracurricularDepthScore,
       benchmarkScore: currentBenchmark.spike,
       nationalAvg: 52,
       icon: 'bolt',
       color: '#a855f7',
-      rubricRating: analysis.extracurricularDepthScore >= 88 ? 'Tier 1 (Distinctive Hook)' : 'Tier 2 (Solid Specialization)',
+      rubricRating: extracurricularDepthScore >= 88 ? 'Tier 1 (Distinctive Hook)' : 'Tier 2 (Solid Specialization)',
       rubricScale: '1-2 / 5 (Ivy Scale)',
       committeeLens: 'Does this applicant have a sharp, memorable angle of distinction that will contribute to class vitality?',
       rationale: `Concentrated depth in "${analysis.spikeCategory}" showing clear thematic alignment rather than fragmented extracurricular participation.`,
-      tacticalMove: 'Package your primary initiative with external validation (media, research preprint, or community scale).'
+      tacticalMove: 'Package your primary initiative with external validation (media, research preprint, or community scale).',
+      evalType: 'calculated' as const
     },
     {
       pillar: 'Leadership & Real-World Impact',
@@ -276,7 +203,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
       rubricScale: '2 / 5 (Ivy Scale)',
       committeeLens: 'Did the student create opportunities for others or simply participate in existing institutional structures?',
       rationale: `Evaluated across ${userProfile.activities.length} total activities with ${leadershipCount} primary leadership or founder roles.`,
-      tacticalMove: 'Quantify metrics in all Common App descriptions (e.g. "$4,200 raised", "450 active users", "12 peers mentored").'
+      tacticalMove: 'Quantify metrics in all Common App descriptions (e.g. "$4,200 raised", "450 active users", "12 peers mentored").',
+      evalType: 'calculated' as const
     },
     {
       pillar: 'Honors & Tier Recognition',
@@ -290,7 +218,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
       rubricScale: '2-3 / 5 (Ivy Scale)',
       committeeLens: 'Are the applicant’s skills recognized and validated by objective third-party institutions?',
       rationale: `${userProfile.awards.length} verified recognitions logged across academic, STEM, and creative competitions.`,
-      tacticalMove: 'Enter high-yield state or national competitions before early decision deadlines.'
+      tacticalMove: 'Enter high-yield state or national competitions before early decision deadlines.',
+      evalType: 'calculated' as const
     },
     {
       pillar: 'Narrative Cohesion & Essays',
@@ -304,7 +233,8 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
       rubricScale: '1-2 / 5 (Ivy Scale)',
       committeeLens: 'Does the application tell one compelling, authentic story from transcript to essays and recommendations?',
       rationale: `Evaluates how seamlessly your intended major (${userProfile.intendedMajor}) aligns with your coursework, essays, and extracurriculars.`,
-      tacticalMove: 'Ensure personal statement explores the underlying intellectual curiosity that connects your activities.'
+      tacticalMove: 'Ensure personal statement explores the underlying intellectual curiosity that connects your activities.',
+      evalType: 'ai-evaluated' as const
     }
   ];
 
@@ -316,9 +246,13 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   const targetColleges = (userProfile.targetColleges || []).filter((c) => c.category === 'target');
   const safetyColleges = (userProfile.targetColleges || []).filter((c) => c.category === 'safety');
 
+  const reachSummary = computeTierAdmitSummary(reachColleges, userProfile);
+  const targetSummary = computeTierAdmitSummary(targetColleges, userProfile);
+  const safetySummary = computeTierAdmitSummary(safetyColleges, userProfile);
+
   // Overall average profile rating
   const overallStandingScore = Math.round(
-    (analysis.academicRigorScore + analysis.extracurricularDepthScore + leadershipScore + awardsScore + analysis.narrativeCohesionScore + testingScore) / 6
+    (academicRigorScore + extracurricularDepthScore + leadershipScore + awardsScore + analysis.narrativeCohesionScore + testingScore) / 6
   );
 
   return (
@@ -402,14 +336,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
               <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-400">
                 Overall Standing
               </span>
-              <button
-                onClick={() => setActiveTab('history')}
-                className="px-2 py-0.5 rounded-full text-[9.5px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-all flex items-center gap-1 cursor-pointer"
-                title="View Improvement Line Chart"
-              >
-                <span className="material-symbols-outlined text-[11px]">trending_up</span>
-                <span>+22% Growth</span>
-              </button>
             </div>
             <h3 className="text-[26px] font-extrabold text-white">
               {analysis.overallRating}
@@ -474,6 +400,25 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         </div>
       </div>
 
+      {/* Score Methodology Distinction Legend */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-[11.5px]">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="flex items-center gap-1.5 font-semibold text-slate-200">
+            <span className="material-symbols-outlined text-[15px] text-indigo-400">info</span>
+            Score Methodology:
+          </span>
+          <span className="text-slate-300 flex items-center gap-1.5 flex-wrap">
+            <ScoreEvaluationBadge type="calculated" showIcon />
+            <span>scores are computed directly from your GPA, test scores, and activity data.</span>
+          </span>
+          <span className="text-slate-500 hidden lg:inline">•</span>
+          <span className="text-slate-300 flex items-center gap-1.5 flex-wrap">
+            <ScoreEvaluationBadge type="ai-evaluated" showIcon />
+            <span>scores reflect a qualitative assessment of narrative fit and are inherently more subjective.</span>
+          </span>
+        </div>
+      </div>
+
       {/* Tabs Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
         <div className="flex items-center gap-2 flex-wrap">
@@ -487,20 +432,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           >
             <span className="material-symbols-outlined text-[16px]">radar</span>
             <span>Spike Radar Chart</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`px-3.5 py-1.5 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'history'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/40'
-                : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[16px]">trending_up</span>
-            <span>Growth Timeline</span>
-            <span className="text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
-              +22%
-            </span>
           </button>
           <button
             onClick={() => setActiveTab('matrix')}
@@ -618,7 +549,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 </span>
               </div>
               <div className="p-2 rounded-xl bg-white/[0.03] border border-white/5">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Selected Lens</span>
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Selected Lens</span>
+                  {activeRadarDim.evalType && <ScoreEvaluationBadge type={activeRadarDim.evalType} />}
+                </div>
                 <span className="font-bold text-indigo-300 truncate block mt-0.5">
                   {activeRadarDim.shortName} ({activeRadarDim.studentScore}%)
                 </span>
@@ -635,9 +569,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     <span className="material-symbols-outlined text-[20px]">{activeRadarDim.icon || 'bolt'}</span>
                   </div>
                   <div>
-                    <h3 className="text-[16px] font-bold text-white">
-                      {activeRadarDim.name}
-                    </h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-[16px] font-bold text-white">
+                        {activeRadarDim.name}
+                      </h3>
+                      {activeRadarDim.evalType && <ScoreEvaluationBadge type={activeRadarDim.evalType} />}
+                    </div>
                     <span className="text-[11px] text-indigo-300 font-medium">Selected Dimension Strategy</span>
                   </div>
                 </div>
@@ -649,10 +586,11 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
               {/* Active Dimension Details */}
               <div className="bg-white/[0.04] p-4 rounded-xl border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10.5px] font-bold text-indigo-400 uppercase tracking-wider">
                       Dimension Evaluation
                     </span>
+                    {activeRadarDim.evalType && <ScoreEvaluationBadge type={activeRadarDim.evalType} />}
                     <span className="text-[10px] font-mono text-slate-400 bg-white/[0.05] px-1.5 py-0.2 rounded border border-white/10" title="Statistical margin of error based on self-reported inputs">
                       {marginOfError}
                     </span>
@@ -677,9 +615,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
               {/* Primary Spike Archetype Card */}
               <div className="bg-gradient-to-br from-purple-950/20 to-indigo-950/20 p-3.5 rounded-xl border border-purple-500/20 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10.5px] font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1">
+                  <span className="text-[10.5px] font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-[13px]">verified</span>
                     Admissions Spike Archetype
+                    <ScoreEvaluationBadge type="ai-evaluated" />
                   </span>
                   <span className="text-[11px] text-indigo-300 font-bold">{analysis.spikeCategory}</span>
                 </div>
@@ -726,16 +665,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         </div>
       )}
 
-      {/* TAB 1: RECHARTS PROFILE GROWTH & STRENGTH HISTORY LINE CHART */}
-      {activeTab === 'history' && (
-        <ProfileGrowthHistoryChart
-          userProfile={userProfile}
-          analysis={analysis}
-          onNavigate={onNavigate}
-        />
-      )}
-
-      {/* TAB 2: PILLARS & DELTA MATRIX */}
+      {/* TAB 1: PILLARS & DELTA MATRIX */}
       {activeTab === 'matrix' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 animate-fade-in">
           {/* Main Visual Delta Bars (Span 7) */}
@@ -799,7 +729,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                             {d.icon}
                           </span>
                           <div>
-                            <h4 className="text-[13.5px] font-bold text-white">{d.pillar}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-[13.5px] font-bold text-white">{d.pillar}</h4>
+                              {d.evalType && <ScoreEvaluationBadge type={d.evalType} />}
+                            </div>
                             <span className="text-[11px] text-slate-400">{d.rubricRating}</span>
                           </div>
                         </div>
@@ -858,11 +791,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             {/* Selected Pillar Diagnostic Detail Card */}
             <div className="mt-4 pt-3.5 border-t border-white/10 bg-white/[0.03] p-3.5 rounded-xl border border-white/10 space-y-2">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="material-symbols-outlined text-[18px]" style={{ color: activePillar.color }}>
                     {activePillar.icon}
                   </span>
                   <span className="font-bold text-white text-[13px]">{activePillar.pillar} Strategic Analysis</span>
+                  {activePillar.evalType && <ScoreEvaluationBadge type={activePillar.evalType} />}
                 </div>
                 <span className="text-[11px] font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">
                   Ivy Rubric: {activePillar.rubricScale}
@@ -898,9 +832,12 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
               {/* Spike Card */}
               <div className="bg-white/[0.04] p-4 rounded-xl border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10.5px] font-bold text-indigo-400 uppercase tracking-wider">
-                    Applicant Spike Archetype
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10.5px] font-bold text-indigo-400 uppercase tracking-wider">
+                      Applicant Spike Archetype
+                    </span>
+                    <ScoreEvaluationBadge type="ai-evaluated" />
+                  </div>
                   <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1">
                     <span className="material-symbols-outlined text-[13px]">verified</span>
                     Focused Hook
@@ -1000,22 +937,31 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-rose-300 font-bold">14% - 22%</span>
-                    <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
+                    <span className="text-rose-300 font-bold">{reachSummary.rangeText}</span>
+                    {reachSummary.rangeText !== '—' && (
+                      <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
+                    )}
                   </div>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-rose-500 rounded-full" style={{ width: '20%' }}></div>
+                  <div
+                    className="h-full bg-rose-500 rounded-full transition-all duration-500"
+                    style={{ width: reachSummary.rangeText === '—' ? '0%' : `${Math.min(100, Math.max(4, Math.round(reachSummary.avgRate)))}%` }}
+                  ></div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                {reachColleges.map((c) => (
-                  <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
-                    <span className="font-semibold text-white">{c.name}</span>
-                    <span className="text-slate-400">{c.acceptanceRate}</span>
-                  </div>
-                ))}
+                {reachColleges.length === 0 ? (
+                  <p className="text-[12px] text-slate-500 italic py-2 text-center">No reach institutions added</p>
+                ) : (
+                  reachColleges.map((c) => (
+                    <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
+                      <span className="font-semibold text-white">{c.name}</span>
+                      <span className="text-slate-400">{c.estimatedAdmitRate || c.acceptanceRate}</span>
+                    </div>
+                  ))
+                )}
               </div>
 
               <p className="text-[11.5px] text-slate-300 italic">
@@ -1044,22 +990,31 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-amber-300 font-bold">48% - 65%</span>
-                    <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
+                    <span className="text-amber-300 font-bold">{targetSummary.rangeText}</span>
+                    {targetSummary.rangeText !== '—' && (
+                      <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
+                    )}
                   </div>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-500 rounded-full" style={{ width: '58%' }}></div>
+                  <div
+                    className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                    style={{ width: targetSummary.rangeText === '—' ? '0%' : `${Math.min(100, Math.max(4, Math.round(targetSummary.avgRate)))}%` }}
+                  ></div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                {targetColleges.map((c) => (
-                  <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
-                    <span className="font-semibold text-white">{c.name}</span>
-                    <span className="text-slate-400">{c.acceptanceRate}</span>
-                  </div>
-                ))}
+                {targetColleges.length === 0 ? (
+                  <p className="text-[12px] text-slate-500 italic py-2 text-center">No target institutions added</p>
+                ) : (
+                  targetColleges.map((c) => (
+                    <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
+                      <span className="font-semibold text-white">{c.name}</span>
+                      <span className="text-slate-400">{c.estimatedAdmitRate || c.acceptanceRate}</span>
+                    </div>
+                  ))
+                )}
               </div>
 
               <p className="text-[11.5px] text-slate-300 italic">
@@ -1088,22 +1043,31 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-emerald-300 font-bold">85% - 94%</span>
-                    <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
+                    <span className="text-emerald-300 font-bold">{safetySummary.rangeText}</span>
+                    {safetySummary.rangeText !== '—' && (
+                      <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
+                    )}
                   </div>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: '90%' }}></div>
+                  <div
+                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                    style={{ width: safetySummary.rangeText === '—' ? '0%' : `${Math.min(100, Math.max(4, Math.round(safetySummary.avgRate)))}%` }}
+                  ></div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                {safetyColleges.map((c) => (
-                  <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
-                    <span className="font-semibold text-white">{c.name}</span>
-                    <span className="text-slate-400">{c.acceptanceRate}</span>
-                  </div>
-                ))}
+                {safetyColleges.length === 0 ? (
+                  <p className="text-[12px] text-slate-500 italic py-2 text-center">No safety institutions added</p>
+                ) : (
+                  safetyColleges.map((c) => (
+                    <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
+                      <span className="font-semibold text-white">{c.name}</span>
+                      <span className="text-slate-400">{c.estimatedAdmitRate || c.acceptanceRate}</span>
+                    </div>
+                  ))
+                )}
               </div>
 
               <p className="text-[11.5px] text-slate-300 italic">
@@ -1144,9 +1108,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             {pillarsData.map((p) => (
               <div key={p.shortName} className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="material-symbols-outlined text-[18px]" style={{ color: p.color }}>{p.icon}</span>
                     <span className="font-bold text-white text-[13.5px]">{p.pillar}</span>
+                    {p.evalType && <ScoreEvaluationBadge type={p.evalType} />}
                   </div>
                   <span className="text-[11px] font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-full border border-indigo-500/30">
                     {p.rubricScale}
