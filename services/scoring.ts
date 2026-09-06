@@ -381,17 +381,18 @@ export function generateIntelligentCollegeRecommendations(
   // Filter regional dataset
   const regionalSchools = SCHOOL_PROFILES.filter((s) => s.region === targetRegion);
 
-  // Categorize based on institutional selectivity brackets
+  // Categorize by official acceptance rate as ground truth — avoids duplicate listings
+  // when a school's category tag disagrees with its rate.
   const reaches = regionalSchools
-    .filter((s) => s.category === 'reach' || s.officialAcceptanceRate < 20)
+    .filter((s) => s.officialAcceptanceRate < 20)
     .map((s) => resolveSchool(s, major, profile));
 
   const targets = regionalSchools
-    .filter((s) => s.category === 'target' || (s.officialAcceptanceRate >= 20 && s.officialAcceptanceRate <= 55))
+    .filter((s) => s.officialAcceptanceRate >= 20 && s.officialAcceptanceRate <= 55)
     .map((s) => resolveSchool(s, major, profile));
 
   const safeties = regionalSchools
-    .filter((s) => s.category === 'safety' || s.officialAcceptanceRate > 55)
+    .filter((s) => s.officialAcceptanceRate > 55)
     .map((s) => resolveSchool(s, major, profile));
 
   return {

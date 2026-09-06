@@ -30,12 +30,12 @@ export async function generateContentWithRetry(
     model?: string;
   }
 ): Promise<any> {
-  const requestedModel = params.model || 'gemini-3.7-flash';
-  const modelsToTry = [requestedModel, 'gemini-flash-latest', 'gemini-3.7-flash'];
+  const requestedModel = params.model || 'gemini-3.6-flash';
+  const fallbacks = ['gemini-3.6-flash', 'gemini-2.5-flash'].filter((m) => m !== requestedModel);
+  const modelsToTry = [requestedModel, ...fallbacks];
   let lastError: any = null;
 
   const mergedConfig = {
-    thinkingConfig: { thinkingBudget: 0 },
     ...(params.config || {})
   };
 

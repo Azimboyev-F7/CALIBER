@@ -25,7 +25,7 @@ Draft: ${roughDescription}
 Provide ONLY the polished 1-2 sentence Common App description (max 150 characters), no explanation.`;
 
     const response = await generateContentWithRetry(ai, {
-      model: 'gemini-3.7-flash',
+      model: 'gemini-3.6-flash',
       contents: prompt
     });
 

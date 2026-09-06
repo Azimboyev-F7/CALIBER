@@ -442,6 +442,8 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
             const midpointChance = effectiveRange
               ? Math.round((effectiveRange.low + effectiveRange.high) / 2)
               : null;
+            const hasSatAndGpa = userProfile.satScore && parseFloat(userProfile.satScore) > 0
+              && userProfile.unweightedGpa && parseFloat(userProfile.unweightedGpa) > 0;
 
             const tierBadge = isReach
               ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
@@ -511,7 +513,9 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
                           </div>
                         ) : (
                           <span className="text-[9.5px] text-slate-400 italic block leading-tight mt-0.5">
-                            Add your SAT/GPA for a personalized estimate
+                            {hasSatAndGpa
+                              ? 'School CDS data unavailable for estimate'
+                              : 'Add SAT & GPA in Profile Builder'}
                           </span>
                         )}
                       </div>
@@ -646,6 +650,8 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
               const modalMidpoint = modalEstimatedRange
                 ? Math.round((modalEstimatedRange.low + modalEstimatedRange.high) / 2)
                 : null;
+              const modalHasSatAndGpa = userProfile.satScore && parseFloat(userProfile.satScore) > 0
+                && userProfile.unweightedGpa && parseFloat(userProfile.unweightedGpa) > 0;
               return (
                 <div className="grid grid-cols-2 gap-3 bg-white/[0.03] p-3 rounded-xl border border-white/10">
                   <div>
@@ -673,7 +679,9 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
                       </div>
                     ) : (
                       <span className="text-[11px] text-slate-400 italic block mt-0.5">
-                        Add your SAT/GPA for a personalized estimate
+                        {modalHasSatAndGpa
+                          ? 'School CDS data unavailable for estimate'
+                          : 'Add SAT & GPA in Profile Builder'}
                       </span>
                     )}
                   </div>

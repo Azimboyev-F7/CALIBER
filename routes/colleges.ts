@@ -27,13 +27,25 @@ collegesRouter.post(
   async (req: Request, res: Response) => {
     const { profile, filterTier, filterRegion } = req.body;
 
+    const normalizeName = (n: string) =>
+      n.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+
     const enrichWithProfileFit = (colleges: any[]) => {
       if (!Array.isArray(colleges)) return;
       for (const college of colleges) {
-        // Find matching verified institutional record if available
-        const matched = SCHOOL_PROFILES.find(
-          (s) => s.schoolId === college.id || s.name.toLowerCase() === (college.name || '').toLowerCase()
-        );
+        const collegeName = normalizeName(college.name || '');
+        // Find matching verified institutional record — fuzzy on name to handle
+        // Gemini variants like "University of Michigan - Ann Arbor" → "University of Michigan"
+        const matched = SCHOOL_PROFILES.find((s) => {
+          if (s.schoolId === college.id) return true;
+          const dbName = normalizeName(s.name);
+          if (dbName === collegeName) return true;
+          if (dbName.includes(collegeName) || collegeName.includes(dbName)) return true;
+          // Match on first 3 significant words (e.g. "carnegie mellon university" ↔ "carnegie mellon university scs")
+          const dbWords = dbName.split(' ').slice(0, 3).join(' ');
+          const colWords = collegeName.split(' ').slice(0, 3).join(' ');
+          return dbWords === colWords && dbWords.length > 5;
+        });
         const schoolData = matched || college;
         college.profileFit = calculateProfileFit(profile, schoolData);
         college.estimatedRange = calculateEstimatedRange(profile, schoolData, college.profileFit);
@@ -149,7 +161,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
 }`;
 
       const response = await generateContentWithRetry(ai, {
-        model: 'gemini-3.7-flash',
+        model: 'gemini-3.6-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -166,8 +178,13 @@ Return ONLY a valid JSON object matching this schema without markdown code block
         parsed = JSON.parse(cleaned);
       }
 
-      if (!parsed || !parsed.reachRecommendations || parsed.reachRecommendations.length === 0) {
+      if (!parsed) {
         parsed = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
+      } else {
+        const local = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
+        if (!parsed.reachRecommendations?.length) parsed.reachRecommendations = local.reachRecommendations;
+        if (!parsed.targetRecommendations?.length) parsed.targetRecommendations = local.targetRecommendations;
+        if (!parsed.safetyRecommendations?.length) parsed.safetyRecommendations = local.safetyRecommendations;
       }
 
       enrichWithProfileFit(parsed.reachRecommendations);
@@ -175,7 +192,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
       enrichWithProfileFit(parsed.safetyRecommendations);
 
       return res.json({
-        source: 'gemini-3.7-flash',
+        source: 'gemini-3.6-flash',
         success: true,
         data: parsed
       });
