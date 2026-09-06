@@ -889,29 +889,22 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         </div>
       )}
 
-      {/* TAB 2: ADMISSIONS ODDS SIMULATOR */}
+      {/* TAB 2: ADMISSIONS PROFILE FIT & SELECTIVITY */}
       {activeTab === 'simulator' && (
         <div className="space-y-5 animate-fade-in">
-          {/* Estimation Disclaimer & Confidence Bar */}
+          {/* Institutional Data & Profile Fit Header */}
           <div className="p-3.5 rounded-xl bg-gradient-to-r from-indigo-950/30 via-[#131322] to-purple-950/20 border border-indigo-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-[12px]">
             <div className="flex items-center gap-2 text-slate-300">
-              <span className="material-symbols-outlined text-indigo-400 text-[18px] shrink-0">analytics</span>
+              <span className="material-symbols-outlined text-indigo-400 text-[18px] shrink-0">verified</span>
               <span>
-                <strong>Self-Reported Model Estimates:</strong> Admissions odds are calculated with a <strong className="text-white">{marginOfError}</strong> margin of error based on your self-reported metrics.
+                <strong>Data-Backed Institutional Fit:</strong> University selectivity tiers are grounded in official institutional acceptance rates and Common Data Set (CDS) benchmarks.
               </span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {isLowCompleteness ? (
-                <span className="text-[11px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[13px]">warning</span>
-                  Preliminary Estimate — Limited Data
-                </span>
-              ) : (
-                <span className="text-[11px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[13px]">verified</span>
-                  Confidence: {confidenceScore}% ({confidenceTier})
-                </span>
-              )}
+              <span className="text-[11px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                <span className="material-symbols-outlined text-[13px]">verified_user</span>
+                Verified CDS Benchmarks
+              </span>
             </div>
           </div>
 
@@ -931,16 +924,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center text-[12px]">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400">Simulated Admit Probability</span>
-                    <span className="text-[9.5px] font-mono text-rose-300 bg-rose-500/15 px-1.5 py-0.2 rounded border border-rose-500/25" title="Statistical margin of error based on self-reported inputs">
-                      {marginOfError}
-                    </span>
+                    <span className="text-slate-400">Institutional Selectivity</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-rose-300 font-bold">{reachSummary.rangeText}</span>
-                    {reachSummary.rangeText !== '—' && (
-                      <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
-                    )}
                   </div>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
@@ -956,9 +943,21 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                   <p className="text-[12px] text-slate-500 italic py-2 text-center">No reach institutions added</p>
                 ) : (
                   reachColleges.map((c) => (
-                    <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
-                      <span className="font-semibold text-white">{c.name}</span>
-                      <span className="text-slate-400">{c.estimatedAdmitRate || c.acceptanceRate}</span>
+                    <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1 text-[12px]">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-white">{c.name}</span>
+                        <span className="text-rose-300 font-bold">{c.baselineAcceptanceRate || c.acceptanceRate}</span>
+                      </div>
+                      {(c.profileFit?.satPercentilePosition || c.profileFit?.gpaComparison) && (
+                        <div className="text-[11px] text-indigo-300">
+                          <strong>Profile Fit:</strong> {c.profileFit.satPercentilePosition ? `SAT ${c.profileFit.satPercentilePosition}` : c.profileFit.gpaComparison}
+                        </div>
+                      )}
+                      {c.profileFit?.topWeightedFactors && c.profileFit.topWeightedFactors.length > 0 && (
+                        <div className="text-[10.5px] text-slate-400">
+                          <span className="text-amber-300 font-medium">This school weighs:</span> {c.profileFit.topWeightedFactors.join(', ')}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -984,16 +983,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center text-[12px]">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400">Simulated Admit Probability</span>
-                    <span className="text-[9.5px] font-mono text-amber-300 bg-amber-500/15 px-1.5 py-0.2 rounded border border-amber-500/25" title="Statistical margin of error based on self-reported inputs">
-                      {marginOfError}
-                    </span>
+                    <span className="text-slate-400">Institutional Selectivity</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-amber-300 font-bold">{targetSummary.rangeText}</span>
-                    {targetSummary.rangeText !== '—' && (
-                      <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
-                    )}
                   </div>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
@@ -1009,16 +1002,28 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                   <p className="text-[12px] text-slate-500 italic py-2 text-center">No target institutions added</p>
                 ) : (
                   targetColleges.map((c) => (
-                    <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
-                      <span className="font-semibold text-white">{c.name}</span>
-                      <span className="text-slate-400">{c.estimatedAdmitRate || c.acceptanceRate}</span>
+                    <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1 text-[12px]">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-white">{c.name}</span>
+                        <span className="text-amber-300 font-bold">{c.baselineAcceptanceRate || c.acceptanceRate}</span>
+                      </div>
+                      {(c.profileFit?.satPercentilePosition || c.profileFit?.gpaComparison) && (
+                        <div className="text-[11px] text-indigo-300">
+                          <strong>Profile Fit:</strong> {c.profileFit.satPercentilePosition ? `SAT ${c.profileFit.satPercentilePosition}` : c.profileFit.gpaComparison}
+                        </div>
+                      )}
+                      {c.profileFit?.topWeightedFactors && c.profileFit.topWeightedFactors.length > 0 && (
+                        <div className="text-[10.5px] text-slate-400">
+                          <span className="text-amber-300 font-medium">This school weighs:</span> {c.profileFit.topWeightedFactors.join(', ')}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
               </div>
 
               <p className="text-[11.5px] text-slate-300 italic">
-                Strong academic baseline matches the 75th percentile of admitted freshmen.
+                Strong academic baseline matches the middle 50% of admitted freshmen.
               </p>
             </div>
 
@@ -1037,16 +1042,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center text-[12px]">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400">Simulated Admit Probability</span>
-                    <span className="text-[9.5px] font-mono text-emerald-300 bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/25" title="Statistical margin of error based on self-reported inputs">
-                      {marginOfError}
-                    </span>
+                    <span className="text-slate-400">Institutional Selectivity</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-emerald-300 font-bold">{safetySummary.rangeText}</span>
-                    {safetySummary.rangeText !== '—' && (
-                      <span className="text-[10px] text-slate-400 font-normal">({isLowCompleteness ? 'Prelim.' : `${confidenceScore}% Conf.`})</span>
-                    )}
                   </div>
                 </div>
                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
@@ -1062,9 +1061,21 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                   <p className="text-[12px] text-slate-500 italic py-2 text-center">No safety institutions added</p>
                 ) : (
                   safetyColleges.map((c) => (
-                    <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-[12px]">
-                      <span className="font-semibold text-white">{c.name}</span>
-                      <span className="text-slate-400">{c.estimatedAdmitRate || c.acceptanceRate}</span>
+                    <div key={c.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-1 text-[12px]">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-white">{c.name}</span>
+                        <span className="text-emerald-300 font-bold">{c.baselineAcceptanceRate || c.acceptanceRate}</span>
+                      </div>
+                      {(c.profileFit?.satPercentilePosition || c.profileFit?.gpaComparison) && (
+                        <div className="text-[11px] text-indigo-300">
+                          <strong>Profile Fit:</strong> {c.profileFit.satPercentilePosition ? `SAT ${c.profileFit.satPercentilePosition}` : c.profileFit.gpaComparison}
+                        </div>
+                      )}
+                      {c.profileFit?.topWeightedFactors && c.profileFit.topWeightedFactors.length > 0 && (
+                        <div className="text-[10.5px] text-slate-400">
+                          <span className="text-amber-300 font-medium">This school weighs:</span> {c.profileFit.topWeightedFactors.join(', ')}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -1076,18 +1087,18 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             </div>
           </div>
 
-          {/* Self-Reported Estimation Explanatory Card */}
+          {/* Data-Backed Explanatory Card */}
           <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 flex items-start gap-3 text-[12px] text-slate-300">
             <span className="material-symbols-outlined text-indigo-400 text-[18px] shrink-0 mt-0.5">info</span>
             <div className="space-y-1">
               <div className="font-semibold text-white flex items-center gap-2">
-                <span>Self-Reported Admissions Probability Model Disclaimer</span>
+                <span>Institutional Acceptance Rates &amp; Profile Fit</span>
                 <span className="text-[10.5px] font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">
-                  Margin of Error: {marginOfError}
+                  Common Data Set (CDS)
                 </span>
               </div>
               <p className="text-slate-400 leading-relaxed text-[11.5px]">
-                These simulated admit probabilities and percentages are algorithmic estimates calculated from your self-reported academic metrics (GPA: {userProfile.unweightedGpa || 'N/A'}, standardized tests, AP/IB rigor) and extracurricular profile. Actual admissions decisions at selective universities depend on holistic factors including supplemental essays, letters of recommendation, and shifting institutional priorities.
+                Admissions rates reflect verified institutional reports. Rather than calculating fabricated personal percentages, CALIBER compares your profile against middle 50% test score ranges, average enrolled GPAs, and the factors rated "Very Important" in each university's official Common Data Set.
               </p>
             </div>
           </div>

@@ -58,6 +58,17 @@ export interface ApplicationChecklistItem {
   completed: boolean;
 }
 
+export interface EstimatedRange {
+  low: number;
+  high: number;
+}
+
+export interface ProfileFit {
+  satPercentilePosition: 'below 25th' | 'within middle 50%' | 'above 75th' | null;
+  gpaComparison: string | null;
+  topWeightedFactors: string[];
+}
+
 export interface CollegeTarget {
   id: string;
   name: string;
@@ -71,6 +82,8 @@ export interface CollegeTarget {
   checklist?: ApplicationChecklistItem[];
   estimatedAdmitRate?: string;
   baselineAcceptanceRate?: string;
+  profileFit?: ProfileFit;
+  estimatedRange?: EstimatedRange | null;
 }
 
 export interface AnalysisHistoryEntry {
@@ -148,7 +161,9 @@ export interface RecommendedCollege {
   name: string;
   category: CollegeCategory;
   baselineAcceptanceRate: string;
-  estimatedAdmitRate: string;
+  officialAcceptanceRate?: number;
+  acceptanceRateSourceYear?: string;
+  estimatedAdmitRate?: string;
   matchScore: number;
   location: string;
   deadline: string;
@@ -156,6 +171,8 @@ export interface RecommendedCollege {
   whyFit: string;
   keyFactor: string;
   strengthAlignment?: 'very_high' | 'high' | 'moderate';
+  profileFit?: ProfileFit;
+  estimatedRange?: EstimatedRange | null;
 }
 
 export interface CollegeRecommendationsResult {

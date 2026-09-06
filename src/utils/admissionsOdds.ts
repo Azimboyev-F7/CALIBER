@@ -69,75 +69,12 @@ export function computePortfolioScore(profile: Partial<UserProfile> | any): Port
 }
 
 /**
- * Deterministic, calibrated admissions probability calculation based on school baseline acceptance rate
- * and student portfolio bracket.
- */
-export function calcRealisticOdds(baseRateStr: string, profile: Partial<UserProfile> | any): string {
-  const { isElite, isCompetitive, isDeveloping } = computePortfolioScore(profile);
-  const base = parseFloat((baseRateStr || '10').replace('%', '').trim()) || 10;
-  let calculatedOdds = 0;
-
-  if (base <= 5.0) {
-    // Hyper-selective (MIT 3.9%, Stanford 3.6%, Harvard 3.4%)
-    if (isDeveloping) {
-      calculatedOdds = Math.max(0.1, Math.round((base * 0.05) * 10) / 10); // ~0.1% - 0.2%
-    } else if (isCompetitive) {
-      calculatedOdds = Math.round((base * 0.25) * 10) / 10; // ~0.8% - 1.2%
-    } else {
-      // Elite
-      calculatedOdds = Math.round((base * 2.4) * 10) / 10; // ~8.5% - 12.0%
-    }
-  } else if (base <= 15.0) {
-    // Highly selective (CMU, Berkeley, UCLA, Cornell, Oxford)
-    if (isDeveloping) {
-      calculatedOdds = Math.max(0.4, Math.round((base * 0.12) * 10) / 10); // ~1.0% - 1.8%
-    } else if (isCompetitive) {
-      calculatedOdds = Math.round((base * 0.6) * 10) / 10; // ~5.0% - 8.0%
-    } else {
-      // Elite
-      calculatedOdds = Math.round((base * 2.2) * 10) / 10; // ~22.0% - 33.0%
-    }
-  } else if (base <= 35.0) {
-    // Selective / Target (Michigan, Georgia Tech, UIUC, UW Madison)
-    if (isDeveloping) {
-      calculatedOdds = Math.max(2.0, Math.round((base * 0.25) * 10) / 10); // ~4.0% - 7.5%
-    } else if (isCompetitive) {
-      calculatedOdds = Math.round((base * 1.1) * 10) / 10; // ~20.0% - 35.0%
-    } else {
-      // Elite
-      calculatedOdds = Math.round((base * 2.3) * 10) / 10; // ~45.0% - 68.0%
-    }
-  } else if (base <= 65.0) {
-    // Moderate (Purdue, Penn State, Ohio State, Pitt)
-    if (isDeveloping) {
-      calculatedOdds = Math.round((base * 0.45) * 10) / 10; // ~20.0% - 28.0%
-    } else if (isCompetitive) {
-      calculatedOdds = Math.round((base * 1.15) * 10) / 10; // ~55.0% - 70.0%
-    } else {
-      // Elite
-      calculatedOdds = Math.min(94, Math.round((base * 1.7) * 10) / 10); // ~85.0% - 94.0%
-    }
-  } else {
-    // High acceptance (Arizona State, Iowa State, UT Arlington)
-    if (isDeveloping) {
-      calculatedOdds = Math.round((base * 0.8) * 10) / 10; // ~55.0% - 68.0%
-    } else if (isCompetitive) {
-      calculatedOdds = Math.min(92, Math.round((base * 1.15) * 10) / 10); // ~80.0% - 90.0%
-    } else {
-      calculatedOdds = Math.min(98, Math.round((base * 1.3) * 10) / 10); // ~95.0% - 98.0%
-    }
-  }
-
-  return `${calculatedOdds.toFixed(1)}%`;
-}
-
-/**
- * Computes dynamic tier admission probability summary across added colleges.
- * Returns rangeText (e.g. "14.5% - 22.0%", or "1.0%", or "—" when empty), minRate, maxRate, and avgRate.
+ * Computes official selectivity rate range across added colleges in a tier.
+ * Returns rangeText (e.g. "3.6% - 17.7%", or "14.5%", or "—" when empty), minRate, maxRate, and avgRate.
  */
 export function computeTierAdmitSummary(
   colleges: CollegeTarget[],
-  profile: Partial<UserProfile> | any
+  _profile?: Partial<UserProfile> | any
 ): {
   rangeText: string;
   minRate: number | null;
@@ -150,16 +87,9 @@ export function computeTierAdmitSummary(
 
   const rates: number[] = colleges
     .map((c) => {
-      // If college already has estimatedAdmitRate, parse it
-      if (c.estimatedAdmitRate) {
-        const parsed = parseFloat(c.estimatedAdmitRate.replace('%', '').trim());
-        if (!isNaN(parsed)) return parsed;
-      }
-      // Otherwise calculate realistically from base acceptance rate and student profile
       const baseRate = c.acceptanceRate || c.baselineAcceptanceRate;
       if (baseRate) {
-        const computed = calcRealisticOdds(baseRate, profile);
-        const parsed = parseFloat(computed.replace('%', '').trim());
+        const parsed = parseFloat(String(baseRate).replace('%', '').trim());
         if (!isNaN(parsed)) return parsed;
       }
       return null;

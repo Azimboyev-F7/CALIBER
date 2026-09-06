@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { UserProfile, AnalysisResult } from '../types';
 import { getAdmissionsRadarDimensions } from '../utils/scoringEngine';
+import { getApiHeaders } from '../utils/apiClient';
 
 export interface ChatMessage {
   id: string;
@@ -175,7 +176,7 @@ ${ana.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${ana.priorityRe
         // Try ultra-fast SSE streaming endpoint first
         const streamResponse = await fetch('/api/chat-coach-stream', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getApiHeaders(),
           body: JSON.stringify({
             message: text,
             history: currentHistory,
@@ -239,7 +240,7 @@ ${ana.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${ana.priorityRe
         // Fallback to standard fast JSON endpoint if streaming was empty
         const response = await fetch('/api/chat-coach', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getApiHeaders(),
           body: JSON.stringify({
             message: text,
             history: currentHistory,

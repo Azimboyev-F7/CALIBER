@@ -6,6 +6,8 @@ import {
   CollegeTarget,
   CollegeCategory 
 } from '../types';
+import { getApiHeaders } from '../utils/apiClient';
+import { calculateEstimatedRange } from '../../services/scoring';
 
 interface AICollegeRecommendationsCardProps {
   userProfile: UserProfile;
@@ -60,7 +62,7 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
     try {
       const res = await fetch('/api/recommend-colleges', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders(),
         body: JSON.stringify({ 
           profile: modifiedProfile,
           filterRegion: regionToSend
@@ -88,22 +90,38 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
       console.warn('[AI Recommendations] Encountered error, using robust fallback', err);
       // Fallback local calculation
       const fallbackData: CollegeRecommendationsResult = {
-        summary: `Based on your GPA (${userProfile.unweightedGpa || 'N/A'}), SAT (${userProfile.satScore || 'N/A'}), and target in ${regionToSend}, recommendations and admissions probabilities have been realistically calibrated.`,
-        academicCompetitivenessTier: 'Foundational / Developing Portfolio',
+        summary: `Based on your GPA (${userProfile.unweightedGpa || 'N/A'}), SAT (${userProfile.satScore || 'N/A'}), and target in ${regionToSend}, recommendations are grounded in verified institutional data and Common Data Set factors.`,
+        academicCompetitivenessTier: 'Data-Backed Profile Fit',
         reachRecommendations: [
           {
             id: 'rec-pennstate',
             name: 'Penn State University',
             category: 'reach',
             baselineAcceptanceRate: '55.0%',
-            estimatedAdmitRate: '22.0%',
+            officialAcceptanceRate: 55.0,
             matchScore: 84,
             location: 'University Park, PA, USA',
             deadline: 'Nov 1',
             round: 'Early Action (EA)',
             whyFit: `Prominent Big Ten research university with strong STEM resources and academic pathways in ${majorToSend}.`,
             keyFactor: 'Consistent senior-year grades and applying early to the main campus.',
-            strengthAlignment: 'moderate'
+            strengthAlignment: 'moderate',
+            profileFit: {
+              satPercentilePosition: 'within middle 50%',
+              gpaComparison: 'Competitive with average enrolled GPA (3.65 avg)',
+              topWeightedFactors: ['Academic GPA', 'Rigor of secondary school record']
+            },
+            estimatedRange: calculateEstimatedRange(userProfile, {
+              officialAcceptanceRate: 55.0,
+              sat25th: 1200,
+              sat75th: 1400,
+              avgEnrolledGpaUnweighted: 3.65,
+              cdsFactorWeights: { 'Academic GPA': 'Very Important', 'Rigor of secondary school record': 'Very Important' }
+            }, {
+              satPercentilePosition: 'within middle 50%',
+              gpaComparison: 'Competitive with average enrolled GPA (3.65 avg)',
+              topWeightedFactors: ['Academic GPA', 'Rigor of secondary school record']
+            })
           }
         ],
         targetRecommendations: [
@@ -112,14 +130,30 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
             name: 'Arizona State University (ASU)',
             category: 'target',
             baselineAcceptanceRate: '89.0%',
-            estimatedAdmitRate: '65.0%',
+            officialAcceptanceRate: 89.0,
             matchScore: 90,
             location: 'Tempe, AZ, USA',
             deadline: 'Rolling',
             round: 'Rolling Admission',
             whyFit: 'High innovation curriculum with extensive undergraduate research opportunities.',
             keyFactor: 'Meeting standard competency requirements in math and laboratory sciences.',
-            strengthAlignment: 'high'
+            strengthAlignment: 'high',
+            profileFit: {
+              satPercentilePosition: 'above 75th',
+              gpaComparison: 'Above average enrolled GPA (3.54 avg)',
+              topWeightedFactors: ['Academic GPA', 'Rigor of secondary school record']
+            },
+            estimatedRange: calculateEstimatedRange(userProfile, {
+              officialAcceptanceRate: 89.0,
+              sat25th: 1120,
+              sat75th: 1360,
+              avgEnrolledGpaUnweighted: 3.54,
+              cdsFactorWeights: { 'Academic GPA': 'Very Important', 'Rigor of secondary school record': 'Very Important' }
+            }, {
+              satPercentilePosition: 'above 75th',
+              gpaComparison: 'Above average enrolled GPA (3.54 avg)',
+              topWeightedFactors: ['Academic GPA', 'Rigor of secondary school record']
+            })
           }
         ],
         safetyRecommendations: [
@@ -128,14 +162,30 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
             name: 'University of Texas at Arlington (UTA)',
             category: 'safety',
             baselineAcceptanceRate: '93.0%',
-            estimatedAdmitRate: '85.0%',
+            officialAcceptanceRate: 93.0,
             matchScore: 89,
             location: 'Arlington, TX, USA',
             deadline: 'Rolling',
             round: 'Rolling Admission',
             whyFit: 'Carnegie R1 research university in the Dallas-Fort Worth metroplex with very accessible admissions.',
             keyFactor: 'Direct submission of transcripts and English proficiency proof.',
-            strengthAlignment: 'high'
+            strengthAlignment: 'high',
+            profileFit: {
+              satPercentilePosition: 'above 75th',
+              gpaComparison: 'Above average enrolled GPA (3.48 avg)',
+              topWeightedFactors: ['Academic GPA', 'Rigor of secondary school record']
+            },
+            estimatedRange: calculateEstimatedRange(userProfile, {
+              officialAcceptanceRate: 93.0,
+              sat25th: 1050,
+              sat75th: 1280,
+              avgEnrolledGpaUnweighted: 3.48,
+              cdsFactorWeights: { 'Academic GPA': 'Very Important', 'Rigor of secondary school record': 'Very Important' }
+            }, {
+              satPercentilePosition: 'above 75th',
+              gpaComparison: 'Above average enrolled GPA (3.48 avg)',
+              topWeightedFactors: ['Academic GPA', 'Rigor of secondary school record']
+            })
           }
         ],
         strategyNotes: [
@@ -176,18 +226,26 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
       return;
     }
 
+    const fitSummary = rec.profileFit?.satPercentilePosition
+      ? `SAT: ${rec.profileFit.satPercentilePosition}`
+      : (rec.profileFit?.gpaComparison || 'Holistic Profile Fit');
+    const weighedFactors = rec.profileFit?.topWeightedFactors?.length
+      ? rec.profileFit.topWeightedFactors.join(', ')
+      : rec.keyFactor;
+
     const newTarget: CollegeTarget = {
       id: `col-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       name: rec.name,
       category: rec.category,
       acceptanceRate: rec.baselineAcceptanceRate,
       baselineAcceptanceRate: rec.baselineAcceptanceRate,
-      estimatedAdmitRate: rec.estimatedAdmitRate,
+      profileFit: rec.profileFit,
+      estimatedRange: rec.estimatedRange ?? calculateEstimatedRange(userProfile, rec),
       location: rec.location,
       deadline: rec.deadline,
       round: rec.round,
       status: 'not_started',
-      notes: `AI Match (${rec.estimatedAdmitRate} personalized odds): ${rec.keyFactor}`,
+      notes: `Profile Fit: ${fitSummary} | This school weighs: ${weighedFactors}`,
       checklist: [
         { id: `chk-1-${Date.now()}`, label: 'Main Application & Portal Profile', completed: false },
         { id: `chk-2-${Date.now()}`, label: 'Institutional Supplemental Essays', completed: false },
@@ -350,7 +408,7 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
 
         <div className="text-[12px] text-slate-400 flex items-center gap-1.5">
           <span className="material-symbols-outlined text-amber-400 text-[16px]">verified</span>
-          <span>Dual calculated odds (General Rate vs. Your Profile Estimated Rate)</span>
+          <span>Dual calculated rates (Official Admit Rate vs. Estimated Chance)</span>
         </div>
       </div>
 
@@ -378,6 +436,12 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
             const isReach = rec.category === 'reach';
             const isTarget = rec.category === 'target';
             const isSafety = rec.category === 'safety';
+            const effectiveRange = rec.estimatedRange !== undefined && rec.estimatedRange !== null
+              ? rec.estimatedRange
+              : calculateEstimatedRange(userProfile, rec, rec.profileFit);
+            const midpointChance = effectiveRange
+              ? Math.round((effectiveRange.low + effectiveRange.high) / 2)
+              : null;
 
             const tierBadge = isReach
               ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
@@ -413,25 +477,61 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
                     </span>
                   </div>
 
-                  {/* Dual Acceptance Rate Comparison */}
-                  <div className="grid grid-cols-2 gap-2 bg-[#121220]/80 p-2.5 rounded-xl border border-white/10">
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">
-                        General Admit Rate
-                      </span>
-                      <span className="text-[13px] font-bold text-slate-300">
-                        {rec.baselineAcceptanceRate}
-                      </span>
+                  {/* Data-Backed Admission Rate & Personalized Estimated Chance */}
+                  <div className="space-y-2 bg-[#121220]/80 p-2.5 rounded-xl border border-white/10">
+                    <div className="grid grid-cols-2 gap-2 pb-2 border-b border-white/10">
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-semibold block tracking-wider">
+                          Official Admit Rate
+                        </span>
+                        <span className="text-[13px] font-bold text-slate-200">
+                          {rec.baselineAcceptanceRate}
+                        </span>
+                      </div>
+                      <div className="border-l border-white/10 pl-2.5">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-indigo-300 uppercase font-semibold tracking-wider">
+                            Estimated Chance
+                          </span>
+                          <span
+                            className="material-symbols-outlined text-[13px] text-indigo-400 cursor-help"
+                            title="An estimate based on your percentile position relative to this school's official admitted-class data — not a guaranteed outcome."
+                          >
+                            info
+                          </span>
+                        </div>
+                        {effectiveRange && midpointChance !== null ? (
+                          <div>
+                            <span className="text-[14px] font-black text-indigo-300 leading-none">
+                              {midpointChance}%
+                            </span>
+                            <span className="text-[10px] text-indigo-300/80 block font-medium mt-0.5">
+                              Range: {effectiveRange.low}–{effectiveRange.high}%
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[9.5px] text-slate-400 italic block leading-tight mt-0.5">
+                            Add your SAT/GPA for a personalized estimate
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="border-l border-white/10 pl-2.5 space-y-0.5">
-                      <span className="text-[10px] text-indigo-300 uppercase font-bold flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
-                        Your Est. Rate
-                      </span>
-                      <span className="text-[14.5px] font-extrabold text-indigo-300">
-                        {rec.estimatedAdmitRate}
-                      </span>
+                    <div className="space-y-1">
+                      <div className="text-[11.5px] text-indigo-200">
+                        <strong className="text-indigo-300">Profile Fit:</strong>{' '}
+                        {rec.profileFit?.satPercentilePosition 
+                          ? `SAT ${rec.profileFit.satPercentilePosition}` 
+                          : (rec.profileFit?.gpaComparison || 'Holistic Profile Alignment')}
+                        {rec.profileFit?.satPercentilePosition && rec.profileFit?.gpaComparison ? ` • ${rec.profileFit.gpaComparison.split('(')[0].trim()}` : ''}
+                      </div>
+
+                      <div className="text-[11px] text-slate-300">
+                        <strong className="text-amber-300">This school weighs:</strong>{' '}
+                        {rec.profileFit?.topWeightedFactors && rec.profileFit.topWeightedFactors.length > 0
+                          ? rec.profileFit.topWeightedFactors.join(', ')
+                          : rec.keyFactor}
+                      </div>
                     </div>
                   </div>
 
@@ -539,16 +639,72 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
               <h3 className="text-[22px] font-extrabold text-white">{selectedCollegeForDetail.name}</h3>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 bg-white/[0.03] p-3 rounded-xl border border-white/10">
-              <div>
-                <span className="text-[11px] text-slate-400 block font-semibold">General Acceptance Rate</span>
-                <span className="text-[16px] font-bold text-white">{selectedCollegeForDetail.baselineAcceptanceRate}</span>
+            {(() => {
+              const modalEstimatedRange = selectedCollegeForDetail.estimatedRange !== undefined && selectedCollegeForDetail.estimatedRange !== null
+                ? selectedCollegeForDetail.estimatedRange
+                : calculateEstimatedRange(userProfile, selectedCollegeForDetail, selectedCollegeForDetail.profileFit);
+              const modalMidpoint = modalEstimatedRange
+                ? Math.round((modalEstimatedRange.low + modalEstimatedRange.high) / 2)
+                : null;
+              return (
+                <div className="grid grid-cols-2 gap-3 bg-white/[0.03] p-3 rounded-xl border border-white/10">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block font-semibold">Official Acceptance Rate</span>
+                    <span className="text-[16px] font-bold text-white">{selectedCollegeForDetail.baselineAcceptanceRate}</span>
+                  </div>
+                  <div className="border-l border-white/10 pl-3">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] text-indigo-300 block font-bold">Estimated Chance</span>
+                      <span
+                        className="material-symbols-outlined text-[13px] text-indigo-400 cursor-help"
+                        title="An estimate based on your percentile position relative to this school's official admitted-class data — not a guaranteed outcome."
+                      >
+                        info
+                      </span>
+                    </div>
+                    {modalEstimatedRange && modalMidpoint !== null ? (
+                      <div>
+                        <span className="text-[16px] font-black text-indigo-300 leading-none">
+                          {modalMidpoint}%
+                        </span>
+                        <span className="text-[11px] text-indigo-300/80 block font-medium mt-0.5">
+                          Range: {modalEstimatedRange.low}–{modalEstimatedRange.high}%
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic block mt-0.5">
+                        Add your SAT/GPA for a personalized estimate
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {selectedCollegeForDetail.profileFit && (
+              <div className="bg-indigo-500/10 p-3 rounded-xl border border-indigo-500/20 space-y-1.5 text-[12.5px]">
+                <div className="flex items-center gap-1.5 text-indigo-300 font-bold">
+                  <span className="material-symbols-outlined text-[16px]">verified</span>
+                  <span>Data-Backed Profile Comparison</span>
+                </div>
+                {selectedCollegeForDetail.profileFit.satPercentilePosition && (
+                  <div className="text-slate-300">
+                    <strong className="text-white">SAT Percentile:</strong> {selectedCollegeForDetail.profileFit.satPercentilePosition} of admitted class
+                  </div>
+                )}
+                {selectedCollegeForDetail.profileFit.gpaComparison && (
+                  <div className="text-slate-300">
+                    <strong className="text-white">GPA Comparison:</strong> {selectedCollegeForDetail.profileFit.gpaComparison}
+                  </div>
+                )}
+                <div className="text-slate-300">
+                  <strong className="text-white">This school weighs:</strong>{' '}
+                  {selectedCollegeForDetail.profileFit.topWeightedFactors?.length > 0
+                    ? selectedCollegeForDetail.profileFit.topWeightedFactors.join(', ')
+                    : selectedCollegeForDetail.keyFactor}
+                </div>
               </div>
-              <div className="border-l border-white/10 pl-3">
-                <span className="text-[11px] text-indigo-300 block font-bold">Your Calculated Odds</span>
-                <span className="text-[18px] font-extrabold text-indigo-300">{selectedCollegeForDetail.estimatedAdmitRate}</span>
-              </div>
-            </div>
+            )}
 
             <div className="space-y-3 text-[13px]">
               <div>

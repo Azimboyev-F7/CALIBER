@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ActiveScreen, ActivityItem, UserProfile } from '../types';
+import { getApiHeaders } from '../utils/apiClient';
 
 interface ActivitiesViewProps {
   userProfile: UserProfile;
@@ -35,7 +36,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
     try {
       const res = await fetch('/api/optimize-activity', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders(),
         body: JSON.stringify({
           activityTitle: selectedActivity.title,
           role: selectedActivity.role,

@@ -20,6 +20,7 @@ import { UpgradeModal } from './components/UpgradeModal';
 import { SaveStatusIndicator } from './components/SaveStatusIndicator';
 import { CoachChatProvider } from './context/CoachChatContext';
 import { getStoredAuthUser, signOutUser } from './lib/supabaseClient';
+import { getApiHeaders } from './utils/apiClient';
 
 const PROFILE_STORAGE_KEY = 'caliber_user_profile';
 
@@ -274,7 +275,7 @@ export default function App() {
     try {
       const response = await fetch('/api/analyze-profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getApiHeaders(),
         body: JSON.stringify({ profile: userProfile })
       });
 
