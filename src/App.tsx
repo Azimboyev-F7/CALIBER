@@ -19,7 +19,7 @@ import { ReviewDraftsModal } from './components/ReviewDraftsModal';
 import { UpgradeModal } from './components/UpgradeModal';
 import { SaveStatusIndicator } from './components/SaveStatusIndicator';
 import { CoachChatProvider } from './context/CoachChatContext';
-import { getStoredAuthUser, signOutUser } from './lib/supabaseClient';
+import { getStoredAuthUser, signOutUser, syncSessionFromSupabase, getSessionToken } from './lib/supabaseClient';
 import { getApiHeaders } from './utils/apiClient';
 
 const PROFILE_STORAGE_KEY = 'caliber_user_profile';
@@ -121,16 +121,61 @@ export default function App() {
     }
   }, [currentUser, activeScreen]);
 
-  // Sync stored user name if present
+  // Sync stored user — restore Supabase session on mount, then fall back to localStorage
   useEffect(() => {
-    const stored = getStoredAuthUser();
-    if (stored) {
-      currentUserRef.current = stored;
-      setCurrentUser(stored);
-      if (stored.name) {
-        setUserProfile((prev) => ({ ...prev, name: stored.name || prev.name }));
+    syncSessionFromSupabase().then(async (user) => {
+      if (user) {
+        currentUserRef.current = user;
+        setCurrentUser(user);
+        // Load activities and honors from Supabase, merge into local profile
+        const token = await getSessionToken();
+        if (token) {
+          const headers = { 'x-api-key': 'caliber-secret-key', Authorization: `Bearer ${token}` };
+          const [actRes, honRes] = await Promise.allSettled([
+            fetch('/api/student/activities', { headers }).then((r) => r.ok ? r.json() : null),
+            fetch('/api/student/honors', { headers }).then((r) => r.ok ? r.json() : null),
+          ]);
+          setUserProfile((prev) => {
+            const next = { ...prev };
+            if (user.name) next.name = user.name || prev.name;
+
+            const remoteActivities = actRes.status === 'fulfilled' ? actRes.value?.activities : null;
+            const remoteHonors    = honRes.status  === 'fulfilled' ? honRes.value?.honors    : null;
+
+            if (remoteActivities?.length) {
+              next.activities = remoteActivities;
+            } else if (prev.activities.length) {
+              // Backfill: push local activities to Supabase (Supabase was empty)
+              prev.activities.forEach((a) => {
+                fetch('/api/student/activities', {
+                  method: 'POST',
+                  headers: { ...headers, 'Content-Type': 'application/json' },
+                  body: JSON.stringify(a),
+                }).catch(() => {});
+              });
+            }
+
+            if (remoteHonors?.length) {
+              next.awards = remoteHonors;
+            } else if (prev.awards.length) {
+              // Backfill: push local honors to Supabase
+              prev.awards.forEach((h) => {
+                fetch('/api/student/honors', {
+                  method: 'POST',
+                  headers: { ...headers, 'Content-Type': 'application/json' },
+                  body: JSON.stringify(h),
+                }).catch(() => {});
+              });
+            }
+
+            try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(next)); } catch {}
+            return next;
+          });
+        } else if (user.name) {
+          setUserProfile((prev) => ({ ...prev, name: user.name || prev.name }));
+        }
       }
-    }
+    });
   }, []);
 
   const handleSignOut = async () => {
@@ -194,6 +239,56 @@ export default function App() {
     });
   };
 
+  // ── Supabase sync helpers (fire-and-forget, localStorage is still primary) ──
+
+  const studentApiHeaders = async (): Promise<Record<string, string> | null> => {
+    const token = await getSessionToken();
+    if (!token) return null;
+    return {
+      'Content-Type': 'application/json',
+      'x-api-key': 'caliber-secret-key',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const syncActivityToSupabase = async (activity: ActivityItem) => {
+    const headers = await studentApiHeaders();
+    if (!headers) return;
+    fetch('/api/student/activities', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(activity),
+    }).catch(() => {});
+  };
+
+  const removeActivityFromSupabase = async (id: string) => {
+    const headers = await studentApiHeaders();
+    if (!headers) return;
+    fetch(`/api/student/activities/${id}`, {
+      method: 'DELETE',
+      headers,
+    }).catch(() => {});
+  };
+
+  const syncHonorToSupabase = async (honor: AwardItem) => {
+    const headers = await studentApiHeaders();
+    if (!headers) return;
+    fetch('/api/student/honors', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(honor),
+    }).catch(() => {});
+  };
+
+  const removeHonorFromSupabase = async (id: string) => {
+    const headers = await studentApiHeaders();
+    if (!headers) return;
+    fetch(`/api/student/honors/${id}`, {
+      method: 'DELETE',
+      headers,
+    }).catch(() => {});
+  };
+
   // Activity handlers
   const handleAddActivity = (activity: ActivityItem) => {
     setUserProfile((prev) => {
@@ -204,6 +299,7 @@ export default function App() {
       triggerAutoSave(next);
       return next;
     });
+    syncActivityToSupabase(activity);
   };
 
   const handleDeleteActivity = (id: string) => {
@@ -215,6 +311,7 @@ export default function App() {
       triggerAutoSave(next);
       return next;
     });
+    removeActivityFromSupabase(id);
   };
 
   const handleUpdateActivities = (activities: ActivityItem[]) => {
@@ -235,6 +332,7 @@ export default function App() {
       triggerAutoSave(next);
       return next;
     });
+    syncHonorToSupabase(award);
   };
 
   const handleDeleteAward = (id: string) => {
@@ -246,6 +344,7 @@ export default function App() {
       triggerAutoSave(next);
       return next;
     });
+    removeHonorFromSupabase(id);
   };
 
   // Checklist handler in Results

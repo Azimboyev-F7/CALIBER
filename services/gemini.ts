@@ -31,7 +31,7 @@ export async function generateContentWithRetry(
   }
 ): Promise<any> {
   const requestedModel = params.model || 'gemini-3.6-flash';
-  const fallbacks = ['gemini-3.6-flash', 'gemini-2.5-flash'].filter((m) => m !== requestedModel);
+  const fallbacks = ['gemini-2.5-flash'].filter((m) => m !== requestedModel);
   const modelsToTry = [requestedModel, ...fallbacks];
   let lastError: any = null;
 
@@ -42,11 +42,17 @@ export async function generateContentWithRetry(
   for (const modelName of modelsToTry) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: params.contents,
-          config: mergedConfig,
-        });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Gemini request timed out after 20s')), 20000)
+        );
+        const response = await Promise.race([
+          ai.models.generateContent({
+            model: modelName,
+            contents: params.contents,
+            config: mergedConfig,
+          }),
+          timeoutPromise
+        ]);
         return response;
       } catch (err: any) {
         lastError = err;

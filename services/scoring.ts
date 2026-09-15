@@ -9,6 +9,7 @@ export interface ProfileFit {
 export interface EstimatedRange {
   low: number;
   high: number;
+  approximate?: boolean; // true when school has no SAT band data; range is based on acceptance rate only
 }
 
 /**
@@ -157,8 +158,38 @@ export function calculateEstimatedRange(
     }
   }
 
-  // If we could not resolve a profileFit or if satPercentilePosition is null (missing test data)
+  // If satPercentilePosition is null (school has no SAT band — common for non-US institutions),
+  // try GPA comparison as the primary signal before falling back to a flat band.
   if (!profileFit || profileFit.satPercentilePosition === null || profileFit.satPercentilePosition === undefined) {
+    if (!isNaN(officialRate) && officialRate > 0) {
+      const headroom = 100 - officialRate;
+      const gpa = profileFit?.gpaComparison?.toLowerCase() ?? '';
+      let low: number;
+      let high: number;
+
+      if (gpa.includes('above')) {
+        // GPA above school average → close 25-50% of headroom
+        low = Math.round(officialRate + headroom * 0.25);
+        high = Math.round(officialRate + headroom * 0.50);
+      } else if (gpa.includes('below')) {
+        // GPA below school average → reduce
+        low = Math.round(officialRate * 0.45);
+        high = Math.round(officialRate * 0.75);
+      } else if (gpa.includes('competitive')) {
+        // GPA on par → modest positive adjustment
+        low = Math.round(officialRate + headroom * 0.05);
+        high = Math.round(officialRate + headroom * 0.20);
+      } else {
+        // No GPA data either — flat ±15% band
+        low = Math.round(officialRate * 0.85);
+        high = Math.round(officialRate * 1.15);
+      }
+
+      low = Math.max(1, Math.min(99, low));
+      high = Math.max(1, Math.min(99, high));
+      if (low >= high) high = Math.min(99, low + 1);
+      return { low, high, approximate: true };
+    }
     return null;
   }
 
@@ -371,11 +402,17 @@ export function generateIntelligentCollegeRecommendations(
   const major = profile?.intendedMajor || 'Computer Science';
   const rawCountry = (filterRegion || profile?.preferredCountry || 'United States').toLowerCase();
 
-  let targetRegion: 'us' | 'uk' | 'canada' = 'us';
+  let targetRegion: 'us' | 'uk' | 'canada' | 'korea' | 'germany' | 'china' = 'us';
   if (rawCountry.includes('uk') || rawCountry.includes('united kingdom') || rawCountry.includes('britain')) {
     targetRegion = 'uk';
   } else if (rawCountry.includes('canada')) {
     targetRegion = 'canada';
+  } else if (rawCountry.includes('korea') || rawCountry.includes('한국')) {
+    targetRegion = 'korea';
+  } else if (rawCountry.includes('germany') || rawCountry.includes('deutschland')) {
+    targetRegion = 'germany';
+  } else if (rawCountry.includes('china') || rawCountry.includes('中国') || rawCountry.includes('prc')) {
+    targetRegion = 'china';
   }
 
   // Filter regional dataset

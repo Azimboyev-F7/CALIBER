@@ -61,6 +61,7 @@ export interface ApplicationChecklistItem {
 export interface EstimatedRange {
   low: number;
   high: number;
+  approximate?: boolean;
 }
 
 export interface ProfileFit {

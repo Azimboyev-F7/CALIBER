@@ -6,7 +6,7 @@ import {
   calculateProfileFit,
   calculateEstimatedRange
 } from '../services/scoring';
-import { SCHOOL_PROFILES } from '../data/schools';
+import { getSchoolProfiles } from '../services/supabaseServer';
 import { validateBody, recommendCollegesSchema } from '../middleware/validation';
 
 export const collegesRouter = Router();
@@ -30,13 +30,16 @@ collegesRouter.post(
     const normalizeName = (n: string) =>
       n.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 
+    // Fetch school profiles from Supabase (falls back to local data automatically)
+    const schoolProfiles = await getSchoolProfiles();
+
     const enrichWithProfileFit = (colleges: any[]) => {
       if (!Array.isArray(colleges)) return;
       for (const college of colleges) {
         const collegeName = normalizeName(college.name || '');
         // Find matching verified institutional record — fuzzy on name to handle
         // Gemini variants like "University of Michigan - Ann Arbor" → "University of Michigan"
-        const matched = SCHOOL_PROFILES.find((s) => {
+        const matched = schoolProfiles.find((s) => {
           if (s.schoolId === college.id) return true;
           const dbName = normalizeName(s.name);
           if (dbName === collegeName) return true;
@@ -73,6 +76,29 @@ collegesRouter.post(
       }
 
       const activeCountry = filterRegion || profile.preferredCountry || 'United States';
+
+      // Validates that a school's location actually belongs to the requested country.
+      // Gemini frequently ignores the region filter; this gates its output.
+      const countryKeywords: Record<string, string[]> = {
+        'south korea': ['korea', 'seoul', 'busan', 'daejeon', 'pohang', 'incheon'],
+        'korea': ['korea', 'seoul', 'busan', 'daejeon', 'pohang', 'incheon'],
+        'germany': ['germany', 'deutschland', 'berlin', 'munich', 'münchen', 'hamburg', 'frankfurt', 'cologne', 'heidelberg', 'karlsruhe', 'aachen'],
+        'china': ['china', 'beijing', 'shanghai', 'hangzhou', 'hefei', 'guangzhou', 'shenzhen', 'nanjing', 'wuhan'],
+        'united kingdom': ['uk', 'united kingdom', 'england', 'scotland', 'wales', 'london', 'oxford', 'cambridge', 'manchester', 'edinburgh'],
+        'uk': ['uk', 'united kingdom', 'england', 'london', 'oxford', 'cambridge'],
+        'canada': ['canada', 'toronto', 'vancouver', 'montreal', 'waterloo', 'ottawa', 'calgary'],
+        'united states': ['usa', 'united states', ', al', ', ak', ', az', ', ar', ', ca', ', co', ', ct', ', fl', ', ga', ', hi', ', id', ', il', ', in', ', ia', ', ks', ', ky', ', la', ', me', ', md', ', ma', ', mi', ', mn', ', ms', ', mo', ', mt', ', ne', ', nv', ', nh', ', nj', ', nm', ', ny', ', nc', ', nd', ', oh', ', ok', ', or', ', pa', ', ri', ', sc', ', sd', ', tn', ', tx', ', ut', ', vt', ', va', ', wa', ', wv', ', wi', ', wy'],
+      };
+
+      const isSchoolInCountry = (school: any): boolean => {
+        const location = (school.location || '').toLowerCase();
+        const name = (school.name || '').toLowerCase();
+        const activeCountryLower = activeCountry.toLowerCase();
+        const keywords = countryKeywords[activeCountryLower] || [];
+        if (keywords.length === 0) return true; // unknown country — don't filter
+        return keywords.some((kw) => location.includes(kw) || name.includes(kw));
+      };
+
       const prompt = `You are a former Dean of Admissions at a top university and premier global College Counselor.
 Analyze the following high school student profile and generate tailored university recommendations categorized into Reach, Target, and Safety with official institutional acceptance rates and data-backed Profile Fit metrics.
 
@@ -178,13 +204,23 @@ Return ONLY a valid JSON object matching this schema without markdown code block
         parsed = JSON.parse(cleaned);
       }
 
+      const local = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
+
       if (!parsed) {
-        parsed = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
+        parsed = local;
       } else {
-        const local = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
-        if (!parsed.reachRecommendations?.length) parsed.reachRecommendations = local.reachRecommendations;
-        if (!parsed.targetRecommendations?.length) parsed.targetRecommendations = local.targetRecommendations;
-        if (!parsed.safetyRecommendations?.length) parsed.safetyRecommendations = local.safetyRecommendations;
+        // Filter out any schools Gemini returned for the wrong country, then fall back to
+        // local results for tiers where Gemini failed the country check.
+        const keepInCountry = (schools: any[]) =>
+          Array.isArray(schools) ? schools.filter(isSchoolInCountry) : [];
+
+        parsed.reachRecommendations = keepInCountry(parsed.reachRecommendations);
+        parsed.targetRecommendations = keepInCountry(parsed.targetRecommendations);
+        parsed.safetyRecommendations = keepInCountry(parsed.safetyRecommendations);
+
+        if (!parsed.reachRecommendations.length) parsed.reachRecommendations = local.reachRecommendations;
+        if (!parsed.targetRecommendations.length) parsed.targetRecommendations = local.targetRecommendations;
+        if (!parsed.safetyRecommendations.length) parsed.safetyRecommendations = local.safetyRecommendations;
       }
 
       enrichWithProfileFit(parsed.reachRecommendations);
@@ -192,7 +228,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
       enrichWithProfileFit(parsed.safetyRecommendations);
 
       return res.json({
-        source: 'gemini-3.6-flash',
+        source: 'gemini-2.5-flash',
         success: true,
         data: parsed
       });

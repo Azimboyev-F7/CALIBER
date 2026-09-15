@@ -82,7 +82,7 @@ Return ONLY a valid JSON object matching this TypeScript interface without markd
 }`;
 
       const response = await generateContentWithRetry(ai, {
-        model: 'gemini-3.6-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json'
@@ -99,7 +99,7 @@ Return ONLY a valid JSON object matching this TypeScript interface without markd
       }
 
       return res.json({
-        source: 'gemini-3.6-flash',
+        source: 'gemini-2.5-flash',
         success: true,
         analysis: parsed
       });

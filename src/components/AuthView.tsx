@@ -3,7 +3,8 @@ import { ActiveScreen, AuthUser } from '../types';
 import {
   signInWithEmail,
   signUpWithEmail,
-  resetPassword,
+  resetPasswordDirect,
+  isSupabaseConfigured,
   DEMO_USER
 } from '../lib/supabaseClient';
 
@@ -35,6 +36,8 @@ export const AuthView: React.FC<AuthViewProps> = ({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [fullName, setFullName] = useState('');
   const [intendedMajor, setIntendedMajor] = useState('Computer Science');
   const [highSchool, setHighSchool] = useState('');
@@ -43,12 +46,28 @@ export const AuthView: React.FC<AuthViewProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  const switchMode = (mode: 'signin' | 'signup' | 'forgot') => {
+    setAuthMode(mode);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setIdentifier('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+    setNewPassword('');
+    setNewPasswordConfirm('');
+    setFullName('');
+    setUsername('');
+    setHighSchool('');
+    setIntendedMajor('Computer Science');
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
 
-    const loginInput = identifier.trim() || email.trim();
+    const loginInput = identifier.trim();
 
     if (!loginInput || !password) {
       setErrorMsg('Please enter your username or email and password.');
@@ -134,20 +153,36 @@ export const AuthView: React.FC<AuthViewProps> = ({
     setSuccessMsg(null);
 
     if (!email) {
-      setErrorMsg('Please provide the email associated with your applicant account.');
+      setErrorMsg('Please provide the email associated with your account.');
+      return;
+    }
+
+    if (!newPassword) {
+      setErrorMsg('Please enter a new password.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setErrorMsg('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (newPassword !== newPasswordConfirm) {
+      setErrorMsg('Passwords do not match.');
       return;
     }
 
     setIsLoading(true);
     try {
-      const { error } = await resetPassword(email);
+      const { success, error } = await resetPasswordDirect(email, newPassword);
       if (error) {
         setErrorMsg(error);
-      } else {
-        setSuccessMsg('Password reset instructions generated. You can now log in.');
+      } else if (success) {
+        setSuccessMsg('Password updated! You can now sign in with your new password.');
+        setTimeout(() => switchMode('signin'), 1500);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to send recovery instructions.');
+      setErrorMsg(err.message || 'Failed to reset password.');
     } finally {
       setIsLoading(false);
     }
@@ -207,11 +242,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
             <div className="flex p-1 rounded-xl bg-white/[0.04] border border-white/10">
               <button
                 type="button"
-                onClick={() => {
-                  setAuthMode('signin');
-                  setErrorMsg(null);
-                  setSuccessMsg(null);
-                }}
+                onClick={() => switchMode('signin')}
                 className={`flex-1 py-2 text-[12.5px] font-bold rounded-lg transition-all cursor-pointer ${
                   authMode === 'signin'
                     ? 'bg-indigo-600 text-white shadow-md'
@@ -222,11 +253,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setAuthMode('signup');
-                  setErrorMsg(null);
-                  setSuccessMsg(null);
-                }}
+                onClick={() => switchMode('signup')}
                 className={`flex-1 py-2 text-[12.5px] font-bold rounded-lg transition-all cursor-pointer ${
                   authMode === 'signup'
                     ? 'bg-indigo-600 text-white shadow-md'
@@ -283,11 +310,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   </label>
                   <button
                     type="button"
-                    onClick={() => {
-                      setAuthMode('forgot');
-                      setErrorMsg(null);
-                      setSuccessMsg(null);
-                    }}
+                    onClick={() => switchMode('forgot')}
                     className="text-[11.5px] text-indigo-400 hover:text-indigo-300 font-semibold cursor-pointer"
                   >
                     Forgot password?
@@ -500,17 +523,55 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 </div>
               </div>
 
+              <div>
+                <label className="block text-[12px] font-semibold text-slate-300 mb-1.5">
+                  New Password (min 6)
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                    lock_reset
+                  </span>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="input-minimal w-full pl-9 pr-3 py-2.5 text-[13px] rounded-xl"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-semibold text-slate-300 mb-1.5">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
+                    lock
+                  </span>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={newPasswordConfirm}
+                    onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                    className="input-minimal w-full pl-9 pr-3 py-2.5 text-[13px] rounded-xl"
+                  />
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex-1 glass-btn-primary py-2.5 rounded-xl font-bold text-[13px] flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 glass-btn-primary py-2.5 rounded-xl font-bold text-[13px] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  {isLoading ? 'Sending...' : 'Send Recovery Email'}
+                  {isLoading ? 'Updating...' : 'Reset Password'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAuthMode('signin')}
+                  onClick={() => switchMode('signin')}
                   className="glass-btn-secondary px-4 py-2.5 rounded-xl font-semibold text-[13px] cursor-pointer"
                 >
                   Cancel
@@ -539,6 +600,12 @@ export const AuthView: React.FC<AuthViewProps> = ({
             <span className="material-symbols-outlined text-[17px] text-emerald-400">bolt</span>
             <span>Continue with Demo Student Profile</span>
           </button>
+
+          {/* Supabase connection status */}
+          <div className={`flex items-center justify-center gap-1.5 pt-1 text-[11px] font-medium ${isSupabaseConfigured() ? 'text-emerald-400/70' : 'text-amber-400/70'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isSupabaseConfigured() ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
+            {isSupabaseConfigured() ? 'Connected to Supabase' : 'Offline mode — accounts saved locally'}
+          </div>
         </div>
       </div>
     </div>

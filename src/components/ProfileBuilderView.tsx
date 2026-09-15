@@ -177,6 +177,9 @@ export const ProfileBuilderView: React.FC<ProfileBuilderViewProps> = ({
               <option value="United States (US)">United States (US)</option>
               <option value="United Kingdom (UK)">United Kingdom (UK)</option>
               <option value="Canada (CA)">Canada (CA)</option>
+              <option value="South Korea">South Korea</option>
+              <option value="Germany">Germany</option>
+              <option value="China">China</option>
               <option value="Australia / NZ">Australia / NZ</option>
               <option value="Europe / Singapore">Europe / Singapore</option>
             </select>

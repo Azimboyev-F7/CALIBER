@@ -64,11 +64,12 @@
 .input-minimal {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.625rem;
-  background-color: rgba(255, 255, 255, 0.035);
-  color: #f8fafc;
+  background-color: #0d0d18 !important;
+  color: #f8fafc !important;
+  color-scheme: dark;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .input-minimal:focus {
@@ -76,6 +77,17 @@
   background-color: rgba(255, 255, 255, 0.065);
   border-color: rgba(168, 85, 247, 0.5);
   box-shadow: 0 0 0 2.5px rgba(168, 85, 247, 0.2);
+}
+
+/* Kill Chrome/Safari autofill white flash */
+.input-minimal:-webkit-autofill,
+.input-minimal:-webkit-autofill:hover,
+.input-minimal:-webkit-autofill:focus,
+.input-minimal:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 60px #0d0d16 inset !important;
+  -webkit-text-fill-color: #f8fafc !important;
+  caret-color: #f8fafc;
+  transition: background-color 9999s ease-in-out 0s;
 }
 
 .glass-btn-primary {
