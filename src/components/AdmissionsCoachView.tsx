@@ -11,6 +11,65 @@ interface AdmissionsCoachViewProps {
 
 type CoachMode = 'chat' | 'weaknesses' | 'spike' | 'essay' | 'eclift';
 
+function buildEssayAngles(userProfile: any, analysis: any) {
+  const topActivities = [...(userProfile.activities || [])]
+    .sort((a: any, b: any) => (a.tier ?? 4) - (b.tier ?? 4))
+    .slice(0, 3);
+
+  const act1 = topActivities[0];
+  const act2 = topActivities[1];
+  const spike = analysis?.spikeCategory || userProfile.intendedMajor || 'your core interest';
+  const major = userProfile.intendedMajor || 'your intended field';
+  const name = userProfile.name?.split(' ')[0] || 'You';
+  const background = userProfile.contextNotes || '';
+
+  const angle1Title = act1
+    ? `The Moment That Defined Your ${act1.title} Journey`
+    : `The Defining Moment in ${spike}`;
+  const angle1Body = act1
+    ? `Open with a vivid, specific scene from your work in ${act1.title} as ${act1.role}. Show the moment a challenge or breakthrough changed how you think. Connect that personal revelation to your long-term drive toward ${major}.${background ? ` Your context — "${background.slice(0, 80)}..." — is a natural anchor for this arc.` : ''}`
+    : `Open with a specific moment that sparked your passion for ${spike}. Show the internal shift — from confusion to clarity, from observer to builder — and connect it to your pursuit of ${major}.`;
+
+  const angle1Prompt = act1
+    ? `Common App #1 (Background/Identity) or #6 (Topic that captivates you)`
+    : `Common App #1 or #6`;
+
+  const angle2Title = act1 && act2
+    ? `The Unexpected Bridge: ${act1.category} Meets ${act2.category}`
+    : `Two Worlds, One Vision: Your Cross-Domain Spike in ${spike}`;
+  const angle2Body = act1 && act2
+    ? `Reveal the non-obvious intellectual link between your work in ${act1.title} and ${act2.title}. How does the thinking you apply in one domain directly enhance your performance in the other? This cross-disciplinary angle positions you as a rare thinker rather than a niche specialist.`
+    : `Explore the tension between two seemingly unrelated aspects of your profile. Show how resolving that tension led to your clearest insight about ${major} — and why top programs in that field need that kind of synthesis.`;
+
+  const angle2Prompt = `Common App #2 (Overcoming a challenge) or #5 (Accomplishment/growth)`;
+
+  return { angle1Title, angle1Body, angle1Prompt, angle2Title, angle2Body, angle2Prompt };
+}
+
+function getEcLiftRecommendation(act: any): string {
+  if (act.tier === 1) return 'Maintain elite metrics and document every quantifiable outcome for your application.';
+  const cat = (act.category || '').toLowerCase();
+  if (cat.includes('research') || cat.includes('science'))
+    return 'Submit your findings to a peer-reviewed journal or a recognized competition like Regeneron ISEF or Siemens.';
+  if (cat.includes('stem') || cat.includes('engineering') || cat.includes('technology') || cat.includes('robotics') || cat.includes('computer'))
+    return 'Build an open-source project or enter USACO / national hackathons to gain verifiable national-level recognition.';
+  if (cat.includes('debate') || cat.includes('speech'))
+    return 'Qualify for or place at a national tournament (NSDA Nationals, TOC) and take on a district/national leadership role.';
+  if (cat.includes('music') || cat.includes('art') || cat.includes('theatre') || cat.includes('creative'))
+    return 'Compete at or perform in a state/national festival, publish original work, or earn an auditioned honors ensemble seat.';
+  if (cat.includes('sport') || cat.includes('athletics'))
+    return 'Pursue All-State recognition, recruit interest from college coaches, or found a youth coaching / outreach program.';
+  if (cat.includes('community') || cat.includes('volunteer') || cat.includes('service'))
+    return 'Scale the impact: grow to 3+ partner organizations, raise external funds, and become a named nonprofit or 501(c)(3).';
+  if (cat.includes('academic') || cat.includes('math') || cat.includes('olympiad'))
+    return 'Aim for USAMO, AMC 12 top-500, or national academic bowl. Publish or present original research at a university symposium.';
+  if (cat.includes('business') || cat.includes('entrepreneur'))
+    return 'Reach verifiable revenue, users, or press coverage; enter national business plan competitions like DECA ICDC or Conrad Challenge.';
+  if (act.isLeadership)
+    return 'Expand your leadership footprint: launch a regional chapter, mentor underclassmen, or host a publicly recognized event.';
+  return 'Take on an officer role, produce a measurable external outcome (publication, competition placement, funds raised), and document it.';
+}
+
 export const AdmissionsCoachView: React.FC<AdmissionsCoachViewProps> = ({
   userProfile,
   analysis,
@@ -341,59 +400,61 @@ export const AdmissionsCoachView: React.FC<AdmissionsCoachViewProps> = ({
         </div>
       )}
 
-      {activeMode === 'essay' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-3">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <h4 className="text-[14px] font-bold text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-indigo-400 text-[18px]">lightbulb</span>
-                Angle 1: The Sensor in the Fog
-              </h4>
-              <span className="text-[10.5px] text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
-                Narrative Arc
-              </span>
+      {activeMode === 'essay' && (() => {
+        const { angle1Title, angle1Body, angle1Prompt, angle2Title, angle2Body, angle2Prompt } =
+          buildEssayAngles(userProfile, analysis);
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                <h4 className="text-[14px] font-bold text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-indigo-400 text-[18px]">lightbulb</span>
+                  Angle 1: {angle1Title}
+                </h4>
+                <span className="text-[10.5px] text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                  Narrative Arc
+                </span>
+              </div>
+              <p className="text-[12.5px] text-slate-300 leading-relaxed">{angle1Body}</p>
+              <div className="text-[11.5px] text-indigo-300 font-medium">
+                Target Prompts: {angle1Prompt}.
+              </div>
             </div>
-            <p className="text-[12.5px] text-slate-300 leading-relaxed">
-              Start in media res with a late-night debugging session when an autonomous robot repeatedly miscalculated optical sensors. Transition from mechanical troubleshooting to your realization that logic failures in tech reflect blind spots in human policymaking.
-            </p>
-            <div className="text-[11.5px] text-indigo-300 font-medium">
-              Target Prompts: Common App #1 (Background/Identity) or #6 (Topic that captivates you).
-            </div>
-          </div>
 
-          <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-3">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <h4 className="text-[14px] font-bold text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-purple-400 text-[18px]">balance</span>
-                Angle 2: Code Meets Constitutions
-              </h4>
-              <span className="text-[10.5px] text-emerald-300 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
-                Intellectual Spike
-              </span>
+            <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                <h4 className="text-[14px] font-bold text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-purple-400 text-[18px]">balance</span>
+                  Angle 2: {angle2Title}
+                </h4>
+                <span className="text-[10.5px] text-emerald-300 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                  Intellectual Spike
+                </span>
+              </div>
+              <p className="text-[12.5px] text-slate-300 leading-relaxed">{angle2Body}</p>
+              <div className="text-[11.5px] text-purple-300 font-medium">
+                Target Prompts: {angle2Prompt}.
+              </div>
             </div>
-            <p className="text-[12.5px] text-slate-300 leading-relaxed">
-              Explore your transition between Varsity Debate tournaments and competitive programming. Reveal how constructing cross-examination arguments uses the exact same recursive problem decomposition as writing clean algorithms.
-            </p>
-            <div className="text-[11.5px] text-purple-300 font-medium">
-              Target Prompts: Common App #2 (Overcoming a challenge) or #5 (Accomplishment/growth).
-            </div>
-          </div>
 
-          <div className="md:col-span-2 p-4 rounded-xl bg-white/[0.02] border border-white/10 flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <div className="text-[13px] font-bold text-white">Want custom brainstormed angles for supplemental essays?</div>
-              <div className="text-[11.5px] text-slate-400">Ask the Admissions Coach to brainstorm based on any specific college prompt.</div>
+            <div className="md:col-span-2 p-4 rounded-xl bg-white/[0.02] border border-white/10 flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <div className="text-[13px] font-bold text-white">Want the AI Coach to brainstorm deeper essay angles?</div>
+                <div className="text-[11.5px] text-slate-400">Get fully personalized prompts based on your exact profile, including supplemental essays.</div>
+              </div>
+              <button
+                onClick={() => {
+                  setActiveMode('chat');
+                }}
+                className="glass-btn-primary px-3.5 py-1.5 rounded-xl text-[12px] font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[15px]">psychology</span>
+                Brainstorm Supplements with Coach
+              </button>
             </div>
-            <button
-              onClick={() => setActiveMode('chat')}
-              className="glass-btn-primary px-3.5 py-1.5 rounded-xl text-[12px] font-bold flex items-center gap-1.5 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[15px]">psychology</span>
-              Brainstorm Supplements with Coach
-            </button>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {activeMode === 'eclift' && (
         <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-4">
@@ -422,11 +483,7 @@ export const AdmissionsCoachView: React.FC<AdmissionsCoachViewProps> = ({
                 <div className="text-[11.5px] text-slate-400 line-clamp-2">{act.role}</div>
 
                 <div className="pt-2 border-t border-white/5 text-[11.5px] text-emerald-300">
-                  <strong>Coach Recommendation:</strong> {
-                    act.tier > 1 
-                      ? 'Publish research, expand organization to 3+ partner schools, or host a regional event.'
-                      : 'Maintain high leadership metrics and capture quantified outcomes.'
-                  }
+                  <strong>Coach Recommendation:</strong> {getEcLiftRecommendation(act)}
                 </div>
               </div>
             ))}

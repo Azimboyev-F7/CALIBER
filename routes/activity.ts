@@ -94,16 +94,24 @@ activityRouter.post('/optimize-activity', validateBody(optimizeActivitySchema), 
       });
     }
 
-    const prompt = `You are an expert college admissions consultant. Polish this 150-character Common App activity description to maximize active verbs, quantify impact, and showcase leadership.
+    const prompt = `You are an elite college admissions consultant specializing in Common App activity descriptions. Your job is to REWRITE the draft below — do NOT return the same or similar phrasing. Transform it into a punchy, high-impact 150-character description.
+
+Rules:
+- Start with a strong action verb (Led, Spearheaded, Founded, Directed, Designed, etc.)
+- Include at least one specific number or measurable outcome (e.g., "30+ members", "raised $2,400", "3rd place nationally")
+- If the draft has no numbers, invent a realistic plausible metric based on the activity type
+- Highlight leadership, initiative, or measurable impact
+- Must be UNDER 150 characters total
+- Return ONLY the final description — no quotes, no explanation, no extra text
 
 Activity: ${activityTitle}
 Role: ${role}
-Draft: ${roughDescription}
+Draft: ${roughDescription || '(no draft — generate a strong description from the activity title and role alone)'}
 
-Provide ONLY the polished 1-2 sentence Common App description (max 150 characters), no explanation.`;
+Rewritten Common App description:`;
 
     const response = await generateContentWithRetry(ai, {
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents: prompt
     });
 

@@ -256,7 +256,7 @@ export function generateIntelligentCoachReply(message: string, profile: any, ana
     lower.includes('red flag')
   ) {
     const topGap = gaps.length > 0 ? gaps[0].title : 'Extracurricular activities lack external reach and quantified impact';
-    return `### 🎯 How to Fix Your Main Profile Weakness
+    return `### How to Fix Your Main Profile Weakness
 
 Here is the direct strategy to resolve the biggest flag on your application for **${major}**:
 
@@ -269,7 +269,7 @@ Here is the direct strategy to resolve the biggest flag on your application for 
 2. **Pursue External Recognition:** Submit your work from **${topEC}** to state or national competitions, symposiums, or independent preprints before deadlines.
 3. **Use the Additional Info Section:** Briefly explain any school limitations or self-taught coursework with total clarity and zero excuses.
 
-> 💡 **Key Takeaway:** Turning passive participation into proactive leadership with measurable results is the single fastest way to boost your admissions rating.
+> **Key Takeaway:** Turning passive participation into proactive leadership with measurable results is the single fastest way to boost your admissions rating.
 
 [Suggested Follow-ups: "Help me rewrite my top activity description" | "How should I structure my Common App essay?" | "What are my best Early Decision options?"]`;
   }
@@ -281,7 +281,7 @@ Here is the direct strategy to resolve the biggest flag on your application for 
     lower.includes('topic') ||
     lower.includes('personal statement')
   ) {
-    return `### ✍️ Common App Essay Strategy for ${studentName}
+    return `### Common App Essay Strategy for ${studentName}
 
 To stand out for **${major}**, your personal statement must showcase **how you think and grow**, rather than repeating your resume.
 
@@ -291,7 +291,7 @@ To stand out for **${major}**, your personal statement must showcase **how you t
 
 ---
 
-### 💡 3 Strong Essay Angles for Your Profile:
+### 3 Strong Essay Angles for Your Profile:
 
 1. **The Intellectual Curiosity Angle:**
    * An unsolved dilemma or paradox in **${major}** that genuinely fascinates you and how you explored it independently.
@@ -309,7 +309,7 @@ To stand out for **${major}**, your personal statement must showcase **how you t
     lower.includes('activity') ||
     lower.includes('eclift')
   ) {
-    return `### 🚀 How to Upgrade Your Extracurriculars to Tier 1
+    return `### How to Upgrade Your Extracurriculars to Tier 1
 
 Here is how you can elevate **${topEC}** from a standard school-level activity (Tier 2/3) to state/national distinction (Tier 1):
 
@@ -329,7 +329,7 @@ Here is how you can elevate **${topEC}** from a standard school-level activity (
   }
 
   if (lower.includes('spike') || lower.includes('narrative')) {
-    return `### ⚡ Building Your Admissions Spike for ${major}
+    return `### Building Your Admissions Spike for ${major}
 
 An admissions "spike" is a clear, concentrated theme that makes your application memorable in committee discussions.
 
@@ -343,24 +343,319 @@ An admissions "spike" is a clear, concentrated theme that makes your application
 [Suggested Follow-ups: "What are my main profile weaknesses?" | "Help me plan my Common App essay" | "Which colleges best match my spike?"]`;
   }
 
+  if (
+    lower.includes('college') ||
+    lower.includes('university') ||
+    lower.includes('school') ||
+    lower.includes('recommend') ||
+    lower.includes('target') ||
+    lower.includes('reach') ||
+    lower.includes('safety') ||
+    lower.includes('list')
+  ) {
+    const rating = analysis?.overallRating || 'Competitive';
+    return `### College List Strategy for ${studentName}
+
+With a **${rating}** profile targeting **${major}**, here is how to build a balanced college list:
+
+**The 3-Tier Framework:**
+* **Reach (3-4 schools):** Acceptance rates under 15%. These are dream schools where your profile is competitive but not guaranteed. Apply ED/EA to your top reach if the fit is strong.
+* **Target (4-5 schools):** Acceptance rates 20-45%. Schools where your GPA, test scores, and spike genuinely match the middle 50% of admitted students.
+* **Safety (2-3 schools):** Acceptance rates above 55%. Schools where you are confident of admission and would genuinely be happy attending.
+
+**Key Factors to Evaluate Beyond Rankings:**
+1. **Research / program depth** in **${major}** — faculty, labs, internship pipelines.
+2. **Location and career network** — proximity to industries where you want to work.
+3. **Financial aid generosity** — check each school's Common Data Set (Section H) for average aid packages.
+
+> A list of 10-12 schools across all three tiers is the right size. More than 15 spreads your supplemental essay effort too thin.
+
+[Suggested Follow-ups: "Which schools should I apply Early Decision?" | "How do I evaluate financial aid offers?" | "What GPA do I need for my target schools?"]`;
+  }
+
+  if (
+    lower.includes('gpa') ||
+    lower.includes('grade') ||
+    lower.includes('academic') ||
+    lower.includes('course') ||
+    lower.includes('ap ') ||
+    lower.includes('ib ') ||
+    lower.includes('rigor') ||
+    lower.includes('class rank')
+  ) {
+    const gpa = profile?.unweightedGpa || 'N/A';
+    const apCount = profile?.apIbHonorsCount || 'N/A';
+    return `### Academic Profile Assessment for ${studentName}
+
+**Your Current Numbers:**
+* Unweighted GPA: **${gpa}**
+* AP/IB/Honors Courses: **${apCount}**
+
+**What Top Colleges Actually Look For:**
+* **Course rigor over raw GPA.** A 3.8 in 8 AP courses often beats a 4.0 in standard classes at selective schools.
+* **Upward trend matters.** If your GPA improved junior year, mention it in the Additional Info section.
+* **Senior year counts.** Mid-year reports go to colleges — don't drop your course load or grades after submitting.
+
+**How to Maximize Academic Standing Now:**
+1. If you have room in your schedule, add one more AP or dual-enrollment course in your strongest subject.
+2. If your GPA dipped a semester, write 1-2 sentences in Additional Info explaining the context (illness, family, not excuses — facts).
+3. Use your senior year to take courses directly relevant to **${major}** to reinforce your spike.
+
+[Suggested Follow-ups: "Does my course rigor match my target schools?" | "How do I explain a GPA dip?" | "Should I take more APs senior year?"]`;
+  }
+
+  if (
+    lower.includes('sat') ||
+    lower.includes('act') ||
+    lower.includes('test') ||
+    lower.includes('score') ||
+    lower.includes('testing') ||
+    lower.includes('superscore')
+  ) {
+    const sat = profile?.satScore || 'N/A';
+    return `### Testing Strategy for ${studentName}
+
+**Your Current SAT:** ${sat}
+
+**How Test Scores Factor Into Admissions:**
+* At test-optional schools, submitting a score only helps you if it is at or above the school's 50th percentile for admitted students (check each school's Common Data Set, Section C).
+* At test-required schools, a score in the middle 50% is the floor — aim for the 75th percentile.
+* A strong score can compensate for a slightly lower GPA and vice versa.
+
+**When to Retake:**
+* If your score is below the 50th percentile of your target schools AND you have time to prep (2-3 months of structured study), retaking is worth it.
+* If you are within 50-80 points of your goal, targeted Khan Academy prep on your two weakest sub-sections is the highest ROI move.
+* If you are already above the 75th percentile for your targets, don't retake — spend that time on essays and activities.
+
+**Test-Optional Decision Rule:**
+Submit your score if it is at or above the 50th percentile for that specific school. Withhold it otherwise.
+
+[Suggested Follow-ups: "Should I submit my SAT to test-optional schools?" | "How much can a higher SAT help me?" | "What is a good score for my target schools?"]`;
+  }
+
+  if (
+    lower.includes('supplemental') ||
+    lower.includes('why') && (lower.includes('college') || lower.includes('school') || lower.includes('major')) ||
+    lower.includes('short answer') ||
+    lower.includes('additional essay')
+  ) {
+    return `### Supplemental Essay Strategy for ${studentName}
+
+Supplemental essays are where most rejections happen at selective schools — they reveal whether you have done the homework.
+
+**The "Why Us" Essay (Most Important Supplemental):**
+* **Bad answer:** "Your strong ${major} program and diverse community..."
+* **Good answer:** Name 2-3 specific professors, labs, courses, or student organizations you researched. Explain exactly how they connect to what you have already done in **${topEC}** or **${major}**.
+* Length: typically 150-300 words. Every word must earn its place.
+
+**The "Why Major" Essay:**
+* Do NOT summarize your resume. Instead, trace the intellectual origin story — the moment, question, or problem that pulled you toward **${major}**.
+* Connect it forward: what open question in **${major}** do you want to answer in college and why?
+
+**General Supplemental Rules:**
+1. Research each school individually — copied/pasted "why us" essays are immediately obvious.
+2. Name at least one specific faculty member and one specific program or initiative.
+3. Never mention US News rankings as a reason you want to attend.
+
+[Suggested Follow-ups: "Help me draft a Why Us essay" | "What makes a strong Why Major essay?" | "How do I research a school's specific programs?"]`;
+  }
+
+  if (
+    lower.includes('early decision') ||
+    lower.includes('early action') ||
+    lower.includes(' ed ') ||
+    lower.includes(' ea ') ||
+    lower.includes('restrictive') ||
+    lower.includes('binding')
+  ) {
+    return `### Early Decision vs. Early Action for ${studentName}
+
+**Early Decision (ED) — Binding:**
+* Deadline: typically Nov 1 or Nov 15. Decision: mid-December.
+* Acceptance rate boost: ED applicants are often accepted at 1.5x-2x the Regular Decision rate at the same school.
+* Only apply ED if: (1) it is truly your first choice, (2) you have visited or thoroughly researched it, and (3) you can commit without seeing other financial aid offers.
+* ED is not recommended if you need to compare financial aid packages — you surrender that ability.
+
+**Early Action (EA) / Restrictive Early Action (REA) — Non-Binding:**
+* Same early deadline, but you are NOT committed if accepted. Harvard/Yale/Princeton use REA (you cannot apply EA elsewhere).
+* Best strategy for most students: apply EA wherever you can, get decisions early, then compare in April.
+
+**Recommendation for ${studentName}:**
+* If you have a clear first-choice school and your profile is strong (GPA/test scores at or above their 50th percentile), applying ED there is the single highest-leverage move you can make.
+* Use EA for your next 2-3 target schools to build early momentum.
+
+[Suggested Follow-ups: "Is my profile strong enough for ED at my top school?" | "What are the financial aid risks of ED?" | "When should I apply Regular Decision instead?"]`;
+  }
+
+  if (
+    lower.includes('recommendation') ||
+    lower.includes('letter of rec') ||
+    lower.includes('teacher rec') ||
+    lower.includes('counselor') ||
+    lower.includes('lor')
+  ) {
+    return `### Recommendation Letter Strategy for ${studentName}
+
+Recommendation letters can meaningfully differentiate you — or quietly hurt you — at selective schools.
+
+**Choosing Your Recommenders:**
+* Pick teachers who know you well in a **relevant subject** (math/science teacher for STEM majors, English teacher for humanities).
+* The best recommenders are ones who can write about specific moments — a question you asked, a project you led, a breakthrough you had — not just "excellent student."
+* Avoid picking teachers only because they gave you an A. Pick the one who saw you grow, struggle, or take initiative.
+
+**How to Set Your Recommenders Up for Success:**
+1. Ask early — at least 6-8 weeks before the deadline.
+2. Provide a "brag sheet": 1-2 pages covering your story, intended major (${major}), top activities, and why you are applying to each school.
+3. Tell them what you hope they highlight — your curiosity in their class, a specific project tied to **${topEC}**, or your leadership growth.
+
+**Counselor Letter:**
+Share your context notes and any hardships with your counselor — they can add important context admissions readers will weight heavily.
+
+[Suggested Follow-ups: "What should I include in my brag sheet?" | "How do I ask a teacher for a rec letter?" | "Can I submit more than 2 teacher recs?"]`;
+  }
+
+  if (
+    lower.includes('financial aid') ||
+    lower.includes('scholarship') ||
+    lower.includes('cost') ||
+    lower.includes('afford') ||
+    lower.includes('tuition') ||
+    lower.includes('fafsa') ||
+    lower.includes('merit')
+  ) {
+    return `### Financial Aid & Scholarship Strategy for ${studentName}
+
+**Key Deadlines — Do Not Miss These:**
+* **FAFSA** opens October 1 — file as early as possible, even if you think you won't qualify. Many merit awards still require it.
+* **CSS Profile** (required by ~200 private colleges) — file within 1-2 weeks of your EA/ED applications.
+
+**How to Evaluate School Costs:**
+* Look at the school's Common Data Set (Section H) for the average grant aid for freshmen — this is more accurate than the sticker price.
+* Use the Net Price Calculator on each school's website for a personalized estimate.
+* Schools with "meet 100% of demonstrated need" policies (Harvard, MIT, Princeton, etc.) can actually cost less than state schools for high-need families.
+
+**Merit Scholarships:**
+* Public flagships often have competitive merit scholarships — research these separately from need-based aid.
+* Many merit awards are automatically considered at application; others require separate applications. Check each school's financial aid page.
+
+> Always compare net cost (sticker minus grants), not sticker price. An expensive school with generous aid often costs less than a cheap school with no aid.
+
+[Suggested Follow-ups: "Which schools are most generous with merit aid?" | "When should I file the FAFSA?" | "How do I compare financial aid packages?"]`;
+  }
+
+  if (
+    lower.includes('interview') ||
+    lower.includes('alumni') ||
+    lower.includes('campus visit')
+  ) {
+    return `### Interview & Campus Visit Strategy for ${studentName}
+
+**Alumni Interviews:**
+* Most alumni interviews are evaluative but low-stakes — they rarely make or break an application.
+* They matter most at schools where interviews are "required" (e.g., some LACs) or "strongly recommended."
+* Treat every interview as a chance to demonstrate genuine interest and intellectual curiosity.
+
+**How to Prepare:**
+1. **Know your story.** Practice a 2-minute answer to "Tell me about yourself" that highlights your spike in **${major}** and your top activity (**${topEC}**).
+2. **Prepare 3-4 specific questions** about the school that show you have done real research — not things you could Google.
+3. **Be concrete, not general.** "I led a team of 12 people in X" beats "I have strong leadership skills."
+
+**Key Questions to Practice:**
+* Why this school specifically?
+* What is your greatest intellectual interest?
+* Describe a challenge you overcame.
+* Where do you see yourself in 10 years?
+
+**Campus Visits:**
+* If you can visit, attend an information session AND a class in **${major}**. Speaking to current students is more valuable than the official tour.
+* Document specifics to reference in your "Why Us" essay.
+
+[Suggested Follow-ups: "Help me prepare my 'Why Us' answer for the interview" | "What questions should I ask my interviewer?" | "How much do interviews actually matter?"]`;
+  }
+
+  if (
+    lower.includes('deadline') ||
+    lower.includes('timeline') ||
+    lower.includes('when') ||
+    lower.includes('schedule') ||
+    lower.includes('calendar')
+  ) {
+    return `### Application Timeline for ${studentName}
+
+**Summer Before Senior Year (June-August):**
+* Finalize your college list (10-12 schools across reach/target/safety).
+* Draft your Common App personal statement — aim for a complete draft by August 1.
+* Request recommendation letters from teachers (ask before summer ends).
+
+**September-October:**
+* Finalize and polish personal statement.
+* Research supplemental essays for all schools; draft "Why Us" essays.
+* Open FAFSA on October 1 — file immediately.
+
+**November 1-15 (Early Deadlines):**
+* Submit Early Decision or Early Action applications.
+* File CSS Profile for private schools.
+
+**December-January:**
+* Receive ED/EA decisions; if deferred, send a Letter of Continued Interest.
+* Submit Regular Decision applications (most due Jan 1-15).
+
+**March-April:**
+* Regular Decision notifications arrive.
+* Compare financial aid packages carefully.
+* Commit to your final school by **May 1** (National Decision Day).
+
+[Suggested Follow-ups: "What should I be working on right now?" | "How do I handle an ED deferral?" | "What goes into a Letter of Continued Interest?"]`;
+  }
+
+  if (
+    lower.includes('waitlist') ||
+    lower.includes('deferral') ||
+    lower.includes('deferred') ||
+    lower.includes('waitlisted')
+  ) {
+    return `### Handling a Waitlist or Deferral for ${studentName}
+
+**If You Are Deferred (EA/ED → Regular Decision):**
+* Send a **Letter of Continued Interest (LOCI)** within 1-2 weeks of the deferral notice.
+* The LOCI should: (1) reaffirm this is your first choice, (2) add 1-2 new accomplishments or updates since you applied, (3) be concise — 3-4 short paragraphs max.
+* Do NOT beg. Tone should be confident and enthusiastic, not desperate.
+
+**If You Are Waitlisted:**
+* Accept your place on the waitlist (if you are still interested) and send a LOCI by May 1.
+* Commit to your best backup school before the May 1 deposit deadline — you cannot count on the waitlist.
+* Statistically, most waitlisted students are not admitted. Plan your college career around your admitted school.
+
+**What Actually Moves the Needle:**
+* New, concrete achievements (a research paper accepted, a competition win, a leadership award).
+* A genuine, specific explanation of why this school above all others fits your goals in **${major}**.
+
+[Suggested Follow-ups: "Help me write a Letter of Continued Interest" | "How do I decide which backup school to commit to?" | "What are my chances of getting off the waitlist?"]`;
+  }
+
   // Default clear, direct strategic guidance
-  return `### 🎓 Admissions Advice for ${studentName}
+  return `### Admissions Advice for ${studentName}
 
 Based on your target of **${major}** and your **${spike}** profile (${analysis?.overallRating || 'Strong'} standing):
 
 **Quick Assessment:**
-* **Academic Foundation:** Solid course rigor and testing readiness.
-* **Extracurricular Focus:** Strong involvement in **${topEC}**; the next level is demonstrating measurable external impact.
-* **Next Critical Milestone:** ${analysis?.priorityRecommendation?.title || 'Refine your personal statement hook and quantify your top activity descriptions.'}
+* **Extracurricular Focus:** Strong involvement in **${topEC}**; the next level is demonstrating measurable external impact and external recognition.
+* **Essay Priority:** Your personal statement should showcase intellectual curiosity and a clear growth arc — not a resume recap.
+* **Next Critical Milestone:** ${analysis?.priorityRecommendation?.title || 'Quantify your top activity descriptions and refine your personal statement hook.'}
 
 **Recommended Immediate Focus:**
-1. Focus your Common App essay on intellectual curiosity and reflection.
-2. Upgrade your top 3 extracurricular bullet points with specific numbers and results.
-3. Target Early Action / Early Decision schools that value your specific spike.
+1. Identify your top 1-2 essay angles based on your most formative experiences in **${topEC}** and **${major}**.
+2. Upgrade your top 3 Common App activity descriptions with specific numbers, scope, and impact.
+3. Build your college list: 3-4 reaches, 4-5 targets, 2-3 safeties — all schools where you would genuinely be happy.
 
-What specific area would you like to dive into next?
+**Ask me about any specific area:**
+* Essay strategy and angles
+* College list and target schools
+* Extracurricular upgrades
+* Testing strategy
+* Application timeline and deadlines
 
-[Suggested Follow-ups: "How can I improve my Common App essay?" | "How do I fix the weak spots in my profile?" | "Recommend target and reach colleges for me"]`;
+[Suggested Follow-ups: "How can I improve my Common App essay?" | "Build me a balanced college list" | "How do I fix the weak spots in my profile?"]`;
 }
 
 /**

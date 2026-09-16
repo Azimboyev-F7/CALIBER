@@ -228,7 +228,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
       enrichWithProfileFit(parsed.safetyRecommendations);
 
       return res.json({
-        source: 'gemini-2.5-flash',
+        source: 'gemini-3.6-flash',
         success: true,
         data: parsed
       });

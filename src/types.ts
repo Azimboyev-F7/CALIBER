@@ -108,10 +108,8 @@ export interface UserProfile {
   name: string;
   avatarUrl: string;
   unweightedGpa: string;
-  weightedGpa?: string;
   apIbHonorsCount: string;
   satScore: string;
-  actScore?: string;
   ieltsScore: string;
   preferredCountry: string;
   budgetPerYear: string;

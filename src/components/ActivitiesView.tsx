@@ -246,7 +246,7 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
                 className="px-4 py-2 glass-btn-primary font-bold rounded-xl text-[12px] flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <span className={`material-symbols-outlined text-[15px] ${isOptimizing ? 'animate-spin' : ''}`}>
-                  {isOptimizing ? 'sync' : 'sparkles'}
+                  {isOptimizing ? 'sync' : 'auto_awesome'}
                 </span>
                 {isOptimizing ? 'Generating...' : 'Generate High-Impact Bullet'}
               </button>

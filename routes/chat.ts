@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
-import { getGeminiClient, generateContentWithRetry } from '../services/gemini';
+import { getGeminiClient, generateContentWithRetry, fixMojibake } from '../services/gemini';
 import { generateIntelligentCoachReply } from '../services/scoring';
 import { getCoachSystemInstruction } from '../prompts/coach';
 import { validateBody, chatCoachSchema } from '../middleware/validation';
@@ -58,7 +58,7 @@ chatRouter.post('/chat-coach', chatRateLimiter, validateBody(chatCoachSchema), a
     });
 
     const response = await generateContentWithRetry(ai, {
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents: contentsPayload,
       config: {
         systemInstruction,
@@ -66,7 +66,7 @@ chatRouter.post('/chat-coach', chatRateLimiter, validateBody(chatCoachSchema), a
       }
     });
 
-    const replyText = response?.text || generateIntelligentCoachReply(message, profile, analysis);
+    const replyText = fixMojibake(response?.text || '') || generateIntelligentCoachReply(message, profile, analysis);
 
     return res.json({
       reply: replyText,
@@ -123,7 +123,7 @@ chatRouter.post('/chat-coach-stream', chatRateLimiter, validateBody(chatCoachSch
     contentsPayload.push({ role: 'user', parts: [{ text: message }] });
 
     const streamResponse = await ai.models.generateContentStream({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents: contentsPayload,
       config: {
         systemInstruction,
@@ -135,8 +135,9 @@ chatRouter.post('/chat-coach-stream', chatRateLimiter, validateBody(chatCoachSch
     for await (const chunk of streamResponse) {
       const text = chunk.text;
       if (text) {
-        accumulated += text;
-        sendSSE({ chunk: text, done: false });
+        const clean = fixMojibake(text);
+        accumulated += clean;
+        sendSSE({ chunk: clean, done: false });
       }
     }
 

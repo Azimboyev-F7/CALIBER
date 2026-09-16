@@ -31,7 +31,7 @@ analysisRouter.post(
         });
       }
 
-      const prompt = `ABSOLUTE RULE — READ FIRST: You will be given a student profile where some fields may show "N/A" or be empty. You are STRICTLY FORBIDDEN from inventing, guessing, or stating a specific number for any field marked "N/A" or missing — including ACT score, SAT score, GPA, awards, or activities. For example, if ACT shows "N/A", you must NEVER write a sentence like "your ACT score of 34" — that field simply does not exist for this student. If you need to reference testing, only mention the SAT score if present, and say nothing about ACT if it is N/A. Violating this rule is a critical failure.
+      const prompt = `ABSOLUTE RULE — READ FIRST: You will be given a student profile where some fields may show "N/A" or be empty. You are STRICTLY FORBIDDEN from inventing, guessing, or stating a specific number for any field marked "N/A" or missing — including SAT score, GPA, awards, or activities. Violating this rule is a critical failure.
 
 You are a former Ivy League admissions director and senior college consultant.
 Evaluate the following high school student profile and return a JSON object evaluating their candidacy:
@@ -45,7 +45,7 @@ Student Profile:
 - Preferred Country/Region: ${profile.preferredCountry || 'United States'}
 - Annual Budget: ${profile.budgetPerYear || 'Flexible'}
 - Advanced Courses (AP/IB/Honors): ${profile.apIbHonorsCount || 'N/A'}
-- Standardized Testing: SAT ${profile.satScore || 'N/A'}, ACT ${profile.actScore || 'N/A'}
+- Standardized Testing: SAT ${profile.satScore || 'N/A'}
 - Extracurricular Activities: ${JSON.stringify(profile.activities || [])}
 - Honors & Awards: ${JSON.stringify(profile.awards || [])}
 - Notes: ${profile.contextNotes || 'None'}
@@ -82,7 +82,7 @@ Return ONLY a valid JSON object matching this TypeScript interface without markd
 }`;
 
       const response = await generateContentWithRetry(ai, {
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json'
@@ -99,7 +99,7 @@ Return ONLY a valid JSON object matching this TypeScript interface without markd
       }
 
       return res.json({
-        source: 'gemini-2.5-flash',
+        source: 'gemini-3.6-flash',
         success: true,
         analysis: parsed
       });

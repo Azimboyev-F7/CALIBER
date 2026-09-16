@@ -2,6 +2,25 @@ import { GoogleGenAI } from '@google/genai';
 
 let geminiRateLimitedUntil = 0;
 
+// Fix Windows-1251 mojibake that appears when UTF-8 multibyte sequences are
+// misread byte-by-byte. Most common culprit: em dash and curly quotes.
+const MOJIBAKE_MAP: [RegExp, string][] = [
+  [/вЂ“/g, '—'], // — em dash  (E2 80 94)
+  [/вЂ™/g, '’'], // ' right single quote (E2 80 99)
+  [/вЂœ/g, '“'], // " left double quote  (E2 80 9C)
+  [/вЂ/g, '”'], // " right double quote (E2 80 9D)
+  [/вЂ¦/g, '…'], // … ellipsis          (E2 80 A6)
+  [/вЂ–/g, '–'], // – en dash           (E2 80 93)
+];
+
+export function fixMojibake(text: string): string {
+  let out = text;
+  for (const [pattern, replacement] of MOJIBAKE_MAP) {
+    out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+
 export function getGeminiClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
@@ -31,7 +50,7 @@ export async function generateContentWithRetry(
   }
 ): Promise<any> {
   const requestedModel = params.model || 'gemini-3.6-flash';
-  const fallbacks = ['gemini-2.5-flash'].filter((m) => m !== requestedModel);
+  const fallbacks = ['gemini-3.6-flash'].filter((m) => m !== requestedModel);
   const modelsToTry = [requestedModel, ...fallbacks];
   let lastError: any = null;
 

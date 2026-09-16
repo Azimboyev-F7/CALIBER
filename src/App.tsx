@@ -74,6 +74,10 @@ export default function App() {
       const stored = localStorage.getItem(PROFILE_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
+        // Strip fields that were removed from the data model so they
+        // are never silently forwarded to the AI coach.
+        delete parsed.actScore;
+        delete parsed.weightedGpa;
         return { ...INITIAL_USER_PROFILE, ...parsed };
       }
     } catch (e) {

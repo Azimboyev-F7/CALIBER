@@ -6,13 +6,10 @@ export function calculateAcademicRigorScore(profile: UserProfile): number {
   const gpaComponent = Math.min(gpa / 4.0, 1.0);
 
   const sat = parseInt(profile.satScore, 10) || 0;
-  const act = parseInt(profile.actScore || '', 10) || 0;
 
   let testingComponent: number;
   if (sat > 0) {
     testingComponent = Math.min(sat / 1600, 1.0);
-  } else if (act > 0) {
-    testingComponent = Math.min(act / 36, 1.0);
   } else {
     testingComponent = 0.5;
   }
@@ -59,13 +56,9 @@ export function calculateAwardsScore(profile: UserProfile): number {
 export function calculateTestingScore(profile: UserProfile): number {
   const parsedSat = parseInt(profile.satScore, 10);
   const parsedIelts = parseFloat(profile.ieltsScore || '0');
-  const parsedAct = parseInt(profile.actScore || '', 10);
 
   if (!isNaN(parsedSat) && parsedSat > 0) {
     return Math.min(99, Math.max(50, Math.round(((parsedSat - 1100) / 500) * 45 + 54)));
-  }
-  if (!isNaN(parsedAct) && parsedAct > 0) {
-    return Math.min(99, Math.max(50, Math.round(((parsedAct - 22) / 14) * 45 + 54)));
   }
   if (!isNaN(parsedIelts) && parsedIelts > 0) {
     return Math.min(98, Math.max(50, Math.round((parsedIelts / 9) * 98)));
