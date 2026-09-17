@@ -353,17 +353,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
                 )}
               </div>
               <div className="flex items-center gap-1.5 text-[10.5px]">
-                {isLowCompleteness ? (
-                  <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-200 font-semibold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px] text-amber-400">warning</span>
-                    Preliminary Estimate — Add more profile data for a refined score
-                  </span>
-                ) : (
-                  <span className="px-2 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-200 font-semibold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px] text-emerald-400">verified</span>
-                    Confidence: {confidenceScore}% ({marginOfError})
-                  </span>
-                )}
+                <span className={`px-2 py-0.5 rounded-md font-semibold flex items-center gap-1 ${isLowCompleteness ? 'bg-amber-500/15 border border-amber-500/30 text-amber-200' : 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-200'}`}>
+                  <span className={`material-symbols-outlined text-[12px] ${isLowCompleteness ? 'text-amber-400' : 'text-emerald-400'}`}>{isLowCompleteness ? 'show_chart' : 'verified'}</span>
+                  Confidence: {confidenceScore}% ({marginOfError})
+                </span>
               </div>
             </div>
           </div>
@@ -383,7 +376,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
               </div>
               <span className="text-[10px] text-slate-400 bg-white/[0.04] px-2 py-0.5 rounded border border-white/10 flex items-center gap-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${isLowCompleteness ? 'bg-amber-400' : 'bg-indigo-400'}`}></span>
-                {isLowCompleteness ? `Preliminary Estimate (${marginOfError})` : `Self-Reported Estimate (${marginOfError})`}
+                {`Self-Reported Estimate (${marginOfError})`}
               </span>
             </div>
             <p className="text-[13px] md:text-[13.5px] text-slate-200 leading-relaxed font-normal">

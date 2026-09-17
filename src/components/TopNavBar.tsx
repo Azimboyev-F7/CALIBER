@@ -1,6 +1,5 @@
 import React from 'react';
 import { ActiveScreen, AuthUser } from '../types';
-import { SaveStatusIndicator } from './SaveStatusIndicator';
 
 interface TopNavBarProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -18,10 +17,6 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
   onOpenPricing,
   currentUser,
   onSignOut,
-  hasUnsavedChanges = false,
-  saveStatus = 'saved',
-  onReanalyze,
-  isAnalyzing = false
 }) => {
   return (
     <nav className="sticky bg-white/[0.03] backdrop-blur-xl top-0 z-50 transition-all duration-300 border-b border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.25)]">
@@ -33,16 +28,6 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
             </span>
           </div>
 
-          {currentUser && (
-            <div className="hidden sm:block">
-              <SaveStatusIndicator
-                saveStatus={saveStatus}
-                hasUnsavedChanges={hasUnsavedChanges}
-                onReanalyze={onReanalyze}
-                isAnalyzing={isAnalyzing}
-              />
-            </div>
-          )}
         </div>
 
         <div className="hidden md:flex items-center space-x-6">

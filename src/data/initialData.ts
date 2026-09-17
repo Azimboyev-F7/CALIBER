@@ -1,5 +1,156 @@
 import { UserProfile, AnalysisResult } from '../types';
 
+export const EMPTY_USER_PROFILE: UserProfile = {
+  name: '',
+  avatarUrl: '',
+  unweightedGpa: '',
+  apIbHonorsCount: '',
+  satScore: '',
+  ieltsScore: '',
+  preferredCountry: 'United States',
+  budgetPerYear: '',
+  intendedMajor: '',
+  graduationYear: '',
+  lastAnalyzedDate: '',
+  contextNotes: '',
+  activities: [],
+  awards: [],
+  targetColleges: [
+    {
+      id: 'col-1',
+      name: 'MIT',
+      category: 'reach',
+      acceptanceRate: '3.9%',
+      baselineAcceptanceRate: '3.9%',
+      estimatedAdmitRate: '1.0%',
+      location: 'Cambridge, MA',
+      deadline: 'Nov 1',
+      round: 'Early Action (EA)',
+      status: 'not_started',
+      notes: '',
+      checklist: [
+        { id: 'chk-1', label: 'Common App / MIT Part 1 & 2', completed: false },
+        { id: 'chk-2', label: 'Research & Maker Portfolio', completed: false },
+        { id: 'chk-3', label: 'Supplemental Short Essays (4)', completed: false },
+        { id: 'chk-4', label: 'Math/Science Teacher Recs', completed: false },
+        { id: 'chk-5', label: 'Official Transcript Upload', completed: false }
+      ]
+    },
+    {
+      id: 'col-2',
+      name: 'Stanford University',
+      category: 'reach',
+      acceptanceRate: '3.6%',
+      baselineAcceptanceRate: '3.6%',
+      estimatedAdmitRate: '0.9%',
+      location: 'Stanford, CA',
+      deadline: 'Nov 1',
+      round: 'Restrictive Early Action (REA)',
+      status: 'not_started',
+      notes: '',
+      checklist: [
+        { id: 'chk-1', label: 'Common App Personal Essay', completed: false },
+        { id: 'chk-2', label: 'Letter to Future Roommate', completed: false },
+        { id: 'chk-3', label: 'Intellectual Vitality Essay', completed: false },
+        { id: 'chk-4', label: 'Counselor & Teacher Recs', completed: false }
+      ]
+    },
+    {
+      id: 'col-3',
+      name: 'Harvard University',
+      category: 'reach',
+      acceptanceRate: '3.4%',
+      baselineAcceptanceRate: '3.4%',
+      estimatedAdmitRate: '0.9%',
+      location: 'Cambridge, MA',
+      deadline: 'Jan 1',
+      round: 'Regular Decision (RD)',
+      status: 'not_started',
+      notes: '',
+      checklist: [
+        { id: 'chk-1', label: 'Common App Profile & Activities', completed: false },
+        { id: 'chk-2', label: 'Harvard Supplemental Essay', completed: false },
+        { id: 'chk-3', label: 'Optional Additional Info', completed: false }
+      ]
+    },
+    {
+      id: 'col-4',
+      name: 'UC Berkeley (EECS)',
+      category: 'reach',
+      acceptanceRate: '11.4%',
+      baselineAcceptanceRate: '11.4%',
+      estimatedAdmitRate: '6.8%',
+      location: 'Berkeley, CA',
+      deadline: 'Nov 30',
+      round: 'Regular Decision (RD)',
+      status: 'not_started',
+      notes: '',
+      checklist: [
+        { id: 'chk-1', label: 'UC Application Academic History', completed: false },
+        { id: 'chk-2', label: '4 Personal Insight Questions (PIQs)', completed: false },
+        { id: 'chk-3', label: '20 Extracurricular Descriptions', completed: false },
+        { id: 'chk-4', label: 'Final Proofread & Review', completed: false }
+      ]
+    },
+    {
+      id: 'col-5',
+      name: 'University of Michigan (CoE)',
+      category: 'target',
+      acceptanceRate: '17.7%',
+      baselineAcceptanceRate: '17.7%',
+      estimatedAdmitRate: '19.5%',
+      location: 'Ann Arbor, MI',
+      deadline: 'Nov 1',
+      round: 'Early Action (EA)',
+      status: 'not_started',
+      notes: '',
+      checklist: [
+        { id: 'chk-1', label: 'Common App Submission', completed: false },
+        { id: 'chk-2', label: 'Why Michigan Essay', completed: false },
+        { id: 'chk-3', label: 'Why Engineering Supplement', completed: false },
+        { id: 'chk-4', label: 'Test Scores Sent', completed: false }
+      ]
+    },
+    {
+      id: 'col-6',
+      name: 'Georgia Tech',
+      category: 'target',
+      acceptanceRate: '15.0%',
+      baselineAcceptanceRate: '15.0%',
+      estimatedAdmitRate: '9.0%',
+      location: 'Atlanta, GA',
+      deadline: 'Oct 15',
+      round: 'Early Action 1 (EA1)',
+      status: 'not_started',
+      notes: '',
+      checklist: [
+        { id: 'chk-1', label: 'Common App & Contribution Essay', completed: false },
+        { id: 'chk-2', label: 'High School Self-Reported Grades', completed: false },
+        { id: 'chk-3', label: 'SAT Official Score Report', completed: false }
+      ]
+    },
+    {
+      id: 'col-7',
+      name: 'Purdue University',
+      category: 'safety',
+      acceptanceRate: '50.3%',
+      baselineAcceptanceRate: '50.3%',
+      estimatedAdmitRate: '57.8%',
+      location: 'West Lafayette, IN',
+      deadline: 'Nov 1',
+      round: 'Early Action (EA)',
+      status: 'not_started',
+      notes: '',
+      checklist: [
+        { id: 'chk-1', label: 'Common App & Purdue Supplement', completed: false },
+        { id: 'chk-2', label: 'Honors College Essays', completed: false },
+        { id: 'chk-3', label: 'Decision Received', completed: false }
+      ]
+    }
+  ],
+  analysisHistory: [],
+};
+
 export const INITIAL_USER_PROFILE: UserProfile = {
   name: 'Alex Student',
   avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDq6N8soOtgV0LMiRchFgyw_qkYFfG__Aj7sSAxnnlTUUzFyjhXEGBHN9p-8meJHzUX_yLtcbjIDc-4Fsk91Srd-DWvmRb4YNSVQ2WkkcChxFK2qaTeyhQ8NXS3pNNmBV8YlrPlu4UBihtWTHePKgtHAC1CKtbhOSLZt4VfnXKZniCtmZ30Xl6EDh3zCtX-yzyl2Rvd8LzL4U5cBK-K5g5R3BexljEvdVVas4ejPlQnVKpgeO8oe2R_',

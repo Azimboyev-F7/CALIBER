@@ -62,8 +62,13 @@ export const AddUniversityModal: React.FC<AddUniversityModalProps> = ({
 
   const existingColleges = userProfile.targetColleges || [];
 
+  const parseAcceptanceRate = (rateStr: string): number | null => {
+    const match = rateStr.match(/[\d.]+/);
+    return match ? parseFloat(match[0]) : null;
+  };
+
   const filteredDirectory = useMemo(() => {
-    return UNIVERSITIES_DATABASE.filter((uni) => {
+    const result = UNIVERSITIES_DATABASE.filter((uni) => {
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
@@ -73,10 +78,26 @@ export const AddUniversityModal: React.FC<AddUniversityModalProps> = ({
         uni.popularMajors.some((m) => m.toLowerCase().includes(q)) ||
         uni.keyStrengths.some((s) => s.toLowerCase().includes(q));
 
-      const effectiveTier = selectedTiers[uni.id] || uni.category;
-      const matchesCat = categoryFilter === 'all' || effectiveTier === categoryFilter || uni.category === categoryFilter;
+      if (!matchesSearch) return false;
+      if (categoryFilter === 'all') return true;
 
-      return matchesSearch && matchesCat;
+      const rate = parseAcceptanceRate(uni.acceptanceRate);
+      if (rate === null) {
+        const effectiveTier = selectedTiers[uni.id] || uni.category;
+        return effectiveTier === categoryFilter;
+      }
+
+      if (categoryFilter === 'reach')  return rate < 20;
+      if (categoryFilter === 'target') return rate >= 20 && rate <= 55;
+      if (categoryFilter === 'safety') return rate > 55;
+      return true;
+    });
+
+    // Sort by acceptance rate — ascending for reach/target/all, descending for safety
+    return result.sort((a, b) => {
+      const rA = parseAcceptanceRate(a.acceptanceRate) ?? 50;
+      const rB = parseAcceptanceRate(b.acceptanceRate) ?? 50;
+      return categoryFilter === 'safety' ? rB - rA : rA - rB;
     });
   }, [searchQuery, categoryFilter, selectedTiers]);
 
@@ -303,7 +324,7 @@ export const AddUniversityModal: React.FC<AddUniversityModalProps> = ({
                         : 'bg-rose-500/10 text-rose-300 hover:bg-rose-500/20'
                     }`}
                   >
-                    Reach (&lt;15%)
+                    Reach (&lt;20%)
                   </button>
                   <button
                     onClick={() => setCategoryFilter('target')}
@@ -313,7 +334,7 @@ export const AddUniversityModal: React.FC<AddUniversityModalProps> = ({
                         : 'bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20'
                     }`}
                   >
-                    Target (15-40%)
+                    Target (20-55%)
                   </button>
                   <button
                     onClick={() => setCategoryFilter('safety')}
@@ -323,7 +344,7 @@ export const AddUniversityModal: React.FC<AddUniversityModalProps> = ({
                         : 'bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
                     }`}
                   >
-                    Safety (&gt;40%)
+                    Safety (&gt;55%)
                   </button>
                 </div>
               </div>
@@ -544,9 +565,9 @@ export const AddUniversityModal: React.FC<AddUniversityModalProps> = ({
                     onChange={(e) => setCustomCategory(e.target.value as CollegeCategory)}
                     className="input-minimal w-full px-2.5 py-2 text-[12.5px] bg-[#0a0a0f] text-white cursor-pointer"
                   >
-                    <option value="reach">Reach (&lt; 15% Admit Rate)</option>
-                    <option value="target">Target (15% - 40% Admit Rate)</option>
-                    <option value="safety">Safety (&gt; 40% Admit Rate)</option>
+                    <option value="reach">Reach (&lt; 20% Admit Rate)</option>
+                    <option value="target">Target (20% - 55% Admit Rate)</option>
+                    <option value="safety">Safety (&gt; 55% Admit Rate)</option>
                   </select>
                 </div>
 

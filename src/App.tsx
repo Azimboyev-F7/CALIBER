@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ActiveScreen, ActivityItem, AwardItem, UserProfile, AnalysisResult, AuthUser } from './types';
-import { INITIAL_USER_PROFILE, INITIAL_ANALYSIS_RESULT, computeLocalAnalysis } from './data/initialData';
+import { INITIAL_USER_PROFILE, INITIAL_ANALYSIS_RESULT, EMPTY_USER_PROFILE, computeLocalAnalysis } from './data/initialData';
 import { Sidebar } from './components/Sidebar';
 import { LandingView } from './components/LandingView';
 import { DashboardView } from './components/DashboardView';
@@ -18,6 +18,7 @@ import { ContextNotesModal } from './components/ContextNotesModal';
 import { ReviewDraftsModal } from './components/ReviewDraftsModal';
 import { UpgradeModal } from './components/UpgradeModal';
 import { SaveStatusIndicator } from './components/SaveStatusIndicator';
+import { ProfileGateOverlay } from './components/ProfileGateOverlay';
 import { CoachChatProvider } from './context/CoachChatContext';
 import { getStoredAuthUser, signOutUser, syncSessionFromSupabase, getSessionToken } from './lib/supabaseClient';
 import { getApiHeaders } from './utils/apiClient';
@@ -70,20 +71,8 @@ export default function App() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('landing');
   const [pendingScreen, setPendingScreen] = useState<ActiveScreen | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
-    try {
-      const stored = localStorage.getItem(PROFILE_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Strip fields that were removed from the data model so they
-        // are never silently forwarded to the AI coach.
-        delete parsed.actScore;
-        delete parsed.weightedGpa;
-        return { ...INITIAL_USER_PROFILE, ...parsed };
-      }
-    } catch (e) {
-      console.warn('Failed to load stored profile:', e);
-    }
-    return INITIAL_USER_PROFILE;
+    // Start with empty profile — the real profile loads once auth resolves
+    return EMPTY_USER_PROFILE;
   });
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredAuthUser());
   const currentUserRef = useRef<AuthUser | null>(currentUser);
@@ -125,58 +114,50 @@ export default function App() {
     }
   }, [currentUser, activeScreen]);
 
-  // Sync stored user — restore Supabase session on mount, then fall back to localStorage
+  // Restore session on page reload — load the user's own saved profile
   useEffect(() => {
     syncSessionFromSupabase().then(async (user) => {
       if (user) {
         currentUserRef.current = user;
         setCurrentUser(user);
-        // Load activities and honors from Supabase, merge into local profile
-        const token = await getSessionToken();
-        if (token) {
-          const headers = { 'x-api-key': 'caliber-secret-key', Authorization: `Bearer ${token}` };
-          const [actRes, honRes] = await Promise.allSettled([
-            fetch('/api/student/activities', { headers }).then((r) => r.ok ? r.json() : null),
-            fetch('/api/student/honors', { headers }).then((r) => r.ok ? r.json() : null),
-          ]);
-          setUserProfile((prev) => {
-            const next = { ...prev };
-            if (user.name) next.name = user.name || prev.name;
 
+        const userProfileKey = `${PROFILE_STORAGE_KEY}_${user.id}`;
+        let savedProfile: UserProfile | null = null;
+        try {
+          const stored = localStorage.getItem(userProfileKey);
+          if (stored) savedProfile = JSON.parse(stored);
+        } catch {}
+
+        if (savedProfile) {
+          // Already has a profile stored for this user — restore it
+          const next = {
+            ...savedProfile,
+            name: user.name || savedProfile.name,
+            targetColleges: savedProfile.targetColleges?.length ? savedProfile.targetColleges : EMPTY_USER_PROFILE.targetColleges,
+          };
+          setUserProfile(next);
+        } else {
+          // Session restored but no local profile — fetch from Supabase
+          const token = await getSessionToken();
+          if (token) {
+            const headers = { 'x-api-key': 'caliber-secret-key', Authorization: `Bearer ${token}` };
+            const [actRes, honRes] = await Promise.allSettled([
+              fetch('/api/student/activities', { headers }).then((r) => r.ok ? r.json() : null),
+              fetch('/api/student/honors', { headers }).then((r) => r.ok ? r.json() : null),
+            ]);
+            const baseProfile = { ...EMPTY_USER_PROFILE, name: user.name || '' };
             const remoteActivities = actRes.status === 'fulfilled' ? actRes.value?.activities : null;
             const remoteHonors    = honRes.status  === 'fulfilled' ? honRes.value?.honors    : null;
-
-            if (remoteActivities?.length) {
-              next.activities = remoteActivities;
-            } else if (prev.activities.length) {
-              // Backfill: push local activities to Supabase (Supabase was empty)
-              prev.activities.forEach((a) => {
-                fetch('/api/student/activities', {
-                  method: 'POST',
-                  headers: { ...headers, 'Content-Type': 'application/json' },
-                  body: JSON.stringify(a),
-                }).catch(() => {});
-              });
-            }
-
-            if (remoteHonors?.length) {
-              next.awards = remoteHonors;
-            } else if (prev.awards.length) {
-              // Backfill: push local honors to Supabase
-              prev.awards.forEach((h) => {
-                fetch('/api/student/honors', {
-                  method: 'POST',
-                  headers: { ...headers, 'Content-Type': 'application/json' },
-                  body: JSON.stringify(h),
-                }).catch(() => {});
-              });
-            }
-
-            try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(next)); } catch {}
-            return next;
-          });
-        } else if (user.name) {
-          setUserProfile((prev) => ({ ...prev, name: user.name || prev.name }));
+            const next = {
+              ...baseProfile,
+              activities: remoteActivities?.length ? remoteActivities : [],
+              awards:     remoteHonors?.length     ? remoteHonors     : [],
+            };
+            setUserProfile(next);
+            try { localStorage.setItem(userProfileKey, JSON.stringify(next)); } catch {}
+          } else {
+            setUserProfile({ ...EMPTY_USER_PROFILE, name: user.name || '' });
+          }
         }
       }
     });
@@ -190,20 +171,55 @@ export default function App() {
     setActiveScreen('landing');
   };
 
-  const handleUserChange = (user: AuthUser | null, targetScreen?: ActiveScreen) => {
+  const handleUserChange = async (user: AuthUser | null, targetScreen?: ActiveScreen) => {
     currentUserRef.current = user;
     setCurrentUser(user);
-    if (user?.name) {
-      setUserProfile((prev) => {
-        const next = { ...prev, name: user.name || prev.name };
-        try {
-          localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(next));
-        } catch (e) {
-          console.warn('Failed to persist profile:', e);
+
+    if (user) {
+      // Check localStorage for a profile already saved under this user's ID
+      const userProfileKey = `${PROFILE_STORAGE_KEY}_${user.id}`;
+      let savedProfile: UserProfile | null = null;
+      try {
+        const stored = localStorage.getItem(userProfileKey);
+        if (stored) savedProfile = JSON.parse(stored);
+      } catch {}
+
+      if (savedProfile) {
+        // Returning user — restore their saved profile
+        const next = {
+          ...savedProfile,
+          name: user.name || savedProfile.name,
+          targetColleges: savedProfile.targetColleges?.length ? savedProfile.targetColleges : EMPTY_USER_PROFILE.targetColleges,
+        };
+        setUserProfile(next);
+        try { localStorage.setItem(userProfileKey, JSON.stringify(next)); } catch {}
+      } else {
+        // First login — start with a clean empty profile, then load Supabase data if any
+        const baseProfile = { ...EMPTY_USER_PROFILE, name: user.name || '' };
+        setUserProfile(baseProfile);
+
+        const token = await getSessionToken();
+        if (token) {
+          const headers = { 'x-api-key': 'caliber-secret-key', Authorization: `Bearer ${token}` };
+          const [actRes, honRes] = await Promise.allSettled([
+            fetch('/api/student/activities', { headers }).then((r) => r.ok ? r.json() : null),
+            fetch('/api/student/honors', { headers }).then((r) => r.ok ? r.json() : null),
+          ]);
+          setUserProfile((prev) => {
+            const next = { ...prev };
+            const remoteActivities = actRes.status === 'fulfilled' ? actRes.value?.activities : null;
+            const remoteHonors    = honRes.status  === 'fulfilled' ? honRes.value?.honors    : null;
+            if (remoteActivities?.length) next.activities = remoteActivities;
+            if (remoteHonors?.length)     next.awards     = remoteHonors;
+            try { localStorage.setItem(userProfileKey, JSON.stringify(next)); } catch {}
+            return next;
+          });
+        } else {
+          try { localStorage.setItem(userProfileKey, JSON.stringify(baseProfile)); } catch {}
         }
-        return next;
-      });
+      }
     }
+
     if (user && targetScreen) {
       setPendingScreen(null);
       setActiveScreen(targetScreen);
@@ -222,7 +238,9 @@ export default function App() {
     setSaveStatus('saving');
     setHasUnsavedChanges(true);
     try {
-      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfile));
+      const userId = currentUserRef.current?.id;
+      const key = userId ? `${PROFILE_STORAGE_KEY}_${userId}` : PROFILE_STORAGE_KEY;
+      localStorage.setItem(key, JSON.stringify(updatedProfile));
     } catch (e) {
       console.warn('Failed to persist profile:', e);
     }
@@ -459,6 +477,9 @@ export default function App() {
     }
   };
 
+  const isProfileIncomplete = userProfile.unweightedGpa === '' && userProfile.intendedMajor === '';
+  const showProfileGate = isProfileIncomplete && activeScreen !== 'builder';
+
   return (
     <CoachChatProvider userProfile={userProfile} analysis={analysisResult}>
       <div className="min-h-screen bg-[#0a0a0f] text-[#f1f5f9] flex flex-col font-sans relative selection:bg-indigo-500/30 selection:text-white">
@@ -629,7 +650,7 @@ export default function App() {
             )}
 
             {/* Right Container: Global In-App Header + Main Content View */}
-            <div className="flex-1 flex flex-col h-full ml-0 md:ml-56 overflow-hidden">
+            <div className="flex-1 flex flex-col h-full ml-0 md:ml-56 overflow-hidden relative">
               {/* Global In-App Header Bar */}
               <header className="h-14 shrink-0 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-4 md:px-7 z-30 shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
                 {/* Left: Mobile Brand / Desktop Breadcrumb Path */}
@@ -752,6 +773,11 @@ export default function App() {
                   />
                 )}
               </main>
+
+            {/* Profile completion gate — shown on all screens except builder */}
+            {showProfileGate && (
+              <ProfileGateOverlay onNavigateToBuilder={() => handleNavigate('builder')} />
+            )}
             </div>
 
             {/* Floating AI Coach Quick Access Widget */}

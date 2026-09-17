@@ -58,7 +58,7 @@ chatRouter.post('/chat-coach', chatRateLimiter, validateBody(chatCoachSchema), a
     });
 
     const response = await generateContentWithRetry(ai, {
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.5-flash-lite',
       contents: contentsPayload,
       config: {
         systemInstruction,
@@ -123,7 +123,7 @@ chatRouter.post('/chat-coach-stream', chatRateLimiter, validateBody(chatCoachSch
     contentsPayload.push({ role: 'user', parts: [{ text: message }] });
 
     const streamResponse = await ai.models.generateContentStream({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.5-flash-lite',
       contents: contentsPayload,
       config: {
         systemInstruction,

@@ -49,8 +49,8 @@ export async function generateContentWithRetry(
     model?: string;
   }
 ): Promise<any> {
-  const requestedModel = params.model || 'gemini-3.6-flash';
-  const fallbacks = ['gemini-3.6-flash'].filter((m) => m !== requestedModel);
+  const requestedModel = params.model || 'gemini-3.5-flash-lite';
+  const fallbacks = ['gemini-3.5-flash-lite'].filter((m) => m !== requestedModel);
   const modelsToTry = [requestedModel, ...fallbacks];
   let lastError: any = null;
 

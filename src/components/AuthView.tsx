@@ -458,6 +458,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
                     id="signup-password-input"
                     type="password"
                     required
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -472,6 +473,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
                     id="signup-confirm-password-input"
                     type="password"
                     required
+                    autoComplete="new-password"
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}

@@ -187,7 +187,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
 }`;
 
       const response = await generateContentWithRetry(ai, {
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.5-flash-lite',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',

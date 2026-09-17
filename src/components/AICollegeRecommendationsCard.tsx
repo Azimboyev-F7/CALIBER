@@ -405,7 +405,7 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
                       </div>
                       {effectiveRange && midpointChance !== null ? (
                         <span className="text-[20px] font-extrabold text-indigo-300 leading-none font-mono tabular-nums tracking-tight">
-                          {effectiveRange.approximate ? '~' : ''}{midpointChance}%
+                          {midpointChance}%
                         </span>
                       ) : (
                         <span className="text-[10px] text-slate-400 italic leading-tight block mt-1">
@@ -547,7 +547,7 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
                     {modalEstimatedRange && modalMidpoint !== null ? (
                       <div>
                         <span className="text-[18px] font-black text-indigo-300 leading-none font-mono tabular-nums tracking-tight">
-                          {modalEstimatedRange.approximate ? '~' : ''}{modalMidpoint}%
+                          {modalMidpoint}%
                         </span>
                         <span className="text-[11px] text-indigo-300/80 block font-medium mt-0.5">
                           Range: {modalEstimatedRange.low}–{modalEstimatedRange.high}%

@@ -111,7 +111,7 @@ Draft: ${roughDescription || '(no draft — generate a strong description from t
 Rewritten Common App description:`;
 
     const response = await generateContentWithRetry(ai, {
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.5-flash-lite',
       contents: prompt
     });
 

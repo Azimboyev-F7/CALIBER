@@ -1645,6 +1645,1193 @@ export const SCHOOL_PROFILES: SchoolProfile[] = [
     region: 'china'
   },
 
+  // =========================================================================
+  // ADDITIONAL US INSTITUTIONS
+  // =========================================================================
+
+  // ── IVY LEAGUE ────────────────────────────────────────────────────────────
+  {
+    schoolId: 'rec-harvard',
+    name: 'Harvard University',
+    officialAcceptanceRate: 3.6,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1520,
+    sat75th: 1590,
+    avgEnrolledGpaUnweighted: 3.96,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Very Important',
+      'Extracurricular Activities': 'Very Important',
+      'Recommendation': 'Very Important'
+    },
+    sourceUrl: 'https://oir.harvard.edu/common-data-set',
+    notes: 'Most selective university in the US. Holistic review emphasizing intellectual vitality, leadership, and community contribution.',
+    category: 'reach',
+    matchScore: 99,
+    location: 'Cambridge, MA, USA',
+    deadline: 'Nov 1',
+    round: 'Restrictive Early Action (REA)',
+    whyFit: (major: string) =>
+      `World's most recognized academic brand — Harvard's ${major.toUpperCase()} curriculum, faculty, and alumni network offer unmatched depth and lifelong career acceleration.`,
+    keyFactor: 'Extraordinary intellectual curiosity, demonstrated spike, and leadership impact beyond the classroom.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-yale',
+    name: 'Yale University',
+    officialAcceptanceRate: 4.4,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1510,
+    sat75th: 1580,
+    avgEnrolledGpaUnweighted: 3.96,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Very Important',
+      'Extracurricular Activities': 'Very Important',
+      'Recommendation': 'Very Important'
+    },
+    sourceUrl: 'https://oir.yale.edu/common-data-set',
+    notes: 'Renowned for liberal arts breadth and residential college system. Strong law, medicine, drama, and science programs.',
+    category: 'reach',
+    matchScore: 99,
+    location: 'New Haven, CT, USA',
+    deadline: 'Nov 1',
+    round: 'Single-Choice Early Action (SCEA)',
+    whyFit: (major: string) =>
+      `Yale's residential college system and ${major.toUpperCase()} offerings cultivate interdisciplinary breadth alongside deep academic expertise.`,
+    keyFactor: 'Intellectual passion demonstrated through essays, distinctive spike, and community contribution.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-princeton',
+    name: 'Princeton University',
+    officialAcceptanceRate: 4.7,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1510,
+    sat75th: 1590,
+    avgEnrolledGpaUnweighted: 3.96,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Very Important',
+      'Extracurricular Activities': 'Very Important',
+      'Recommendation': 'Very Important'
+    },
+    sourceUrl: 'https://ir.princeton.edu/common-data-set',
+    notes: 'Only Ivy without a law or medical school — focuses on undergraduate excellence. Senior thesis required across all departments.',
+    category: 'reach',
+    matchScore: 99,
+    location: 'Princeton, NJ, USA',
+    deadline: 'Nov 1',
+    round: 'Single-Choice Early Action (SCEA)',
+    whyFit: (major: string) =>
+      `Princeton's undergraduate-focused model gives ${major.toUpperCase()} students unparalleled direct faculty access and the capstone senior thesis experience.`,
+    keyFactor: 'Exceptional rigor, original intellectual contributions, and authentic Princeton mission alignment.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-columbia',
+    name: 'Columbia University',
+    officialAcceptanceRate: 4.1,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1510,
+    sat75th: 1590,
+    avgEnrolledGpaUnweighted: 3.93,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Very Important',
+      'Extracurricular Activities': 'Very Important',
+      'Recommendation': 'Very Important'
+    },
+    sourceUrl: 'https://urap.columbia.edu/content/common-data-set',
+    notes: 'Located in Manhattan — urban campus with direct access to finance, media, and tech industries. Core Curriculum is mandatory.',
+    category: 'reach',
+    matchScore: 98,
+    location: 'New York, NY, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `NYC location unlocks unmatched internship and industry access for ${major.toUpperCase()} — Columbia's Core Curriculum and urban environment produce globally competitive graduates.`,
+    keyFactor: 'Strong intellectual curiosity for Columbia Core and demonstrated NYC career awareness in essays.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-brown',
+    name: 'Brown University',
+    officialAcceptanceRate: 5.4,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1500,
+    sat75th: 1570,
+    avgEnrolledGpaUnweighted: 3.92,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Very Important',
+      'Extracurricular Activities': 'Very Important',
+      'Recommendation': 'Very Important'
+    },
+    sourceUrl: 'https://www.brown.edu/about/administration/institutional-research/cds',
+    notes: "Open Curriculum allows students to design their own course of study without distribution requirements — unusual freedom for an Ivy.",
+    category: 'reach',
+    matchScore: 98,
+    location: 'Providence, RI, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Brown's Open Curriculum is ideal for ${major.toUpperCase()} students who want to forge interdisciplinary paths without rigid distribution requirements.`,
+    keyFactor: 'Intellectual curiosity, self-directed learning ability, and authentic articulation of how the Open Curriculum fits your goals.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-dartmouth',
+    name: 'Dartmouth College',
+    officialAcceptanceRate: 7.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1500,
+    sat75th: 1580,
+    avgEnrolledGpaUnweighted: 3.95,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Very Important',
+      'Extracurricular Activities': 'Very Important',
+      'Recommendation': 'Very Important'
+    },
+    sourceUrl: 'https://oir.dartmouth.edu/common-data-set',
+    notes: 'Smallest Ivy with a tight-knit community. D-Plan quarter system enables flexible off-campus terms and Tuck MBA partnerships.',
+    category: 'reach',
+    matchScore: 97,
+    location: 'Hanover, NH, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Dartmouth's intimate college atmosphere and ${major.toUpperCase()} research opportunities provide the Ivy League experience with a tight-knit community.`,
+    keyFactor: 'Demonstrated fit for the college environment and authentic "Why Dartmouth" alignment with D-Plan culture.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-upenn',
+    name: 'University of Pennsylvania',
+    officialAcceptanceRate: 6.5,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1500,
+    sat75th: 1570,
+    avgEnrolledGpaUnweighted: 3.93,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Very Important',
+      'Extracurricular Activities': 'Very Important',
+      'Recommendation': 'Very Important'
+    },
+    sourceUrl: 'https://oir.upenn.edu/common-data-set',
+    notes: 'Home of Wharton (top-ranked undergrad business), Penn Engineering, and Penn Medicine. Strong interdisciplinary dual-degree programs.',
+    category: 'reach',
+    matchScore: 97,
+    location: 'Philadelphia, PA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Wharton's global business brand and Penn's cross-school programs make it the top Ivy for ${major.toUpperCase()} students blending technical and business ambitions.`,
+    keyFactor: 'Clear professional vision, demonstrated interest in cross-school programs, and strong "Why Penn" essays.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+
+  // ── OTHER ELITE PRIVATE UNIVERSITIES ──────────────────────────────────────
+  {
+    schoolId: 'rec-caltech',
+    name: 'California Institute of Technology (Caltech)',
+    officialAcceptanceRate: 3.9,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1540,
+    sat75th: 1590,
+    avgEnrolledGpaUnweighted: 3.97,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Standardized test scores': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Recommendation': 'Very Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://caltech.edu/research/institutional-research/cds',
+    notes: 'Pure STEM institute with mandatory core curriculum in physics, math, and chemistry. Smallest top-5 university by enrollment (~960 undergrads).',
+    category: 'reach',
+    matchScore: 99,
+    location: 'Pasadena, CA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Action',
+    whyFit: (major: string) =>
+      `Caltech's research intensity and unparalleled STEM faculty make it the pinnacle choice for ${major.toUpperCase()} students seeking the most rigorous quantitative education in the world.`,
+    keyFactor: 'Exceptional math/science performance (AMC, USAMO, Olympiads), research experience, and intellectual depth in STEM.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-washu',
+    name: 'Washington University in St. Louis',
+    officialAcceptanceRate: 13.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1500,
+    sat75th: 1580,
+    avgEnrolledGpaUnweighted: 3.91,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Extracurricular Activities': 'Very Important',
+      'Character/Personal Qualities': 'Very Important'
+    },
+    sourceUrl: 'https://opb.wustl.edu/common-data-set',
+    notes: 'Olin Business School, McKelvey School of Engineering, and medical school partnerships place WashU at the top of elite private universities.',
+    category: 'reach',
+    matchScore: 95,
+    location: 'St. Louis, MO, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `WashU's interdisciplinary programs and ${major.toUpperCase()} curriculum combine elite academic depth with genuine student support and a collaborative (not cutthroat) campus culture.`,
+    keyFactor: 'Strong intellectual breadth, compelling essays, and demonstrated interest in interdisciplinary learning.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-vanderbilt',
+    name: 'Vanderbilt University',
+    officialAcceptanceRate: 9.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1490,
+    sat75th: 1570,
+    avgEnrolledGpaUnweighted: 3.87,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Very Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://registrar.vanderbilt.edu/common-data-set.php',
+    notes: 'Private research university in Nashville with outstanding engineering, medicine, education, and music programs. Generous financial aid.',
+    category: 'reach',
+    matchScore: 96,
+    location: 'Nashville, TN, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Vanderbilt's blend of research depth and Nashville's growing tech and healthcare economy make it a top choice for ambitious ${major.toUpperCase()} students.`,
+    keyFactor: 'Strong GPA, rigorous course load, and compelling "Why Vanderbilt" essays demonstrating specific academic fit.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-rice',
+    name: 'Rice University',
+    officialAcceptanceRate: 9.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1510,
+    sat75th: 1590,
+    avgEnrolledGpaUnweighted: 3.92,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Recommendation': 'Very Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://oir.rice.edu/common-data-set',
+    notes: 'Small private research university in Houston. Residential college system, no-loan financial aid for families under $130k, and proximity to NASA and energy industry.',
+    category: 'reach',
+    matchScore: 96,
+    location: 'Houston, TX, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Rice's intimate residential college system and Houston's energy/biotech corridor make it ideal for ${major.toUpperCase()} students seeking both academic rigor and industry access.`,
+    keyFactor: 'Specific residential college fit articulation, strong quantitative performance, and research/project portfolio.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-georgetown',
+    name: 'Georgetown University',
+    officialAcceptanceRate: 15.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1380,
+    sat75th: 1560,
+    avgEnrolledGpaUnweighted: 3.90,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Very Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://oir.georgetown.edu/common-data-set',
+    notes: 'DC location provides unrivaled access to policy, diplomacy, finance, and government. Jesuit mission emphasizes service, ethics, and global perspective.',
+    category: 'reach',
+    matchScore: 93,
+    location: 'Washington, D.C., USA',
+    deadline: 'Nov 1',
+    round: 'Early Action',
+    whyFit: (major: string) =>
+      `Georgetown's DC location and Jesuit tradition produce ${major.toUpperCase()} graduates uniquely positioned for careers in policy, law, diplomacy, and global business.`,
+    keyFactor: 'Genuine Jesuit values alignment in essays, leadership in service, and Washington DC career interest.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-usc',
+    name: 'University of Southern California (USC)',
+    officialAcceptanceRate: 11.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1400,
+    sat75th: 1560,
+    avgEnrolledGpaUnweighted: 3.80,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Extracurricular Activities': 'Very Important',
+      'Character/Personal Qualities': 'Important'
+    },
+    sourceUrl: 'https://oir.usc.edu/common-data-set',
+    notes: 'Private research university in LA with the top film school (SCA), strong engineering, and one of the largest and most loyal alumni networks (Trojan Network).',
+    category: 'reach',
+    matchScore: 92,
+    location: 'Los Angeles, CA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Action',
+    whyFit: (major: string) =>
+      `USC's Trojan alumni network in entertainment, tech, and business, combined with its LA location, gives ${major.toUpperCase()} students exceptional industry access before graduation.`,
+    keyFactor: 'Clear major-specific motivation, strong essays, and demonstrated commitment to USC community.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-emory',
+    name: 'Emory University',
+    officialAcceptanceRate: 11.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1440,
+    sat75th: 1560,
+    avgEnrolledGpaUnweighted: 3.83,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Extracurricular Activities': 'Important',
+      'Character/Personal Qualities': 'Important'
+    },
+    sourceUrl: 'https://oir.emory.edu/common-data-set',
+    notes: 'Emory Hospital partnership makes it one of the best pre-med destinations. CDC headquarters is a key research partner. Strong business and law programs.',
+    category: 'reach',
+    matchScore: 92,
+    location: 'Atlanta, GA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Emory's proximity to the CDC, Emory Healthcare, and Atlanta's business community gives ${major.toUpperCase()} students exceptional research and career opportunities.`,
+    keyFactor: 'Strong GPA, meaningful extracurriculars, and compelling "Why Emory" essay tied to specific programs.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-tufts',
+    name: 'Tufts University',
+    officialAcceptanceRate: 11.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1450,
+    sat75th: 1560,
+    avgEnrolledGpaUnweighted: 3.83,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Extracurricular Activities': 'Important',
+      'Character/Personal Qualities': 'Important'
+    },
+    sourceUrl: 'https://provost.tufts.edu/institutionalresearch/common-data-set/',
+    notes: 'Strong international relations, engineering, and pre-med programs. Boston metro location. The Fletcher School is one of the top international affairs graduate schools.',
+    category: 'reach',
+    matchScore: 92,
+    location: 'Medford, MA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Tufts' civic engagement ethos and ${major.toUpperCase()} programs, paired with Boston's research and tech corridor, make it a compelling choice for globally-minded students.`,
+    keyFactor: 'Playful intellectual curiosity emphasized in the infamous "Why did you choose the college essay?"',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-notredame',
+    name: 'University of Notre Dame',
+    officialAcceptanceRate: 13.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1470,
+    sat75th: 1570,
+    avgEnrolledGpaUnweighted: 3.92,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Very Important',
+      'Extracurricular Activities': 'Important',
+      'Recommendation': 'Important'
+    },
+    sourceUrl: 'https://registrar.nd.edu/common-data-set/',
+    notes: 'Catholic university with one of the most loyal alumni networks in America. Outstanding business, law, engineering, and pre-med programs.',
+    category: 'reach',
+    matchScore: 93,
+    location: 'Notre Dame, IN, USA',
+    deadline: 'Nov 1',
+    round: 'Restrictive Early Action (REA)',
+    whyFit: (major: string) =>
+      `Notre Dame's exceptional alumni loyalty and ${major.toUpperCase()} curriculum, grounded in Catholic intellectual tradition, create a deeply connected graduate network.`,
+    keyFactor: 'Authentic Catholic mission alignment, demonstrated service leadership, and strong academic record.',
+    strengthAlignment: 'very_high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-tulane',
+    name: 'Tulane University',
+    officialAcceptanceRate: 13.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1360,
+    sat75th: 1520,
+    avgEnrolledGpaUnweighted: 3.53,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://ir.tulane.edu/common-data-set',
+    notes: "Located in New Orleans, Tulane has transformed into a highly selective university with unique public health and community engagement programs post-Katrina.",
+    category: 'reach',
+    matchScore: 90,
+    location: 'New Orleans, LA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Tulane's New Orleans setting, rising selectivity, and strong ${major.toUpperCase()} programs offer elite-caliber academics with a uniquely vibrant cultural environment.`,
+    keyFactor: 'Community engagement narrative and demonstrating awareness of Tulane\'s mission in New Orleans.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-bc',
+    name: 'Boston College',
+    officialAcceptanceRate: 19.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1410,
+    sat75th: 1540,
+    avgEnrolledGpaUnweighted: 3.88,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Character/Personal Qualities': 'Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://www.bc.edu/content/dam/bc1/offices/ir/cds/2024-2025.pdf',
+    notes: 'Jesuit Catholic university near Boston. Carroll School of Management and Lynch School of Education are nationally ranked. Strong pre-law pipeline.',
+    category: 'reach',
+    matchScore: 90,
+    location: 'Chestnut Hill, MA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Boston College's Jesuit education model and Carroll School of Management give ${major.toUpperCase()} students a rigorous ethical framework alongside strong Boston career placement.`,
+    keyFactor: 'Authentic Jesuit values alignment and a specific "Why BC" essay demonstrating campus culture fit.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+
+  // ── UC SYSTEM (REMAINING) ──────────────────────────────────────────────────
+  {
+    schoolId: 'rec-ucsb',
+    name: 'University of California, Santa Barbara (UCSB)',
+    officialAcceptanceRate: 29.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1260,
+    sat75th: 1480,
+    avgEnrolledGpaUnweighted: 3.87,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important'
+    },
+    sourceUrl: 'https://bap.ucsb.edu/institutional-research/common-data-set',
+    notes: 'Beachside UC campus with exceptionally strong physics, chemistry, materials science, and economics programs. Four Nobel laureates on current faculty.',
+    category: 'target',
+    matchScore: 87,
+    location: 'Santa Barbara, CA, USA',
+    deadline: 'Nov 30',
+    round: 'UC Application Deadline',
+    whyFit: (major: string) =>
+      `UCSB's research-intensive environment and ${major.toUpperCase()} programs — backed by Nobel-laureate faculty — offer UC-quality education in one of California's most scenic settings.`,
+    keyFactor: 'Rigorous UC-weighted GPA and compelling Personal Insight Questions demonstrating major alignment.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-ucdavis',
+    name: 'University of California, Davis (UC Davis)',
+    officialAcceptanceRate: 39.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1220,
+    sat75th: 1470,
+    avgEnrolledGpaUnweighted: 3.86,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important'
+    },
+    sourceUrl: 'https://ipa.ucdavis.edu/common-data-set',
+    notes: '#1 in veterinary medicine and agriculture. Strong STEM, environmental science, and engineering programs. Close to Sacramento and the Bay Area.',
+    category: 'target',
+    matchScore: 85,
+    location: 'Davis, CA, USA',
+    deadline: 'Nov 30',
+    round: 'UC Application Deadline',
+    whyFit: (major: string) =>
+      `UC Davis combines rigorous ${major.toUpperCase()} academics with proximity to Sacramento and Bay Area employers, and leads nationally in agricultural and environmental sciences.`,
+    keyFactor: 'Solid UC-weighted GPA and Personal Insight Questions showing genuine interest in UC Davis programs.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-uci',
+    name: 'University of California, Irvine (UCI)',
+    officialAcceptanceRate: 26.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1260,
+    sat75th: 1470,
+    avgEnrolledGpaUnweighted: 3.88,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important'
+    },
+    sourceUrl: 'https://www.oir.uci.edu/cds',
+    notes: "Fastest-growing UC campus with emerging strength in computer science, engineering, and biological sciences. Adjacent to Orange County's tech corridor.",
+    category: 'target',
+    matchScore: 87,
+    location: 'Irvine, CA, USA',
+    deadline: 'Nov 30',
+    round: 'UC Application Deadline',
+    whyFit: (major: string) =>
+      `UCI's growing ${major.toUpperCase()} programs, strong CS rankings, and Southern California industry access make it a compelling UC option for tech-oriented students.`,
+    keyFactor: 'Strong UC-weighted GPA and Personal Insight Questions demonstrating program-specific motivation.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+
+  // ── TARGET & SAFETY ADDITIONS ──────────────────────────────────────────────
+  {
+    schoolId: 'rec-miami',
+    name: 'University of Miami',
+    officialAcceptanceRate: 27.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1310,
+    sat75th: 1500,
+    avgEnrolledGpaUnweighted: 3.70,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://umvprovost.miami.edu/institutional-effectiveness/common-data-set/',
+    notes: 'Private research university in Coral Gables with strong marine science, business, music, and pre-med programs. Growing selectivity.',
+    category: 'target',
+    matchScore: 87,
+    location: 'Coral Gables, FL, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `University of Miami's Miami location provides unique access to Latin American business networks and ${major.toUpperCase()} programs backed by a growing research enterprise.`,
+    keyFactor: 'Strong academic record and genuine interest in Miami\'s unique international and marine research opportunities.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-uf',
+    name: 'University of Florida',
+    officialAcceptanceRate: 23.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1310,
+    sat75th: 1490,
+    avgEnrolledGpaUnweighted: 3.90,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Important'
+    },
+    sourceUrl: 'https://ir.aa.ufl.edu/facts-and-rankings/common-data-set/',
+    notes: 'Top-5 public university nationally. Out-of-state admission is extremely competitive. Home of the Gators and a top-ranked engineering/business school.',
+    category: 'target',
+    matchScore: 89,
+    location: 'Gainesville, FL, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision / Early Action',
+    whyFit: (major: string) =>
+      `University of Florida's top-5 public ranking and strong ${major.toUpperCase()} programs deliver elite-caliber academics at outstanding value, especially for Florida residents.`,
+    keyFactor: 'High Florida-competitive GPA and compelling personal statement demonstrating Gator identity.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-clemson',
+    name: 'Clemson University',
+    officialAcceptanceRate: 41.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1210,
+    sat75th: 1400,
+    avgEnrolledGpaUnweighted: 3.83,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important'
+    },
+    sourceUrl: 'https://www.clemson.edu/institutional-effectiveness/oir/cds/',
+    notes: 'South Carolina flagship with top-30 engineering programs. Rising national profile with strong STEM, business, and architecture programs.',
+    category: 'target',
+    matchScore: 85,
+    location: 'Clemson, SC, USA',
+    deadline: 'Oct 15',
+    round: 'Early Action',
+    whyFit: (major: string) =>
+      `Clemson's strong ${major.toUpperCase()} programs and cooperative education options combine with a vibrant campus culture and improving research facilities.`,
+    keyFactor: 'Strong GPA and demonstrated interest in Clemson\'s specific engineering or science programs.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-cwru',
+    name: 'Case Western Reserve University',
+    officialAcceptanceRate: 30.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1390,
+    sat75th: 1560,
+    avgEnrolledGpaUnweighted: 3.87,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://case.edu/registrar/common-data-set',
+    notes: 'Strong engineering, biomedical, and pre-med programs in Cleveland. THINK program allows cross-enrollment at 9 neighboring institutions.',
+    category: 'target',
+    matchScore: 88,
+    location: 'Cleveland, OH, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `CWRU's STEM rigor, Cleveland Clinic partnership, and cross-enrollment access give ${major.toUpperCase()} students exceptional research and clinical exposure.`,
+    keyFactor: 'Rigorous STEM profile and articulation of specific research interest in Case\'s collaborative programs.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-rochester',
+    name: 'University of Rochester',
+    officialAcceptanceRate: 34.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1380,
+    sat75th: 1530,
+    avgEnrolledGpaUnweighted: 3.77,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://www.rochester.edu/institutional-research/common-data-set/',
+    notes: 'Flexible curriculum (no core requirements). Strong optics, music (Eastman School), and medical research programs. Take-Five scholarship allows a fifth tuition-free year.',
+    category: 'target',
+    matchScore: 87,
+    location: 'Rochester, NY, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Rochester's open curriculum and ${major.toUpperCase()} programs allow deep specialization while Rochester's optics and biotech industries provide strong employer access.`,
+    keyFactor: 'Intellectual curiosity and articulation of how the open curriculum enables your specific academic goals.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-american',
+    name: 'American University',
+    officialAcceptanceRate: 30.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1270,
+    sat75th: 1470,
+    avgEnrolledGpaUnweighted: 3.67,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://www.american.edu/provost/oira/common-data-set.cfm',
+    notes: 'DC-based university with one of the best international relations and public policy programs. School of International Service (SIS) is nationally ranked.',
+    category: 'target',
+    matchScore: 85,
+    location: 'Washington, D.C., USA',
+    deadline: 'Nov 15',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `American University's DC location and School of International Service give ${major.toUpperCase()} students direct access to embassies, NGOs, and federal agencies for internships.`,
+    keyFactor: 'Policy or global affairs interest, leadership in community service, and DC career alignment.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-syracuse',
+    name: 'Syracuse University',
+    officialAcceptanceRate: 53.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1230,
+    sat75th: 1420,
+    avgEnrolledGpaUnweighted: 3.55,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Important'
+    },
+    sourceUrl: 'https://oir.syr.edu/common-data-set/',
+    notes: 'Newhouse School of Communications is the top-ranked journalism/media school in the US. Whitman School of Management and Maxwell School of Citizenship are also highly regarded.',
+    category: 'target',
+    matchScore: 83,
+    location: 'Syracuse, NY, USA',
+    deadline: 'Nov 15',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Syracuse's Newhouse School and ${major.toUpperCase()} programs have strong industry placement, especially in media, communications, and public policy careers.`,
+    keyFactor: 'Clear school/major focus and demonstrated interest in Syracuse\'s signature programs.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-fordham',
+    name: 'Fordham University',
+    officialAcceptanceRate: 47.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1250,
+    sat75th: 1430,
+    avgEnrolledGpaUnweighted: 3.62,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Important'
+    },
+    sourceUrl: 'https://www.fordham.edu/info/24547/institutional-research/2680/common-data-set',
+    notes: 'Jesuit university with campuses in the Bronx and Lincoln Center (Manhattan). Strong business (Gabelli), law, and communications programs.',
+    category: 'target',
+    matchScore: 84,
+    location: 'Bronx, NY, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Fordham's New York City campuses and Jesuit education model give ${major.toUpperCase()} students exceptional internship access across finance, media, and nonprofits.`,
+    keyFactor: 'Jesuit values fit and articulation of how NYC proximity will shape your academic and career path.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-lehigh',
+    name: 'Lehigh University',
+    officialAcceptanceRate: 37.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1350,
+    sat75th: 1520,
+    avgEnrolledGpaUnweighted: 3.77,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://www.lehigh.edu/~inoir/pages/cds.shtml',
+    notes: 'Private research university in the Lehigh Valley, PA. Strong P.C. Rossin College of Engineering and Integrated Business and Engineering (IBE) program.',
+    category: 'target',
+    matchScore: 86,
+    location: 'Bethlehem, PA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Lehigh's integrated engineering and business curriculum gives ${major.toUpperCase()} students a rare technical-plus-managerial edge valued by top engineering firms.`,
+    keyFactor: 'Strong STEM profile and articulation of interest in Lehigh\'s integrated IBE or engineering programs.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-wpi',
+    name: 'Worcester Polytechnic Institute (WPI)',
+    officialAcceptanceRate: 49.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1310,
+    sat75th: 1490,
+    avgEnrolledGpaUnweighted: 3.82,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important'
+    },
+    sourceUrl: 'https://www.wpi.edu/about/institutional-research/common-data-set',
+    notes: 'Project-based curriculum (no traditional exams — graded by project reports). STEM-focused with a strong co-op and global project center network.',
+    category: 'target',
+    matchScore: 84,
+    location: 'Worcester, MA, USA',
+    deadline: 'Nov 15',
+    round: 'Early Action',
+    whyFit: (major: string) =>
+      `WPI's project-based learning model and ${major.toUpperCase()} curriculum give hands-on students real-world engineering experience from day one rather than theoretical coursework alone.`,
+    keyFactor: 'Demonstrated hands-on STEM project experience and enthusiasm for project-based learning over traditional exam structure.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-sunystonybrook',
+    name: 'Stony Brook University (SUNY)',
+    officialAcceptanceRate: 45.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1190,
+    sat75th: 1390,
+    avgEnrolledGpaUnweighted: 3.68,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important'
+    },
+    sourceUrl: 'https://www.stonybrook.edu/irpe/common-data-set/',
+    notes: 'SUNY flagship with strong research in STEM, medicine (Stony Brook Medicine), and computational sciences. Member of the Association of American Universities.',
+    category: 'target',
+    matchScore: 83,
+    location: 'Stony Brook, NY, USA',
+    deadline: 'Jan 15',
+    round: 'Regular Decision',
+    whyFit: (major: string) =>
+      `Stony Brook's AAU research university status and ${major.toUpperCase()} programs deliver flagship-level academics at SUNY pricing with direct access to NYC metro employment.`,
+    keyFactor: 'Strong academic performance and clear major-specific motivation for Stony Brook\'s research programs.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-virginiatech',
+    name: 'Virginia Tech',
+    officialAcceptanceRate: 57.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1230,
+    sat75th: 1430,
+    avgEnrolledGpaUnweighted: 3.80,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Important'
+    },
+    sourceUrl: 'https://irr.vt.edu/cds.html',
+    notes: 'Top-30 engineering program nationally. Strong in CS, aerospace, architecture, and agriculture. Large state flagship with excellent research facilities.',
+    category: 'safety',
+    matchScore: 83,
+    location: 'Blacksburg, VA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Virginia Tech's nationally ranked ${major.toUpperCase()} engineering programs and strong alumni network in the DC/NOVA tech corridor make it an excellent-value flagship choice.`,
+    keyFactor: 'Strong STEM GPA and demonstrated interest in Tech\'s specific engineering or CS programs.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-indiana',
+    name: 'Indiana University Bloomington',
+    officialAcceptanceRate: 79.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1130,
+    sat75th: 1360,
+    avgEnrolledGpaUnweighted: 3.60,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important'
+    },
+    sourceUrl: 'https://iub.edu/about/administration/institutional-research-analytics/common-data-set.html',
+    notes: 'Kelley School of Business is top-5 for undergrad business. O\'Neill School of Public Affairs and Luddy School of Computing are nationally ranked.',
+    category: 'safety',
+    matchScore: 80,
+    location: 'Bloomington, IN, USA',
+    deadline: 'Nov 1',
+    round: 'Early Action',
+    whyFit: (major: string) =>
+      `Indiana's Kelley School of Business is a top-5 undergraduate business program — an exceptional value safety for ${major.toUpperCase()} students targeting business or computing careers.`,
+    keyFactor: 'Meeting GPA standards and demonstrating genuine interest in Kelley or Luddy specific programs.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-cuboulder',
+    name: 'University of Colorado Boulder',
+    officialAcceptanceRate: 84.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1150,
+    sat75th: 1360,
+    avgEnrolledGpaUnweighted: 3.56,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important'
+    },
+    sourceUrl: 'https://www.colorado.edu/oda/institutional-research/common-data-set',
+    notes: 'Located in Boulder — a thriving tech and startup ecosystem. Strong aerospace, physics, and environmental science. Leeds School of Business ranks well nationally.',
+    category: 'safety',
+    matchScore: 80,
+    location: 'Boulder, CO, USA',
+    deadline: 'Dec 1',
+    round: 'Priority Deadline',
+    whyFit: (major: string) =>
+      `CU Boulder's Rocky Mountain location, thriving startup scene, and strong ${major.toUpperCase()} programs offer a top-quality college experience in one of America's most livable cities.`,
+    keyFactor: 'Meeting GPA and test requirements; applying by the priority deadline for scholarship consideration.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-gmu',
+    name: 'George Mason University',
+    officialAcceptanceRate: 83.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1150,
+    sat75th: 1380,
+    avgEnrolledGpaUnweighted: 3.55,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important'
+    },
+    sourceUrl: 'https://irr.gmu.edu/common-data-set',
+    notes: 'Located in Fairfax, VA — next to Washington DC and Amazon HQ2. Strong CS, cybersecurity, and policy programs.',
+    category: 'safety',
+    matchScore: 79,
+    location: 'Fairfax, VA, USA',
+    deadline: 'Jan 1',
+    round: 'Early Action',
+    whyFit: (major: string) =>
+      `George Mason's Northern Virginia location places ${major.toUpperCase()} students at the doorstep of Amazon HQ2, federal agencies, and DC tech employers for internships and co-ops.`,
+    keyFactor: 'Academic GPA and demonstrated interest in George Mason\'s government-tech corridor opportunities.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+  {
+    schoolId: 'rec-udel',
+    name: 'University of Delaware',
+    officialAcceptanceRate: 65.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1170,
+    sat75th: 1380,
+    avgEnrolledGpaUnweighted: 3.65,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important'
+    },
+    sourceUrl: 'https://www.udel.edu/about/facts-and-figures/common-data-set/',
+    notes: 'Strong in chemical engineering, business, nursing, and education. Proximity to Philadelphia, NYC, and DC corridors. Co-op program is available.',
+    category: 'safety',
+    matchScore: 81,
+    location: 'Newark, DE, USA',
+    deadline: 'Nov 1',
+    round: 'Early Action',
+    whyFit: (major: string) =>
+      `University of Delaware's strong ${major.toUpperCase()} programs and strategic Mid-Atlantic location provide solid employer access across Philadelphia, NYC, and the DC corridors.`,
+    keyFactor: 'Meeting GPA standards and applying Early Action for scholarship consideration.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+
+  // TODO: verify from official CDS
+  {
+    schoolId: 'rec-drexel',
+    name: 'Drexel University',
+    officialAcceptanceRate: 73.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1150,
+    sat75th: 1360,
+    avgEnrolledGpaUnweighted: 3.60,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Important',
+      'Extracurricular Activities': 'Considered'
+    },
+    sourceUrl: 'https://drexel.edu/provost/institutional-effectiveness/ir/',
+    notes: 'Co-op focused university in Philadelphia. One of the largest co-op programs in the US with strong employer ties in engineering, CS, business, and health sciences.',
+    category: 'target',
+    matchScore: 82,
+    location: 'Philadelphia, PA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Action',
+    whyFit: (major: string) =>
+      `Strong ${major.toUpperCase()} co-op program placing students at top employers across Philadelphia and beyond — real-world experience before graduation.`,
+    keyFactor: 'Academic GPA and demonstrated interest in co-op experiential learning.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+
+  // TODO: verify from official CDS
+  {
+    schoolId: 'rec-villanova',
+    name: 'Villanova University',
+    officialAcceptanceRate: 28.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1310,
+    sat75th: 1490,
+    avgEnrolledGpaUnweighted: 3.80,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://www1.villanova.edu/villanova/provost/institutionalresearch.html',
+    notes: 'Catholic Augustinian university outside Philadelphia with strong engineering, business, and nursing programs.',
+    category: 'target',
+    matchScore: 87,
+    location: 'Villanova, PA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Top-25 national university with rigorous ${major.toUpperCase()} curriculum and outstanding Villanova alumni network in the Philadelphia metro region.`,
+    keyFactor: 'Strong academic record and authentic "Why Villanova" mission alignment essay.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+
+  // TODO: verify from official CDS
+  {
+    schoolId: 'rec-pitt',
+    name: 'University of Pittsburgh',
+    officialAcceptanceRate: 58.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1260,
+    sat75th: 1470,
+    avgEnrolledGpaUnweighted: 3.80,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Important'
+    },
+    sourceUrl: 'https://ir.pitt.edu/factbook/',
+    notes: 'Major research university in Pittsburgh with renowned health sciences, Swanson School of Engineering, and Katz Business School.',
+    category: 'target',
+    matchScore: 85,
+    location: 'Pittsburgh, PA, USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Research-intensive institution with strong ${major.toUpperCase()} outcomes and direct access to Pittsburgh's growing tech and health-science ecosystem.`,
+    keyFactor: 'Strong GPA and senior-year course rigor.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+
+  // TODO: verify from official CDS
+  {
+    schoolId: 'rec-gwu',
+    name: 'George Washington University',
+    officialAcceptanceRate: 41.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1280,
+    sat75th: 1480,
+    avgEnrolledGpaUnweighted: 3.78,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Very Important',
+      'Extracurricular Activities': 'Important'
+    },
+    sourceUrl: 'https://registrar.gwu.edu/sites/g/files/zaxdzs5016/files/2024-10/cds-2024-2025.pdf',
+    notes: 'Located two blocks from the White House in Washington DC. Premier destination for policy, international affairs, business, and law.',
+    category: 'target',
+    matchScore: 86,
+    location: 'Washington, D.C., USA',
+    deadline: 'Nov 1',
+    round: 'Early Decision (ED)',
+    whyFit: (major: string) =>
+      `Unparalleled DC location providing direct access to federal agencies, NGOs, and think tanks — ideal for ${major.toUpperCase()} students targeting policy or public service careers.`,
+    keyFactor: 'Strong essays demonstrating mission alignment and DC career interest.',
+    strengthAlignment: 'high',
+    region: 'us'
+  },
+
+  // TODO: verify from official CDS
+  {
+    schoolId: 'rec-osu',
+    name: 'Ohio State University',
+    officialAcceptanceRate: 53.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1280,
+    sat75th: 1480,
+    avgEnrolledGpaUnweighted: 3.80,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important',
+      'Application Essay': 'Important'
+    },
+    sourceUrl: 'https://registrar.osu.edu/cds/',
+    notes: 'Large Big Ten flagship with strong STEM, business, and medical research programs. Fisher College of Business is nationally ranked.',
+    category: 'target',
+    matchScore: 84,
+    location: 'Columbus, OH, USA',
+    deadline: 'Nov 1',
+    round: 'Early Action',
+    whyFit: (major: string) =>
+      `Big Ten flagship with top-ranked ${major.toUpperCase()} programs and massive alumni network providing career access across the Midwest and beyond.`,
+    keyFactor: 'Competitive GPA and demonstrated involvement in extracurriculars.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+
+  // TODO: verify from official CDS
+  {
+    schoolId: 'rec-temple',
+    name: 'Temple University',
+    officialAcceptanceRate: 69.0,
+    acceptanceRateSourceYear: '2024-2025',
+    sat25th: 1090,
+    sat75th: 1300,
+    avgEnrolledGpaUnweighted: 3.50,
+    cdsFactorWeights: {
+      'Rigor of secondary school record': 'Very Important',
+      'Academic GPA': 'Very Important'
+    },
+    sourceUrl: 'https://www.temple.edu/about/facts-and-figures',
+    notes: 'Large urban university in Philadelphia with strong pre-law, business (Fox School), media, and health sciences programs.',
+    category: 'safety',
+    matchScore: 79,
+    location: 'Philadelphia, PA, USA',
+    deadline: 'Feb 1',
+    round: 'Rolling Admissions',
+    whyFit: (major: string) =>
+      `Urban university with accessible admissions and strong ${major.toUpperCase()} programs with co-op and internship opportunities throughout Philadelphia.`,
+    keyFactor: 'Academic GPA and meeting minimum course requirements.',
+    strengthAlignment: 'moderate',
+    region: 'us'
+  },
+
   // TODO: verify from official CDS
   {
     schoolId: 'rec-carleton',
