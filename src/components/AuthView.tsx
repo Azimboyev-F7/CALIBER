@@ -3,7 +3,7 @@ import { ActiveScreen, AuthUser } from '../types';
 import {
   signInWithEmail,
   signUpWithEmail,
-  resetPasswordDirect,
+  resetPassword,
   isSupabaseConfigured,
   DEMO_USER
 } from '../lib/supabaseClient';
@@ -36,8 +36,6 @@ export const AuthView: React.FC<AuthViewProps> = ({
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
   const [fullName, setFullName] = useState('');
   const [intendedMajor, setIntendedMajor] = useState('Computer Science');
   const [highSchool, setHighSchool] = useState('');
@@ -54,8 +52,6 @@ export const AuthView: React.FC<AuthViewProps> = ({
     setEmail('');
     setPassword('');
     setConfirmPassword('');
-    setNewPassword('');
-    setNewPasswordConfirm('');
     setFullName('');
     setUsername('');
     setHighSchool('');
@@ -157,29 +153,14 @@ export const AuthView: React.FC<AuthViewProps> = ({
       return;
     }
 
-    if (!newPassword) {
-      setErrorMsg('Please enter a new password.');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setErrorMsg('Password must be at least 6 characters.');
-      return;
-    }
-
-    if (newPassword !== newPasswordConfirm) {
-      setErrorMsg('Passwords do not match.');
-      return;
-    }
-
     setIsLoading(true);
     try {
-      const { success, error } = await resetPasswordDirect(email, newPassword);
+      const { success, error } = await resetPassword(email);
       if (error) {
         setErrorMsg(error);
       } else if (success) {
-        setSuccessMsg('Password updated! You can now sign in with your new password.');
-        setTimeout(() => switchMode('signin'), 1500);
+        setSuccessMsg('Check your email for a secure password reset link.');
+
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to reset password.');
@@ -525,51 +506,13 @@ export const AuthView: React.FC<AuthViewProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[12px] font-semibold text-slate-300 mb-1.5">
-                  New Password (min 6)
-                </label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-                    lock_reset
-                  </span>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="input-minimal w-full pl-9 pr-3 py-2.5 text-[13px] rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-semibold text-slate-300 mb-1.5">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">
-                    lock
-                  </span>
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={newPasswordConfirm}
-                    onChange={(e) => setNewPasswordConfirm(e.target.value)}
-                    className="input-minimal w-full pl-9 pr-3 py-2.5 text-[13px] rounded-xl"
-                  />
-                </div>
-              </div>
-
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
                   disabled={isLoading}
                   className="flex-1 glass-btn-primary py-2.5 rounded-xl font-bold text-[13px] flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  {isLoading ? 'Updating...' : 'Reset Password'}
+                  {isLoading ? 'Sending...' : 'Send Reset Link'}
                 </button>
                 <button
                   type="button"

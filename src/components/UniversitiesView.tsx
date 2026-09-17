@@ -1,3 +1,4 @@
+import { getDirectoryCategory, filterUniversitiesByRate } from '../utils/universityDirectory';
 import React, { useState, useMemo } from 'react';
 import { ActiveScreen, UserProfile, CollegeTarget, CollegeCategory, CollegeApplicationStatus } from '../types';
 import { UniversityCard } from './UniversityCard';
@@ -33,12 +34,14 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
     setIsAddModalOpen(true);
   };
 
-  const colleges = userProfile.targetColleges || [];
+  const colleges = useMemo(() => (userProfile.targetColleges || []).map((college) => ({
+    ...college, category: getDirectoryCategory(college)
+  })), [userProfile.targetColleges]);
 
   // Grouped by Category
-  const reaches = useMemo(() => colleges.filter((c) => c.category === 'reach'), [colleges]);
-  const targets = useMemo(() => colleges.filter((c) => c.category === 'target'), [colleges]);
-  const safeties = useMemo(() => colleges.filter((c) => c.category === 'safety'), [colleges]);
+  const reaches = useMemo(() => filterUniversitiesByRate(colleges, 'reach'), [colleges]);
+  const targets = useMemo(() => filterUniversitiesByRate(colleges, 'target'), [colleges]);
+  const safeties = useMemo(() => filterUniversitiesByRate(colleges, 'safety'), [colleges]);
 
   // Stage metrics
   const submittedCount = colleges.filter((c) => c.status === 'submitted' || c.status === 'accepted').length;
@@ -127,7 +130,7 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
 
   // Filtered by Search & Filter
   const filteredColleges = useMemo(() => {
-    return colleges.filter((c) => {
+    return filterUniversitiesByRate(colleges, tierFilter).filter((c) => {
       const matchesSearch =
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.location.toLowerCase().includes(searchQuery.toLowerCase());
@@ -574,11 +577,11 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                     <h4 className="text-[13px] font-bold text-white uppercase tracking-wider">Not Started</h4>
                   </div>
                   <span className="text-[11px] font-extrabold text-slate-400">
-                    {colleges.filter((c) => !c.status || c.status === 'not_started').length}
+                    {filteredColleges.filter((c) => !c.status || c.status === 'not_started').length}
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {colleges
+                  {filteredColleges
                     .filter((c) => !c.status || c.status === 'not_started')
                     .map((college) => (
                       <UniversityCard
@@ -601,11 +604,11 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                     <h4 className="text-[13px] font-bold text-white uppercase tracking-wider">Drafting</h4>
                   </div>
                   <span className="text-[11px] font-extrabold text-amber-300">
-                    {colleges.filter((c) => c.status === 'in_progress').length}
+                    {filteredColleges.filter((c) => c.status === 'in_progress').length}
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {colleges
+                  {filteredColleges
                     .filter((c) => c.status === 'in_progress')
                     .map((college) => (
                       <UniversityCard
@@ -628,11 +631,11 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                     <h4 className="text-[13px] font-bold text-white uppercase tracking-wider">Ready</h4>
                   </div>
                   <span className="text-[11px] font-extrabold text-sky-300">
-                    {colleges.filter((c) => c.status === 'ready').length}
+                    {filteredColleges.filter((c) => c.status === 'ready').length}
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {colleges
+                  {filteredColleges
                     .filter((c) => c.status === 'ready')
                     .map((college) => (
                       <UniversityCard
@@ -655,11 +658,11 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                     <h4 className="text-[13px] font-bold text-white uppercase tracking-wider">Submitted / Decided</h4>
                   </div>
                   <span className="text-[11px] font-extrabold text-emerald-300">
-                    {colleges.filter((c) => c.status === 'submitted' || c.status === 'accepted' || c.status === 'deferred' || c.status === 'waitlisted' || c.status === 'rejected').length}
+                    {filteredColleges.filter((c) => c.status === 'submitted' || c.status === 'accepted' || c.status === 'deferred' || c.status === 'waitlisted' || c.status === 'rejected').length}
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {colleges
+                  {filteredColleges
                     .filter((c) => c.status === 'submitted' || c.status === 'accepted' || c.status === 'deferred' || c.status === 'waitlisted' || c.status === 'rejected')
                     .map((college) => (
                       <UniversityCard
@@ -686,7 +689,7 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                 </div>
 
                 <div className="space-y-3 pt-2">
-                  {[...colleges]
+                  {[...filteredColleges]
                     .sort((a, b) => a.deadline.localeCompare(b.deadline))
                     .map((college) => {
                       const tierClass =

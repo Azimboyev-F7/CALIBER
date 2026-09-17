@@ -101,6 +101,17 @@ describe('generateIntelligentCollegeRecommendations', () => {
     expect(firstReach.estimatedRange).toBeDefined();
     expect(firstReach.estimatedAdmitRate).toBeUndefined();
   });
+
+  it('prioritizes higher-rate target and safety options while retaining a small reach group', () => {
+    const results = generateIntelligentCollegeRecommendations({ preferredCountry: 'United States' });
+    expect(results.reachRecommendations).toHaveLength(2);
+    expect(results.targetRecommendations).toHaveLength(4);
+    expect(results.safetyRecommendations).toHaveLength(4);
+    expect(results.targetRecommendations.map((s: any) => s.officialAcceptanceRate)).toEqual(
+      [...results.targetRecommendations].map((s: any) => s.officialAcceptanceRate).sort((a: number, b: number) => b - a)
+    );
+    expect(results.safetyRecommendations.every((s: any) => s.officialAcceptanceRate > 55)).toBe(true);
+  });
 });
 
 describe('calculateEstimatedRange pure function', () => {
@@ -154,7 +165,7 @@ describe('calculateEstimatedRange pure function', () => {
       unweightedGpa: '3.95'
     };
 
-    const range = calculateEstimatedRange(midStudent, mit);
+    const range = calculateEstimatedRange(midStudent, { ...mit, officialAcceptanceRate: 3.96 });
     expect(range).not.toBeNull();
     // 3.96 - 3.96 * 0.15 = 3.37 -> 3
     // 3.96 + 96.04 * 0.15 = 18.37 -> 18

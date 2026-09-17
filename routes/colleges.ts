@@ -33,6 +33,55 @@ collegesRouter.post(
     // Fetch school profiles from Supabase (falls back to local data automatically)
     const schoolProfiles = await getSchoolProfiles();
 
+    // Gemini suggestions are treated as candidates only. The official school
+    // profile supplies the name, rate, category, and location, which prevents
+    // hallucinated rates, cross-tier results, and duplicates.
+    const canonicalizeRecommendations = (candidate: any, local: any) => {
+      const allCandidates = [
+        ...(candidate?.reachRecommendations || []),
+        ...(candidate?.targetRecommendations || []),
+        ...(candidate?.safetyRecommendations || [])
+      ];
+      const byCategory: Record<'reach' | 'target' | 'safety', any[]> = { reach: [], target: [], safety: [] };
+      const seen = new Set<string>();
+      const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+      const findSchool = (item: any) => {
+        const itemName = normalize(item?.name || '');
+        return schoolProfiles.find((school) => school.schoolId === item?.id || normalize(school.name) === itemName || normalize(school.name).includes(itemName) || itemName.includes(normalize(school.name)));
+      };
+      const add = (item: any) => {
+        const school = findSchool(item);
+        if (!school || seen.has(school.schoolId)) return;
+        seen.add(school.schoolId);
+        const category = school.officialAcceptanceRate < 20 ? 'reach' : school.officialAcceptanceRate <= 55 ? 'target' : 'safety';
+        byCategory[category].push({
+          ...item,
+          id: school.schoolId,
+          name: school.name,
+          category,
+          officialAcceptanceRate: school.officialAcceptanceRate,
+          baselineAcceptanceRate: `${school.officialAcceptanceRate.toFixed(1)}%`,
+          location: school.location || item.location || '',
+          deadline: school.deadline || item.deadline || '',
+          round: school.round || item.round || '',
+          keyFactor: school.keyFactor || item.keyFactor || '',
+          strengthAlignment: school.strengthAlignment || item.strengthAlignment || 'high'
+        });
+      };
+      allCandidates.forEach(add);
+      [...(local?.reachRecommendations || []), ...(local?.targetRecommendations || []), ...(local?.safetyRecommendations || [])].forEach(add);
+      byCategory.reach.sort((a, b) => a.officialAcceptanceRate - b.officialAcceptanceRate);
+      byCategory.target.sort((a, b) => b.officialAcceptanceRate - a.officialAcceptanceRate);
+      byCategory.safety.sort((a, b) => b.officialAcceptanceRate - a.officialAcceptanceRate);
+      return {
+        ...local,
+        ...candidate,
+        reachRecommendations: byCategory.reach.slice(0, 2),
+        targetRecommendations: byCategory.target.slice(0, 4),
+        safetyRecommendations: byCategory.safety.slice(0, 4)
+      };
+    };
+
     const enrichWithProfileFit = (colleges: any[]) => {
       if (!Array.isArray(colleges)) return;
       for (const college of colleges) {
@@ -221,6 +270,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
         if (!parsed.reachRecommendations.length) parsed.reachRecommendations = local.reachRecommendations;
         if (!parsed.targetRecommendations.length) parsed.targetRecommendations = local.targetRecommendations;
         if (!parsed.safetyRecommendations.length) parsed.safetyRecommendations = local.safetyRecommendations;
+        parsed = canonicalizeRecommendations(parsed, local);
       }
 
       enrichWithProfileFit(parsed.reachRecommendations);

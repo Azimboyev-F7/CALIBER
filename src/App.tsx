@@ -84,6 +84,8 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved');
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+
 
   // Central Navigation handler with auth enforcement
   const handleNavigate = (targetScreen: ActiveScreen) => {
@@ -136,6 +138,7 @@ export default function App() {
             targetColleges: savedProfile.targetColleges?.length ? savedProfile.targetColleges : EMPTY_USER_PROFILE.targetColleges,
           };
           setUserProfile(next);
+          syncExistingStudentData(next);
         } else {
           // Session restored but no local profile — fetch from Supabase
           const token = await getSessionToken();
@@ -154,6 +157,7 @@ export default function App() {
               awards:     remoteHonors?.length     ? remoteHonors     : [],
             };
             setUserProfile(next);
+            syncExistingStudentData(next);
             try { localStorage.setItem(userProfileKey, JSON.stringify(next)); } catch {}
           } else {
             setUserProfile({ ...EMPTY_USER_PROFILE, name: user.name || '' });
@@ -192,6 +196,7 @@ export default function App() {
           targetColleges: savedProfile.targetColleges?.length ? savedProfile.targetColleges : EMPTY_USER_PROFILE.targetColleges,
         };
         setUserProfile(next);
+        syncExistingStudentData(next);
         try { localStorage.setItem(userProfileKey, JSON.stringify(next)); } catch {}
       } else {
         // First login — start with a clean empty profile, then load Supabase data if any
@@ -268,48 +273,33 @@ export default function App() {
     if (!token) return null;
     return {
       'Content-Type': 'application/json',
-      'x-api-key': 'caliber-secret-key',
       Authorization: `Bearer ${token}`,
     };
   };
 
-  const syncActivityToSupabase = async (activity: ActivityItem) => {
-    const headers = await studentApiHeaders();
-    if (!headers) return;
-    fetch('/api/student/activities', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(activity),
-    }).catch(() => {});
+  const syncStudentChange = async (path: string, method: 'POST' | 'DELETE', body?: unknown) => {
+    // Demo/offline accounts have no Supabase session, so their local profile
+    // should not be reported as a failed cloud save.
+    if (!currentUserRef.current || currentUserRef.current.id.startsWith('demo-') || currentUserRef.current.id.startsWith('applicant-')) return;
+    const owner = currentUserRef.current?.id;
+    try {
+      const headers = await studentApiHeaders();
+      if (!headers) return;
+      const response = await fetch(path, { method, headers, ...(body ? { body: JSON.stringify(body) } : {}) });
+      if (!response.ok) throw new Error('Cloud save failed. Your changes are saved on this device; try saving again.');
+    } catch (error) {
+      if (currentUserRef.current?.id === owner) setSyncError(error instanceof Error ? error.message : 'Cloud save failed.');
+    }
+  };
+  const syncActivityToSupabase = (activity: ActivityItem) => syncStudentChange('/api/student/activities', 'POST', activity);
+  const removeActivityFromSupabase = (id: string) => syncStudentChange('/api/student/activities/' + encodeURIComponent(id), 'DELETE');
+  const syncHonorToSupabase = (honor: AwardItem) => syncStudentChange('/api/student/honors', 'POST', honor);
+  const removeHonorFromSupabase = (id: string) => syncStudentChange('/api/student/honors/' + encodeURIComponent(id), 'DELETE');
+  const syncExistingStudentData = (profile: UserProfile) => {
+    profile.activities.forEach(syncActivityToSupabase);
+    profile.awards.forEach(syncHonorToSupabase);
   };
 
-  const removeActivityFromSupabase = async (id: string) => {
-    const headers = await studentApiHeaders();
-    if (!headers) return;
-    fetch(`/api/student/activities/${id}`, {
-      method: 'DELETE',
-      headers,
-    }).catch(() => {});
-  };
-
-  const syncHonorToSupabase = async (honor: AwardItem) => {
-    const headers = await studentApiHeaders();
-    if (!headers) return;
-    fetch('/api/student/honors', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(honor),
-    }).catch(() => {});
-  };
-
-  const removeHonorFromSupabase = async (id: string) => {
-    const headers = await studentApiHeaders();
-    if (!headers) return;
-    fetch(`/api/student/honors/${id}`, {
-      method: 'DELETE',
-      headers,
-    }).catch(() => {});
-  };
 
   // Activity handlers
   const handleAddActivity = (activity: ActivityItem) => {
@@ -341,6 +331,10 @@ export default function App() {
       const next = { ...prev, activities };
       triggerAutoSave(next);
       return next;
+    });
+    const previous = new Map(userProfile.activities.map((activity) => [activity.id, activity]));
+    activities.forEach((activity) => {
+      if (JSON.stringify(previous.get(activity.id)) !== JSON.stringify(activity)) syncActivityToSupabase(activity);
     });
   };
 
@@ -396,7 +390,7 @@ export default function App() {
     try {
       const response = await fetch('/api/analyze-profile', {
         method: 'POST',
-        headers: getApiHeaders(),
+        headers: await getApiHeaders(),
         body: JSON.stringify({ profile: userProfile })
       });
 
@@ -483,6 +477,9 @@ export default function App() {
   return (
     <CoachChatProvider userProfile={userProfile} analysis={analysisResult}>
       <div className="min-h-screen bg-[#0a0a0f] text-[#f1f5f9] flex flex-col font-sans relative selection:bg-indigo-500/30 selection:text-white">
+        {syncError && <div role="alert" className="fixed bottom-4 left-4 right-4 z-[100] rounded-xl bg-amber-950 border border-amber-500 p-4 text-amber-100">
+          {syncError}<button className="ml-4 underline" onClick={() => setSyncError(null)}>Dismiss</button>
+        </div>}
         {/* Global Ambient Glow Orbs for Frosted Glass depth */}
         <div className="fixed top-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none -z-10 animate-float"></div>
         <div className="fixed bottom-[-10%] right-[-5%] w-[650px] h-[650px] rounded-full bg-purple-600/10 blur-[150px] pointer-events-none -z-10 animate-float" style={{ animationDelay: '3s' }}></div>

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import { getGeminiClient, generateContentWithRetry } from '../services/gemini';
 import { validateBody, optimizeActivitySchema } from '../middleware/validation';
 import {
@@ -8,6 +9,15 @@ import {
 } from '../services/supabaseServer';
 
 export const activityRouter = Router();
+
+const optimizerRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test' || Boolean(process.env.VITEST),
+  message: { error: 'Please wait a moment before optimizing another activity.' }
+});
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 
@@ -22,12 +32,18 @@ async function resolveUserId(req: Request): Promise<string | null> {
   return data.user.id;
 }
 
+function getAccessToken(req: Request): string | undefined {
+  return req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.slice(7)
+    : undefined;
+}
+
 // ─── Student Activities ───────────────────────────────────────────────────────
 
 activityRouter.get('/student/activities', async (req: Request, res: Response) => {
   const userId = await resolveUserId(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  const activities = await getStudentActivities(userId);
+  const activities = await getStudentActivities(userId, getAccessToken(req));
   return res.json({ activities });
 });
 
@@ -38,7 +54,7 @@ activityRouter.post('/student/activities', async (req: Request, res: Response) =
   if (!activity?.id || !activity?.title) {
     return res.status(400).json({ error: 'activity.id and activity.title are required' });
   }
-  const saved = await upsertStudentActivity(userId, activity);
+  const saved = await upsertStudentActivity(userId, activity, getAccessToken(req));
   if (!saved) return res.status(500).json({ error: 'Failed to save activity' });
   return res.json({ activity: saved });
 });
@@ -46,7 +62,7 @@ activityRouter.post('/student/activities', async (req: Request, res: Response) =
 activityRouter.delete('/student/activities/:id', async (req: Request, res: Response) => {
   const userId = await resolveUserId(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  const ok = await deleteStudentActivity(userId, req.params.id);
+  const ok = await deleteStudentActivity(userId, req.params.id, getAccessToken(req));
   if (!ok) return res.status(500).json({ error: 'Failed to delete activity' });
   return res.json({ success: true });
 });
@@ -56,7 +72,7 @@ activityRouter.delete('/student/activities/:id', async (req: Request, res: Respo
 activityRouter.get('/student/honors', async (req: Request, res: Response) => {
   const userId = await resolveUserId(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  const honors = await getStudentHonors(userId);
+  const honors = await getStudentHonors(userId, getAccessToken(req));
   return res.json({ honors });
 });
 
@@ -67,7 +83,7 @@ activityRouter.post('/student/honors', async (req: Request, res: Response) => {
   if (!honor?.id || !honor?.title) {
     return res.status(400).json({ error: 'honor.id and honor.title are required' });
   }
-  const saved = await upsertStudentHonor(userId, honor);
+  const saved = await upsertStudentHonor(userId, honor, getAccessToken(req));
   if (!saved) return res.status(500).json({ error: 'Failed to save honor' });
   return res.json({ honor: saved });
 });
@@ -75,16 +91,16 @@ activityRouter.post('/student/honors', async (req: Request, res: Response) => {
 activityRouter.delete('/student/honors/:id', async (req: Request, res: Response) => {
   const userId = await resolveUserId(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  const ok = await deleteStudentHonor(userId, req.params.id);
+  const ok = await deleteStudentHonor(userId, req.params.id, getAccessToken(req));
   if (!ok) return res.status(500).json({ error: 'Failed to delete honor' });
   return res.json({ success: true });
 });
 
 // ─── AI Activity Optimizer ────────────────────────────────────────────────────
 
-activityRouter.post('/optimize-activity', validateBody(optimizeActivitySchema), async (req: Request, res: Response) => {
+activityRouter.post('/optimize-activity', optimizerRateLimiter, validateBody(optimizeActivitySchema), async (req: Request, res: Response) => {
   const { activityTitle, role, roughDescription } = req.body;
-  const defaultOptimization = `Orchestrated ${activityTitle || 'initiative'} as ${role || 'Lead'}: scaled engagement by 45%, led key project deliverables, and delivered measurable community outcomes.`;
+  const defaultOptimization = (roughDescription || [role, activityTitle].filter(Boolean).join(' — ')).slice(0, 150);
 
   try {
     const ai = getGeminiClient();
@@ -98,8 +114,8 @@ activityRouter.post('/optimize-activity', validateBody(optimizeActivitySchema), 
 
 Rules:
 - Start with a strong action verb (Led, Spearheaded, Founded, Directed, Designed, etc.)
-- Include at least one specific number or measurable outcome (e.g., "30+ members", "raised $2,400", "3rd place nationally")
-- If the draft has no numbers, invent a realistic plausible metric based on the activity type
+- Preserve only facts and numbers supplied by the student.
+- Never invent metrics, achievements, leadership roles, or outcomes. If details are missing, use a factual description without numbers.
 - Highlight leadership, initiative, or measurable impact
 - Must be UNDER 150 characters total
 - Return ONLY the final description — no quotes, no explanation, no extra text

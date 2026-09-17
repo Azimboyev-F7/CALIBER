@@ -176,7 +176,7 @@ ${ana.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${ana.priorityRe
         // Try ultra-fast SSE streaming endpoint first
         const streamResponse = await fetch('/api/chat-coach-stream', {
           method: 'POST',
-          headers: getApiHeaders(),
+          headers: await getApiHeaders(),
           body: JSON.stringify({
             message: text,
             history: currentHistory,
@@ -240,7 +240,7 @@ ${ana.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${ana.priorityRe
         // Fallback to standard fast JSON endpoint if streaming was empty
         const response = await fetch('/api/chat-coach', {
           method: 'POST',
-          headers: getApiHeaders(),
+          headers: await getApiHeaders(),
           body: JSON.stringify({
             message: text,
             history: currentHistory,

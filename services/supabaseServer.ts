@@ -24,10 +24,21 @@ function getServiceClient(): SupabaseClient | null {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
     console.warn('[Supabase Server] Missing SUPABASE_SERVICE_ROLE_KEY — falling back to anon client');
-    return getServerSupabaseClient();
+    return null;
   }
   _serviceClient = createClient(url, key, { auth: { persistSession: false } });
   return _serviceClient;
+}
+
+function getUserClient(accessToken?: string): SupabaseClient | null {
+  if (!accessToken) return null;
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${accessToken}` } }
+  });
 }
 
 // In-memory cache so we don't hit Supabase on every request
@@ -124,8 +135,8 @@ function rowToActivity(row: any): ActivityItem {
   };
 }
 
-export async function getStudentActivities(userId: string): Promise<ActivityItem[]> {
-  const supabase = getServiceClient();
+export async function getStudentActivities(userId: string, accessToken?: string): Promise<ActivityItem[]> {
+  const supabase = getUserClient(accessToken) || getServiceClient();
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('student_activities')
@@ -139,8 +150,8 @@ export async function getStudentActivities(userId: string): Promise<ActivityItem
   return (data ?? []).map(rowToActivity);
 }
 
-export async function upsertStudentActivity(userId: string, activity: ActivityItem): Promise<ActivityItem | null> {
-  const supabase = getServiceClient();
+export async function upsertStudentActivity(userId: string, activity: ActivityItem, accessToken?: string): Promise<ActivityItem | null> {
+  const supabase = getUserClient(accessToken) || getServiceClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('student_activities')
@@ -166,8 +177,8 @@ export async function upsertStudentActivity(userId: string, activity: ActivityIt
   return rowToActivity(data);
 }
 
-export async function deleteStudentActivity(userId: string, activityId: string): Promise<boolean> {
-  const supabase = getServiceClient();
+export async function deleteStudentActivity(userId: string, activityId: string, accessToken?: string): Promise<boolean> {
+  const supabase = getUserClient(accessToken) || getServiceClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from('student_activities')
@@ -193,8 +204,8 @@ function rowToHonor(row: any): AwardItem {
   };
 }
 
-export async function getStudentHonors(userId: string): Promise<AwardItem[]> {
-  const supabase = getServiceClient();
+export async function getStudentHonors(userId: string, accessToken?: string): Promise<AwardItem[]> {
+  const supabase = getUserClient(accessToken) || getServiceClient();
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('student_honors')
@@ -208,8 +219,8 @@ export async function getStudentHonors(userId: string): Promise<AwardItem[]> {
   return (data ?? []).map(rowToHonor);
 }
 
-export async function upsertStudentHonor(userId: string, honor: AwardItem): Promise<AwardItem | null> {
-  const supabase = getServiceClient();
+export async function upsertStudentHonor(userId: string, honor: AwardItem, accessToken?: string): Promise<AwardItem | null> {
+  const supabase = getUserClient(accessToken) || getServiceClient();
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('student_honors')
@@ -231,8 +242,8 @@ export async function upsertStudentHonor(userId: string, honor: AwardItem): Prom
   return rowToHonor(data);
 }
 
-export async function deleteStudentHonor(userId: string, honorId: string): Promise<boolean> {
-  const supabase = getServiceClient();
+export async function deleteStudentHonor(userId: string, honorId: string, accessToken?: string): Promise<boolean> {
+  const supabase = getUserClient(accessToken) || getServiceClient();
   if (!supabase) return false;
   const { error } = await supabase
     .from('student_honors')

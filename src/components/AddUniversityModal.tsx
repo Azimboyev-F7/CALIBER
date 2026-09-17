@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CollegeTarget, CollegeCategory, UserProfile } from '../types';
 import { UNIVERSITIES_DATABASE, UniversityInfo } from '../data/universitiesDatabase';
+import { filterUniversitiesByRate, getDirectoryCategory } from '../utils/universityDirectory';
 
 interface AddUniversityModalProps {
   isOpen: boolean;
@@ -62,10 +63,14 @@ export const AddUniversityModal: React.FC<AddUniversityModalProps> = ({
 
   const existingColleges = userProfile.targetColleges || [];
 
-  const parseAcceptanceRate = (rateStr: string): number | null => {
-    const match = rateStr.match(/[\d.]+/);
-    return match ? parseFloat(match[0]) : null;
-  };
+  useEffect(() => {
+    if (!isOpen) return;
+    setCategoryFilter(initialCategory || 'all');
+    setActiveTab(initialTab);
+    setSearchQuery('');
+    setCustomCategory(initialCategory || 'target');
+    setSelectedTiers({});
+  }, [isOpen, initialCategory, initialTab]);
 
   const filteredDirectory = useMemo(() => {
     const result = UNIVERSITIES_DATABASE.filter((uni) => {
@@ -78,28 +83,10 @@ export const AddUniversityModal: React.FC<AddUniversityModalProps> = ({
         uni.popularMajors.some((m) => m.toLowerCase().includes(q)) ||
         uni.keyStrengths.some((s) => s.toLowerCase().includes(q));
 
-      if (!matchesSearch) return false;
-      if (categoryFilter === 'all') return true;
-
-      const rate = parseAcceptanceRate(uni.acceptanceRate);
-      if (rate === null) {
-        const effectiveTier = selectedTiers[uni.id] || uni.category;
-        return effectiveTier === categoryFilter;
-      }
-
-      if (categoryFilter === 'reach')  return rate < 20;
-      if (categoryFilter === 'target') return rate >= 20 && rate <= 55;
-      if (categoryFilter === 'safety') return rate > 55;
-      return true;
+      return matchesSearch;
     });
-
-    // Sort by acceptance rate — ascending for reach/target/all, descending for safety
-    return result.sort((a, b) => {
-      const rA = parseAcceptanceRate(a.acceptanceRate) ?? 50;
-      const rB = parseAcceptanceRate(b.acceptanceRate) ?? 50;
-      return categoryFilter === 'safety' ? rB - rA : rA - rB;
-    });
-  }, [searchQuery, categoryFilter, selectedTiers]);
+    return filterUniversitiesByRate(result, categoryFilter);
+  }, [searchQuery, categoryFilter]);
 
   if (!isOpen) return null;
 
@@ -122,7 +109,7 @@ export const AddUniversityModal: React.FC<AddUniversityModalProps> = ({
       return;
     }
 
-    const tierToUse = selectedTiers[uni.id] || uni.category;
+    const tierToUse = selectedTiers[uni.id] || getDirectoryCategory(uni);
     const roundPreference = selectedRounds[uni.id] || (uni.deadlineEA_ED && !uni.deadlineEA_ED.toLowerCase().startsWith('none') ? 'ea_ed' : 'rd');
 
     const chosenRound = roundPreference === 'ea_ed' && uni.deadlineEA_ED && !uni.deadlineEA_ED.toLowerCase().startsWith('none')
@@ -369,7 +356,7 @@ export const AddUniversityModal: React.FC<AddUniversityModalProps> = ({
                       (c) => c.name.toLowerCase().trim() === uni.name.toLowerCase().trim()
                     );
 
-                    const currentChosenTier = selectedTiers[uni.id] || uni.category;
+                    const currentChosenTier = selectedTiers[uni.id] || getDirectoryCategory(uni);
                     const hasEA = uni.deadlineEA_ED && !uni.deadlineEA_ED.toLowerCase().startsWith('none');
                     const currentRoundPref = selectedRounds[uni.id] || (hasEA ? 'ea_ed' : 'rd');
 

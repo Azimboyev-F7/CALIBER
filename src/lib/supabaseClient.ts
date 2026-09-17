@@ -23,7 +23,7 @@ export const getSupabaseClient = (): SupabaseClient | null => {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: false,
+      detectSessionInUrl: true,
     },
   });
   console.info('[Supabase] Client initialized:', url);
@@ -286,24 +286,7 @@ export const resetPassword = async (email: string): Promise<{ success: boolean; 
     if (error) return { success: false, error: error.message };
     return { success: true, error: null };
   }
-  // Offline: just pretend it worked
-  return { success: true, error: null };
-};
-
-export const resetPasswordDirect = async (
-  email: string,
-  newPassword: string
-): Promise<{ success: boolean; error: string | null }> => {
-  if (newPassword.length < 6) return { success: false, error: 'New password must be at least 6 characters.' };
-
-  const trimmedEmail = email.trim().toLowerCase();
-  const accounts = getSavedAccounts();
-  const idx = accounts.findIndex((a) => a.email.toLowerCase() === trimmedEmail);
-  if (idx === -1) return { success: false, error: 'No account found with that email address.' };
-
-  accounts[idx].password = newPassword;
-  localStorage.setItem(LOCAL_ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
-  return { success: true, error: null };
+  return { success: false, error: 'Password recovery is unavailable. Please try again later.' };
 };
 
 // ─── Session restore on startup ───────────────────────────────────────────────
@@ -340,5 +323,6 @@ export const syncSessionFromSupabase = async (): Promise<AuthUser | null> => {
     console.warn('[Supabase] Could not restore session:', e);
   }
 
-  return getStoredAuthUser();
+  setStoredAuthUser(null);
+  return null;
 };

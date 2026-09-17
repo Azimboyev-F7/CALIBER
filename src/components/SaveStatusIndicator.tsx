@@ -54,14 +54,14 @@ export const SaveStatusIndicator: React.FC<SaveStatusIndicatorProps> = ({
             title={
               hasUnsavedChanges
                 ? 'All profile changes saved locally. Ready to run AI analysis.'
-                : 'All changes saved.'
+                : 'Profile changes saved on this device.'
             }
           >
             <span className="material-symbols-outlined text-[13.5px] text-emerald-400">
               cloud_done
             </span>
             <span className="text-[11.5px] font-medium text-slate-300">
-              Changes saved
+              Saved on this device
             </span>
 
             {hasUnsavedChanges && !compact && (

@@ -36,19 +36,20 @@ export const ActivitiesView: React.FC<ActivitiesViewProps> = ({
     try {
       const res = await fetch('/api/optimize-activity', {
         method: 'POST',
-        headers: getApiHeaders(),
+        headers: await getApiHeaders(),
         body: JSON.stringify({
           activityTitle: selectedActivity.title,
           role: selectedActivity.role,
           roughDescription: draftDescription
         })
       });
+      if (!res.ok) throw new Error(`Optimizer request failed (${res.status})`);
       const data = await res.json();
-      setAiSuggestion(data.optimizedText);
+      if (!data.optimizedText) throw new Error('Optimizer returned no description');
+      setAiSuggestion(String(data.optimizedText).slice(0, 150));
     } catch (e) {
-      setAiSuggestion(
-        `Spearheaded ${selectedActivity.title} as ${selectedActivity.role}: expanded initiatives by 35%, drove structured outcomes, and mentored 15+ junior members.`
-      );
+      const source = draftDescription.trim() || [selectedActivity.role, selectedActivity.title].filter(Boolean).join(' — ');
+      setAiSuggestion(source.slice(0, 150));
     } finally {
       setIsOptimizing(false);
     }

@@ -146,7 +146,7 @@ export function calculateEstimatedRange(
 
   // If student profile was provided, check if SAT or GPA is missing
   if (studentProfileOrFit && typeof studentProfileOrFit === 'object') {
-    if ('satScore' in studentProfileOrFit || 'unweightedGpa' in studentProfileOrFit) {
+    if (!('satPercentilePosition' in studentProfileOrFit)) {
       const rawSat = studentProfileOrFit?.satScore;
       const studentSat = rawSat ? parseInt(String(rawSat).replace(/[^0-9]/g, ''), 10) : NaN;
       const rawGpa = studentProfileOrFit?.unweightedGpa;
@@ -717,14 +717,20 @@ export function generateIntelligentCollegeRecommendations(
   // when a school's category tag disagrees with its rate.
   const reaches = regionalSchools
     .filter((s) => s.officialAcceptanceRate < 20)
+    .sort((a, b) => a.officialAcceptanceRate - b.officialAcceptanceRate)
+    .slice(0, 2)
     .map((s) => resolveSchool(s, major, profile));
 
   const targets = regionalSchools
     .filter((s) => s.officialAcceptanceRate >= 20 && s.officialAcceptanceRate <= 55)
+    .sort((a, b) => b.officialAcceptanceRate - a.officialAcceptanceRate)
+    .slice(0, 4)
     .map((s) => resolveSchool(s, major, profile));
 
   const safeties = regionalSchools
     .filter((s) => s.officialAcceptanceRate > 55)
+    .sort((a, b) => b.officialAcceptanceRate - a.officialAcceptanceRate)
+    .slice(0, 4)
     .map((s) => resolveSchool(s, major, profile));
 
   return {

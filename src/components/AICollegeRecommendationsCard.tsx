@@ -1,3 +1,5 @@
+import { getStoredAuthUser } from '../lib/supabaseClient';
+import { getDirectoryCategory, filterUniversitiesByRate } from '../utils/universityDirectory';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { 
@@ -28,8 +30,8 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
   const effectiveMajor = userProfile.intendedMajor || 'Computer Science';
 
   // Generate unique profile fingerprint to detect changes.
-  // v2: bump version when backend country-validation logic changes to bust stale cached results.
-  const profileKey = `v2-${userProfile.unweightedGpa}-${userProfile.ieltsScore || ''}-${effectiveRegion}-${userProfile.budgetPerYear || ''}-${userProfile.satScore}-${userProfile.apIbHonorsCount}-${effectiveMajor}-${userProfile.activities.length}`;
+  // Include all relevant profile content and the account to avoid stale or cross-account results.
+  const profileKey = JSON.stringify({ userId: getStoredAuthUser()?.id || 'demo', ...userProfile, targetColleges: undefined, analysisHistory: undefined, lastAnalyzedDate: undefined });
 
   const [recommendations, setRecommendations] = useState<CollegeRecommendationsResult | null>(() => {
     try {
@@ -59,12 +61,12 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
       intendedMajor: majorToSend
     };
 
-    const currentKey = `v2-${modifiedProfile.unweightedGpa}-${modifiedProfile.ieltsScore || ''}-${regionToSend}-${modifiedProfile.budgetPerYear || ''}-${modifiedProfile.satScore}-${modifiedProfile.apIbHonorsCount}-${majorToSend}-${modifiedProfile.activities.length}`;
+    const currentKey = JSON.stringify({ userId: getStoredAuthUser()?.id || 'demo', ...userProfile, targetColleges: undefined, analysisHistory: undefined, lastAnalyzedDate: undefined });
 
     try {
       const res = await fetch('/api/recommend-colleges', {
         method: 'POST',
-        headers: getApiHeaders(),
+        headers: await getApiHeaders(),
         body: JSON.stringify({ 
           profile: modifiedProfile,
           filterRegion: regionToSend
@@ -163,16 +165,19 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
     onShowToast?.(`Added ${rec.name} to your ${rec.category.toUpperCase()} universities!`);
   };
 
-  const reaches = recommendations?.reachRecommendations || [];
-  const targets = recommendations?.targetRecommendations || [];
-  const safeties = recommendations?.safetyRecommendations || [];
-
-  const rawDisplayList: RecommendedCollege[] = useMemo(() => {
-    if (activeTab === 'reach') return reaches;
-    if (activeTab === 'target') return targets;
-    if (activeTab === 'safety') return safeties;
-    return [...reaches, ...targets, ...safeties];
-  }, [activeTab, reaches, targets, safeties]);
+  const normalizedRecommendations = useMemo(() => [
+    ...(recommendations?.reachRecommendations || []),
+    ...(recommendations?.targetRecommendations || []),
+    ...(recommendations?.safetyRecommendations || [])
+  ].map((rec) => ({
+    ...rec,
+    acceptanceRate: rec.baselineAcceptanceRate,
+    category: getDirectoryCategory({ acceptanceRate: rec.baselineAcceptanceRate, category: rec.category })
+  })), [recommendations]);
+  const reaches = filterUniversitiesByRate(normalizedRecommendations, 'reach');
+  const targets = filterUniversitiesByRate(normalizedRecommendations, 'target');
+  const safeties = filterUniversitiesByRate(normalizedRecommendations, 'safety');
+  const rawDisplayList = filterUniversitiesByRate(normalizedRecommendations, activeTab);
 
   const isStale = lastFetchedKey !== '' && lastFetchedKey !== profileKey;
 

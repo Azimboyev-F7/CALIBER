@@ -1,7 +1,11 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../server';
-import { DEFAULT_API_KEY } from '../middleware/auth';
+vi.mock('../services/supabaseServer', () => ({
+  getServerSupabaseClient: () => ({ auth: { getUser: async (token: string) => token === 'valid-session'
+    ? { data: { user: { id: 'student-1' } }, error: null }
+    : { data: { user: null }, error: new Error('Invalid token') } } })
+}));
 
 describe('API Security & Validation Middleware', () => {
   let app: any;
@@ -9,7 +13,7 @@ describe('API Security & Validation Middleware', () => {
   beforeAll(() => {
     process.env.NODE_ENV = 'test';
     process.env.GEMINI_API_KEY = '';
-    process.env.APP_API_KEY = DEFAULT_API_KEY;
+
     delete process.env.API_KEY;
     app = createApp();
   });
@@ -40,10 +44,10 @@ describe('API Security & Validation Middleware', () => {
       expect(res.body.error).toBe('Unauthorized');
     });
 
-    it('accepts requests with a valid API key', async () => {
+    it('accepts requests with a verified user session', async () => {
       const res = await request(app)
         .post('/api/optimize-activity')
-        .set('x-api-key', DEFAULT_API_KEY)
+        .set('Authorization', 'Bearer valid-session')
         .send({
           activityTitle: 'Robotics Team',
           role: 'Lead Programmer',
@@ -52,12 +56,13 @@ describe('API Security & Validation Middleware', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.optimizedText).toBeDefined();
+      expect(res.body.optimizedText).not.toContain('45%');
     });
 
-    it('accepts valid API key in Authorization Bearer format', async () => {
+    it('returns a factual fallback without invented metrics', async () => {
       const res = await request(app)
         .post('/api/optimize-activity')
-        .set('Authorization', `Bearer ${DEFAULT_API_KEY}`)
+        .set('Authorization', 'Bearer valid-session')
         .send({
           activityTitle: 'Science Fair',
           role: 'Researcher',
@@ -69,11 +74,17 @@ describe('API Security & Validation Middleware', () => {
     });
   });
 
+  it('rejects the public shared key even when presented as a bearer token', async () => {
+    const res = await request(app).post('/api/optimize-activity')
+      .set('Authorization', 'Bearer caliber-secret-key').send({});
+    expect(res.status).toBe(401);
+  });
+
   describe('Input Validation Middleware', () => {
     it('rejects chat request with empty body with 400 Validation Error', async () => {
       const res = await request(app)
         .post('/api/chat-coach')
-        .set('x-api-key', DEFAULT_API_KEY)
+        .set('Authorization', 'Bearer valid-session')
         .send({});
 
       expect(res.status).toBe(400);
@@ -84,7 +95,7 @@ describe('API Security & Validation Middleware', () => {
     it('rejects chat request with empty string message with 400', async () => {
       const res = await request(app)
         .post('/api/chat-coach')
-        .set('x-api-key', DEFAULT_API_KEY)
+        .set('Authorization', 'Bearer valid-session')
         .send({ message: '   ' });
 
       expect(res.status).toBe(400);
@@ -94,7 +105,7 @@ describe('API Security & Validation Middleware', () => {
     it('rejects analyze-profile request missing profile object with 400', async () => {
       const res = await request(app)
         .post('/api/analyze-profile')
-        .set('x-api-key', DEFAULT_API_KEY)
+        .set('Authorization', 'Bearer valid-session')
         .send({});
 
       expect(res.status).toBe(400);
