@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -6,6 +6,8 @@ interface UpgradeModalProps {
 }
 
 export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
+  const [contactMessageVisible, setContactMessageVisible] = useState(false);
+
   if (!isOpen) return null;
 
   return (
@@ -58,13 +60,25 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
             </ul>
             <button
               onClick={() => {
-                alert('Thank you for choosing Caliber Pro! Premium unlocked.');
-                onClose();
+                setContactMessageVisible(true);
               }}
               className="w-full py-2.5 glass-btn-primary font-bold rounded-xl text-[12px] cursor-pointer"
             >
               Start 7-Day Free Trial
             </button>
+            {contactMessageVisible && (
+              <div className="rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-3 py-2.5 text-[12px] text-indigo-100 leading-relaxed">
+                To subscribe, contact our CEO on Telegram:{' '}
+                <a
+                  href="https://t.me/Azimboyev_F7"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-bold text-white underline underline-offset-2 hover:text-indigo-200"
+                >
+                  @Azimboyev_F7
+                </a>
+              </div>
+            )}
           </div>
         </div>
 

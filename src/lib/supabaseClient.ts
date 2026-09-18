@@ -92,6 +92,23 @@ const saveAccount = (acc: SavedAccount) => {
   }
 };
 
+const refreshSavedAccount = (user: AuthUser) => {
+  try {
+    const accounts = getSavedAccounts();
+    const existing = accounts.find((account) => account.user.id === user.id);
+    const next = accounts.filter((account) => account.user.id !== user.id);
+    next.push({
+      ...(existing || {}),
+      email: user.email,
+      username: user.username,
+      user,
+    });
+    localStorage.setItem(LOCAL_ACCOUNTS_STORAGE_KEY, JSON.stringify(next));
+  } catch (e) {
+    console.warn('Error refreshing cached account:', e);
+  }
+};
+
 // ─── Auth user helpers ────────────────────────────────────────────────────────
 
 export const mapSupabaseUser = (user: any): AuthUser | null => {
@@ -129,6 +146,55 @@ export const setStoredAuthUser = (user: AuthUser | null) => {
     }
   } catch (e) {
     console.error('Error saving stored user:', e);
+  }
+};
+
+export interface AccountUpdate {
+  email?: string;
+  password?: string;
+  name?: string;
+  username?: string;
+}
+
+export const updateSupabaseAccount = async (
+  updates: AccountUpdate
+): Promise<{ user: AuthUser | null; error: string | null; emailChangePending: boolean }> => {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { user: null, error: 'Account updates are unavailable right now. Please try again later.', emailChangePending: false };
+  }
+
+  const payload: {
+    email?: string;
+    password?: string;
+    data?: Record<string, string>;
+  } = {};
+  if (updates.email) payload.email = updates.email;
+  if (updates.password) payload.password = updates.password;
+
+  const metadata: Record<string, string> = {};
+  if (updates.name !== undefined) metadata.name = updates.name;
+  if (updates.username !== undefined) metadata.username = updates.username;
+  if (Object.keys(metadata).length > 0) payload.data = metadata;
+
+  try {
+    const { data, error } = await supabase.auth.updateUser(payload);
+    if (error) return { user: null, error: error.message, emailChangePending: false };
+    const user = mapSupabaseUser(data.user);
+    if (!user) return { user: null, error: 'Your account was updated, but the refreshed account data was unavailable.', emailChangePending: false };
+    setStoredAuthUser(user);
+    refreshSavedAccount(user);
+    return {
+      user,
+      error: null,
+      emailChangePending: Boolean((data.user as any)?.new_email),
+    };
+  } catch (error) {
+    return {
+      user: null,
+      error: error instanceof Error ? error.message : 'Could not update your account. Please try again.',
+      emailChangePending: false,
+    };
   }
 };
 

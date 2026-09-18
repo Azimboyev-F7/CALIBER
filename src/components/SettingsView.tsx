@@ -1,25 +1,94 @@
 import React, { useState } from 'react';
-import { ActiveScreen, CollegeTarget, UserProfile } from '../types';
+import { ActiveScreen, AuthUser, CollegeTarget, UserProfile } from '../types';
 import { INITIAL_USER_PROFILE } from '../data/initialData';
+import { updateSupabaseAccount } from '../lib/supabaseClient';
 
 interface SettingsViewProps {
   userProfile: UserProfile;
+  currentUser: AuthUser | null;
   onUpdateProfile: (updated: Partial<UserProfile>) => void;
+  onAccountChange: (updated: AuthUser) => void;
   onNavigate: (screen: ActiveScreen) => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   userProfile,
+  currentUser,
   onUpdateProfile,
+  onAccountChange,
 }) => {
   const [newCollegeName, setNewCollegeName] = useState('');
   const [newCollegeCategory, setNewCollegeCategory] = useState<'reach' | 'target' | 'safety'>('reach');
   const [newCollegeRate, setNewCollegeRate] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [accountName, setAccountName] = useState(currentUser?.name || '');
+  const [accountUsername, setAccountUsername] = useState(currentUser?.username || '');
+  const [accountEmail, setAccountEmail] = useState(currentUser?.email || '');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setAccountName(currentUser?.name || '');
+    setAccountUsername(currentUser?.username || '');
+    setAccountEmail(currentUser?.email || '');
+  }, [currentUser?.id, currentUser?.name, currentUser?.username, currentUser?.email]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleSaveAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    const name = accountName.trim();
+    const username = accountUsername.trim().replace(/^@/, '');
+    const email = accountEmail.trim();
+    setAccountError(null);
+
+    if (!name || !username || !email) {
+      setAccountError('Name, username, and email are required.');
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setAccountError('Please enter a valid email address.');
+      return;
+    }
+    if (newPassword && newPassword.length < 6) {
+      setAccountError('Your new password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setAccountError('The passwords do not match.');
+      return;
+    }
+
+    const updates = {
+      ...(name !== (currentUser.name || '') ? { name } : {}),
+      ...(username !== (currentUser.username || '') ? { username } : {}),
+      ...(email.toLowerCase() !== (currentUser.email || '').toLowerCase() ? { email } : {}),
+      ...(newPassword ? { password: newPassword } : {}),
+    };
+    if (Object.keys(updates).length === 0) {
+      showToast('No account changes to save.');
+      return;
+    }
+
+    setIsSavingAccount(true);
+    const result = await updateSupabaseAccount(updates);
+    setIsSavingAccount(false);
+    if (result.error || !result.user) {
+      setAccountError(result.error || 'Could not update your account.');
+      return;
+    }
+
+    onAccountChange(result.user);
+    setNewPassword('');
+    setConfirmPassword('');
+    showToast(result.emailChangePending ? 'Account updated. Confirm your new email address.' : 'Account updated successfully.');
   };
 
   const handleAddCollege = (e: React.FormEvent) => {
@@ -84,6 +153,46 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Profile Settings */}
         <div className="lg:col-span-5 space-y-5">
+          <form onSubmit={handleSaveAccount} className="glass-card rounded-2xl p-5 md:p-6 space-y-4 shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
+            <div>
+              <h3 className="text-[16px] font-bold text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-400 text-[18px]">manage_accounts</span>
+                Account Settings
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-1">Update the account details connected to Supabase.</p>
+            </div>
+
+            <div className="space-y-3.5">
+              <div>
+                <label className="block text-[12px] text-slate-300 font-medium mb-1">Name</label>
+                <input type="text" value={accountName} onChange={(e) => setAccountName(e.target.value)} className="input-minimal w-full px-3 py-2 text-[13px]" />
+              </div>
+              <div>
+                <label className="block text-[12px] text-slate-300 font-medium mb-1">Username</label>
+                <input type="text" value={accountUsername} onChange={(e) => setAccountUsername(e.target.value)} className="input-minimal w-full px-3 py-2 text-[13px]" />
+              </div>
+              <div>
+                <label className="block text-[12px] text-slate-300 font-medium mb-1">Email</label>
+                <input type="email" value={accountEmail} onChange={(e) => setAccountEmail(e.target.value)} className="input-minimal w-full px-3 py-2 text-[13px]" />
+              </div>
+              <div>
+                <label className="block text-[12px] text-slate-300 font-medium mb-1">New Password</label>
+                <input type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Leave blank to keep current password" className="input-minimal w-full px-3 py-2 text-[13px]" />
+              </div>
+              <div>
+                <label className="block text-[12px] text-slate-300 font-medium mb-1">Confirm New Password</label>
+                <input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="input-minimal w-full px-3 py-2 text-[13px]" />
+              </div>
+            </div>
+
+            {accountError && <p className="text-[12px] text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">{accountError}</p>}
+            <div className="flex justify-end pt-1">
+              <button type="submit" disabled={isSavingAccount} className="px-4 py-2 glass-btn-primary text-[12px] font-bold rounded-xl cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                {isSavingAccount ? 'Saving...' : 'Save Account Changes'}
+              </button>
+            </div>
+          </form>
+
           <div className="glass-card rounded-2xl p-5 md:p-6 space-y-4 shadow-[0_6px_24px_0_rgba(0,0,0,0.32)]">
             <h3 className="text-[16px] font-bold text-white flex items-center gap-2">
               <span className="material-symbols-outlined text-indigo-400 text-[18px]">person</span>

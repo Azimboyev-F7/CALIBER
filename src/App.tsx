@@ -9,7 +9,7 @@ import { ResultsView } from './components/ResultsView';
 import { ActivitiesView } from './components/ActivitiesView';
 import { AdmissionsCoachView } from './components/AdmissionsCoachView';
 import { UniversitiesView } from './components/UniversitiesView';
-import { FloatingCoachWidget } from './components/FloatingCoachWidget';
+import { FloatingCoachWidget, resetFloatingCoachMessageSession } from './components/FloatingCoachWidget';
 import { SettingsView } from './components/SettingsView';
 import { AuthView } from './components/AuthView';
 import { AddActivityModal } from './components/AddActivityModal';
@@ -188,6 +188,7 @@ export default function App() {
 
   const handleSignOut = async () => {
     await signOutUser();
+    resetFloatingCoachMessageSession();
     currentUserRef.current = null;
     setCurrentUser(null);
     setPendingScreen(null);
@@ -195,6 +196,7 @@ export default function App() {
   };
 
   const handleUserChange = async (user: AuthUser | null, targetScreen?: ActiveScreen) => {
+    if (user) resetFloatingCoachMessageSession();
     currentUserRef.current = user;
     setCurrentUser(user);
 
@@ -308,6 +310,14 @@ export default function App() {
       if (!response.ok) throw new Error('Cloud save failed. Your changes are saved on this device; try saving again.');
     } catch (error) {
       if (currentUserRef.current?.id === owner) setSyncError(error instanceof Error ? error.message : 'Cloud save failed.');
+    }
+  };
+
+  const handleAccountChange = (user: AuthUser) => {
+    currentUserRef.current = user;
+    setCurrentUser(user);
+    if (user.name && user.name !== userProfile.name) {
+      handleUpdateProfile({ name: user.name });
     }
   };
   const syncActivityToSupabase = (activity: ActivityItem) => syncStudentChange('/api/student/activities', 'POST', activity);
@@ -799,7 +809,9 @@ export default function App() {
                 {activeScreen === 'settings' && (
                   <SettingsView
                     userProfile={userProfile}
+                    currentUser={currentUser}
                     onUpdateProfile={handleUpdateProfile}
+                    onAccountChange={handleAccountChange}
                     onNavigate={handleNavigate}
                   />
                 )}
@@ -816,10 +828,12 @@ export default function App() {
             {/* Floating AI Coach Quick Access Widget appears after the profile is started. */}
             {!isProfileIncomplete && (
               <FloatingCoachWidget
+                key={currentUser?.id || 'guest'}
                 currentScreen={activeScreen}
                 onNavigate={handleNavigate}
                 userProfile={userProfile}
                 analysis={analysisResult}
+                username={currentUser?.username || currentUser?.name}
               />
             )}
           </div>
