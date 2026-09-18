@@ -22,12 +22,16 @@ interface CoachChatContextType {
 const CoachChatContext = createContext<CoachChatContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'caliber_coach_messages_v4';
+const getStorageKey = (scope: string) => `${STORAGE_KEY}_${scope}`;
 
 export const CoachChatProvider: React.FC<{
   children: React.ReactNode;
   userProfile: UserProfile;
   analysis: AnalysisResult;
-}> = ({ children, userProfile, analysis }) => {
+  storageScope: string;
+}> = ({ children, userProfile, analysis, storageScope }) => {
+  const storageKey = getStorageKey(storageScope || 'guest');
+  const loadedStorageKeyRef = useRef<string | null>(storageKey);
   const profileRef = useRef(userProfile);
   const analysisRef = useRef(analysis);
 
@@ -98,7 +102,7 @@ ${ana.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${ana.priorityRe
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -120,6 +124,22 @@ ${ana.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${ana.priorityRe
 
   const [isLoading, setIsLoading] = useState(false);
   const [activePrompt, setActivePrompt] = useState('');
+
+  // Switch conversations immediately when the authenticated account changes.
+  useEffect(() => {
+    loadedStorageKeyRef.current = storageKey;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setMessages(parsed);
+      } else {
+        setMessages([{ id: 'initial-coach-greeting', sender: 'coach', text: buildInitialGreeting(userProfile, analysis), timestamp: 'Just now' }]);
+      }
+    } catch {
+      setMessages([{ id: 'initial-coach-greeting', sender: 'coach', text: buildInitialGreeting(userProfile, analysis), timestamp: 'Just now' }]);
+    }
+  }, [storageKey]);
 
   // Keep initial briefing message dynamically linked to live profile & analysis updates
   useEffect(() => {
@@ -143,11 +163,13 @@ ${ana.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${ana.priorityRe
   // Persist messages across screen transitions and page reloads
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+      if (loadedStorageKeyRef.current === storageKey) {
+        localStorage.setItem(storageKey, JSON.stringify(messages));
+      }
     } catch (e) {
       console.warn('Could not persist coach chat:', e);
     }
-  }, [messages]);
+  }, [messages, storageKey]);
 
   const sendMessage = useCallback(
     async (textToSend?: string, customProfile?: UserProfile, customAnalysis?: AnalysisResult) => {
@@ -306,11 +328,11 @@ ${ana.priorityRecommendation?.title ? `> 🎯 **Key Strategy:** ${ana.priorityRe
     };
     setMessages([initialMsg]);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([initialMsg]));
+      localStorage.setItem(storageKey, JSON.stringify([initialMsg]));
     } catch (e) {
       console.warn('Could not reset coach chat storage:', e);
     }
-  }, [analysis, buildInitialGreeting, userProfile]);
+  }, [analysis, buildInitialGreeting, storageKey, userProfile]);
 
   return (
     <CoachChatContext.Provider

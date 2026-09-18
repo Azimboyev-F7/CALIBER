@@ -10,6 +10,8 @@ import { chatRouter } from './routes/chat';
 import { analysisRouter } from './routes/analysis';
 import { activityRouter } from './routes/activity';
 import { collegesRouter } from './routes/colleges';
+import { analyticsRouter } from './routes/analytics';
+import { trackSuccessfulAction } from './services/analytics';
 
 /**
  * Express application factory for app setup, middleware registration, and route mounting.
@@ -39,6 +41,8 @@ export function createApp() {
 
   // Authentication guard for all protected /api/* endpoints
   app.use('/api', authMiddleware);
+  app.use('/api', trackSuccessfulAction);
+  app.use('/api', analyticsRouter);
 
   // Mount API route modules
   app.use('/api', chatRouter);

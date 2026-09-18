@@ -1,4 +1,4 @@
-export type ActiveScreen = 'landing' | 'dashboard' | 'builder' | 'activities' | 'results' | 'settings' | 'coach' | 'colleges' | 'auth';
+export type ActiveScreen = 'landing' | 'dashboard' | 'builder' | 'activities' | 'results' | 'settings' | 'coach' | 'colleges' | 'admin' | 'auth';
 
 export interface AuthUser {
   id: string;
@@ -7,6 +7,7 @@ export interface AuthUser {
   name?: string;
   avatarUrl?: string;
   created_at?: string;
+  role?: string;
 }
 
 export type ActivityCategory = 
@@ -68,6 +69,8 @@ export interface ProfileFit {
   satPercentilePosition: 'below 25th' | 'within middle 50%' | 'above 75th' | null;
   gpaComparison: string | null;
   topWeightedFactors: string[];
+  activityStrengthScore?: number;
+  honorsStrengthScore?: number;
 }
 
 export interface CollegeTarget {

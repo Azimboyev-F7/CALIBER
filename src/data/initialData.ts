@@ -435,37 +435,37 @@ export const INITIAL_USER_PROFILE: UserProfile = {
 };
 
 export const INITIAL_ANALYSIS_RESULT: AnalysisResult = {
-  overallRating: 'Strong',
-  aiInsight: '"Your profile shows impressive depth in STEM and research. Focusing on a leadership role in your senior year could elevate you to Standout."',
-  academicRigorScore: 88,
-  extracurricularDepthScore: 74,
-  narrativeCohesionScore: 68,
-  academicPercentileText: 'Top 12% among peers applying to target schools.',
-  ecPercentileText: 'Solid foundation, requires more focused leadership.',
-  spikeCategory: 'RESEARCH + LEADERSHIP',
-  spikeDescription: 'Your combination of competitive science fair wins and student government roles defines your profile. This intersection of rigorous academic inquiry and community influence is highly attractive to top-tier institutions.',
+  overallRating: 'Developing',
+  aiInsight: '"Your profile is ready for more information. Add your activities and honors to receive a meaningful admissions assessment."',
+  academicRigorScore: 50,
+  extracurricularDepthScore: 40,
+  narrativeCohesionScore: 50,
+  academicPercentileText: 'Academic comparison is not available yet.',
+  ecPercentileText: 'Add activities and honors to evaluate extracurricular depth.',
+  spikeCategory: 'PROFILE DATA NEEDED',
+  spikeDescription: 'Your admissions assessment will become more useful after you add your activities, leadership, and honors.',
   keyStrengths: [
     {
-      title: 'AP Course Load',
-      description: 'Maximized available rigorous courses.'
+      title: 'Academic information pending',
+      description: 'Add your GPA and testing information to begin the academic comparison.'
     },
     {
-      title: 'State-Level Awards',
-      description: 'Two major science fair placements.'
+      title: 'Activities pending',
+      description: 'No extracurricular activities have been added yet.'
     },
     {
-      title: 'Consistent Activity',
-      description: '3+ years in primary extracurriculars.'
+      title: 'Honors pending',
+      description: 'Add honors and awards to complete the profile assessment.'
     }
   ],
   gapsToAddress: [
     {
-      title: 'No community service',
-      suggestion: 'Consider 20+ hours of local volunteering aligned with your interests (e.g., tutoring STEM).'
+      title: 'Activities not added yet',
+      suggestion: 'Add your activities, roles, time commitments, and impact before making strategy decisions.'
     },
     {
-      title: 'Lacking Letters of Rec Strategy',
-      suggestion: 'Identify 2 teachers this semester and cultivate relationships through office hours.'
+      title: 'Honors not added yet',
+      suggestion: 'Add your honors and awards so the assessment can account for external recognition.'
     }
   ],
   immediateNextSteps: [
@@ -486,8 +486,8 @@ export const INITIAL_ANALYSIS_RESULT: AnalysisResult = {
     }
   ],
   priorityRecommendation: {
-    title: 'Strengthen Narrative Cohesion',
-    description: 'Your individual achievements are strong, but the thematic connection between your Robotics Club leadership and your local community service project is unclear. Consider drafting an essay outline that bridges these interests.'
+      title: 'Complete your profile data',
+      description: 'Add activities and honors before making decisions based on the admissions assessment.'
   }
 };
 
@@ -517,13 +517,15 @@ export function computeLocalAnalysis(profile: UserProfile): AnalysisResult {
   const nationalAwards = profile.awards.filter(a => a.level === 'National' || a.level === 'International').length;
   const stateAwards = profile.awards.filter(a => a.level === 'State' || a.level === 'Regional').length;
 
-  let ecScore = 55;
-  if (totalHours >= 20) ecScore += 15;
-  else if (totalHours >= 12) ecScore += 10;
-  else ecScore += 5;
+  let ecScore = profile.activities.length === 0 ? 40 : 55;
+  if (profile.activities.length > 0) {
+    if (totalHours >= 20) ecScore += 15;
+    else if (totalHours >= 12) ecScore += 10;
+    else ecScore += 5;
 
-  if (leadershipCount >= 2) ecScore += 14;
-  else if (leadershipCount >= 1) ecScore += 8;
+    if (leadershipCount >= 2) ecScore += 14;
+    else if (leadershipCount >= 1) ecScore += 8;
+  }
 
   if (nationalAwards >= 1) ecScore += 15;
   else if (stateAwards >= 1) ecScore += 10;
@@ -544,16 +546,21 @@ export function computeLocalAnalysis(profile: UserProfile): AnalysisResult {
   if (avg >= 92) overallRating = 'Exceptional';
   if (avg < 72) overallRating = 'Developing';
 
+  const hasActivities = profile.activities.length > 0;
+  const hasAwards = profile.awards.length > 0;
+
   return {
     overallRating,
-    aiInsight: `"Your profile shows impressive depth in ${profile.intendedMajor.toUpperCase()} and extracurricular initiatives. Focusing on narrative cohesion and elevating senior leadership will position you strongly for top-tier admissions."`,
+    aiInsight: hasActivities
+      ? `"Your profile shows a developing foundation in ${profile.intendedMajor || 'your intended field'}. Focus on measurable impact and leadership so your activities support a clear admissions narrative."`
+      : `"Your academic information is recorded, but no activities have been added yet. Add your activities${hasAwards ? ' and leadership details' : ' and honors'} to receive a meaningful admissions assessment."`,
     academicRigorScore: academicScore,
     extracurricularDepthScore: ecScore,
     narrativeCohesionScore: cohesionScore,
     academicPercentileText: `Top ${Math.max(4, Math.round(100 - academicScore * 0.95))}% among peers applying to target schools.`,
-    ecPercentileText: totalHours >= 15 ? 'Solid foundation, demonstrates impactful continuity.' : 'Growing foundation, requires more focused leadership.',
-    spikeCategory: leadershipCount >= 2 ? 'RESEARCH + LEADERSHIP' : 'TECHNICAL INQUIRY & SCHOLARSHIP',
-    spikeDescription: `Your combination of ${profile.awards[0]?.title || 'competitive academic milestones'} and key extracurricular commitments defines your profile. This focus is highly attractive to admissions committees.`,
+    ecPercentileText: hasActivities ? (totalHours >= 15 ? 'Solid foundation, demonstrates impactful continuity.' : 'Growing foundation, requires more focused leadership.') : 'Add activities to evaluate extracurricular depth.',
+    spikeCategory: hasActivities ? (leadershipCount >= 2 ? 'RESEARCH + LEADERSHIP' : 'TECHNICAL INQUIRY & SCHOLARSHIP') : 'ACTIVITIES NOT ADDED',
+    spikeDescription: hasActivities ? `Your combination of ${profile.awards[0]?.title || 'academic milestones'} and key extracurricular commitments defines your profile.` : 'No extracurricular activities have been added yet, so a profile spike cannot be identified.',
     keyStrengths: [
       {
         title: apCount >= 8 ? 'AP Course Load' : 'Academic Foundation',
@@ -564,18 +571,18 @@ export function computeLocalAnalysis(profile: UserProfile): AnalysisResult {
         description: profile.awards[0]?.title || 'Multi-year commitment in core clubs.'
       },
       {
-        title: 'Consistent Activity',
-        description: `${totalHours} hrs/wk dedicated across key pursuits.`
+        title: hasActivities ? 'Activity Commitment' : 'Activities pending',
+        description: hasActivities ? `${totalHours} hrs/wk dedicated across key pursuits.` : 'Add activities to measure time commitment and impact.'
       }
     ],
     gapsToAddress: [
       {
-        title: profile.activities.some(a => a.category === 'Community Service') ? 'Expand Community Impact' : 'No community service',
-        suggestion: 'Consider 20+ hours of local volunteering aligned with your interests (e.g., tutoring STEM).'
+        title: hasActivities ? (profile.activities.some(a => a.category === 'Community Service') ? 'Expand Community Impact' : 'Add Community Impact') : 'Activities not added yet',
+        suggestion: hasActivities ? 'Consider 20+ hours of local volunteering aligned with your interests (e.g., tutoring STEM).' : 'Add your activities, roles, time commitments, and impact before making strategy decisions.'
       },
       {
-        title: 'Lacking Letters of Rec Strategy',
-        suggestion: 'Identify 2 teachers this semester and cultivate relationships through office hours.'
+        title: hasAwards ? 'Strengthen Letters of Rec Strategy' : 'Honors not added yet',
+        suggestion: hasAwards ? 'Identify 2 teachers this semester and cultivate relationships through office hours.' : 'Add your honors and awards so the assessment can account for external recognition.'
       }
     ],
     immediateNextSteps: [
@@ -596,8 +603,8 @@ export function computeLocalAnalysis(profile: UserProfile): AnalysisResult {
       }
     ],
     priorityRecommendation: {
-      title: 'Strengthen Narrative Cohesion',
-      description: `Your achievements are strong, but the thematic connection between your ${profile.activities[0]?.title || 'extracurriculars'} and your major (${profile.intendedMajor}) can be woven into a clearer central narrative.`
+      title: hasActivities ? 'Strengthen Narrative Cohesion' : 'Complete your profile data',
+      description: hasActivities ? `Your achievements are strong, but the thematic connection between your ${profile.activities[0]?.title || 'extracurriculars'} and your major (${profile.intendedMajor}) can be woven into a clearer central narrative.` : 'Add activities and honors before making decisions based on the admissions assessment.'
     }
   };
 }

@@ -8,6 +8,7 @@ interface SidebarProps {
   onOpenUpgrade: () => void;
   currentUser?: AuthUser | null;
   onSignOut?: () => void;
+  isAdmin?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -16,7 +17,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userProfile,
   onOpenUpgrade,
   currentUser,
-  onSignOut
+  onSignOut,
+  isAdmin
 }) => {
   const navItems: Array<{ id: ActiveScreen; label: string; icon: string; badge?: string; isAi?: boolean }> = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -25,7 +27,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'builder', label: 'Profile Builder', icon: 'edit_note' },
     { id: 'activities', label: 'My Activities', icon: 'history_edu' },
     { id: 'results', label: 'Results & Spike', icon: 'insights' },
-    { id: 'settings', label: 'Settings', icon: 'settings' }
+    { id: 'settings', label: 'Settings', icon: 'settings' },
+    ...(isAdmin ? [{ id: 'admin' as ActiveScreen, label: 'Admin Panel', icon: 'admin_panel_settings' }] : [])
   ];
 
   return (

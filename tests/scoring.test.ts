@@ -102,6 +102,34 @@ describe('generateIntelligentCollegeRecommendations', () => {
     expect(firstReach.estimatedAdmitRate).toBeUndefined();
   });
 
+  it('scores activities and honors from the student profile without changing the official school rate', () => {
+    const mit = SCHOOL_PROFILES.find((s) => s.schoolId === 'rec-mit')!;
+    const student = {
+      satScore: '1550',
+      unweightedGpa: '3.95',
+      activities: [{ tier: 1, isLeadership: true, hoursPerWeek: 10, description: 'Led 25 students' }],
+      awards: [{ level: 'National', title: 'National award' }]
+    };
+    const fit = calculateProfileFit(student, { ...mit, cdsFactorWeights: { 'Extracurricular Activities': 'Very Important' } });
+    expect(fit.activityStrengthScore).toBeGreaterThan(0);
+    expect(fit.honorsStrengthScore).toBeGreaterThan(0);
+    expect(mit.officialAcceptanceRate).toBe(4.6);
+  });
+
+  it('lets strong activities and honors move the personalized range by a small bounded amount', () => {
+    const school = { officialAcceptanceRate: 40, sat25th: 1400, sat75th: 1500, avgEnrolledGpaUnweighted: 3.7, cdsFactorWeights: { 'Extracurricular Activities': 'Very Important' } };
+    const academicOnly = { satScore: '1450', unweightedGpa: '3.7' };
+    const holistic = { ...academicOnly, activities: [{ tier: 1, isLeadership: true, hoursPerWeek: 10, description: 'Led 30 students' }], awards: [{ level: 'National' }] };
+    const base = calculateEstimatedRange(academicOnly, school)!;
+    const holisticFit = calculateProfileFit(holistic, school);
+    expect(holisticFit.activityStrengthScore).toBeGreaterThan(0);
+    expect(holisticFit.honorsStrengthScore).toBeGreaterThan(0);
+    const enriched = calculateEstimatedRange(holistic, school, holisticFit)!;
+    expect(enriched.low - base.low).toBeGreaterThan(0);
+    expect(enriched.low - base.low).toBeLessThanOrEqual(4);
+    expect(enriched.high - base.high).toBeLessThanOrEqual(4);
+  });
+
   it('prioritizes higher-rate target and safety options while retaining a small reach group', () => {
     const results = generateIntelligentCollegeRecommendations({ preferredCountry: 'United States' });
     expect(results.reachRecommendations).toHaveLength(2);

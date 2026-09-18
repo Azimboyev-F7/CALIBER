@@ -50,6 +50,8 @@ Student Profile:
 - Honors & Awards: ${JSON.stringify(profile.awards || [])}
 - Notes: ${profile.contextNotes || 'None'}
 
+If the activities array is empty, you MUST state that activities have not been added yet. Do not claim extracurricular depth, leadership, initiatives, impact, research, or achievements that are not present in the supplied profile. If the honors array is empty, do not claim awards or external recognition.
+
 Return ONLY a valid JSON object matching this TypeScript interface without markdown wrappers or other text:
 {
   "overallRating": "Exceptional" | "Strong" | "Competitive" | "Developing",

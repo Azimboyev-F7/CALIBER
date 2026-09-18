@@ -589,6 +589,16 @@ export const AICollegeRecommendationsCard: React.FC<AICollegeRecommendationsCard
                     <strong className="text-white">GPA Comparison:</strong> {selectedCollegeForDetail.profileFit.gpaComparison}
                   </div>
                 )}
+                {selectedCollegeForDetail.profileFit.activityStrengthScore !== undefined && selectedCollegeForDetail.profileFit.activityStrengthScore > 0 && (
+                  <div className="text-slate-300">
+                    <strong className="text-white">Activity strength:</strong> {selectedCollegeForDetail.profileFit.activityStrengthScore}/100
+                  </div>
+                )}
+                {selectedCollegeForDetail.profileFit.honorsStrengthScore !== undefined && selectedCollegeForDetail.profileFit.honorsStrengthScore > 0 && (
+                  <div className="text-slate-300">
+                    <strong className="text-white">Honors strength:</strong> {selectedCollegeForDetail.profileFit.honorsStrengthScore}/100
+                  </div>
+                )}
                 <div className="text-slate-300">
                   <strong className="text-white">This school weighs:</strong>{' '}
                   {selectedCollegeForDetail.profileFit.topWeightedFactors?.length > 0

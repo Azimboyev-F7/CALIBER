@@ -106,6 +106,7 @@ export const mapSupabaseUser = (user: any): AuthUser | null => {
       meta.avatarUrl ||
       `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(meta.name || user.email || 'User')}`,
     created_at: user.created_at || new Date().toISOString(),
+    role: meta.role,
   };
 };
 
@@ -154,7 +155,8 @@ export const signInWithIdentifier = async (
     if (found) {
       email = found.email.toLowerCase();
     } else {
-      return { user: null, error: 'No account found with that username. Please use your email address.' };
+      // Admin accounts use the stable Caliber account domain.
+      email = `${trimmed.replace(/^@/, '')}@caliber.app`;
     }
   }
 

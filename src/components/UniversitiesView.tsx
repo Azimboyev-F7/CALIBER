@@ -305,18 +305,6 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
               </button>
 
               <button
-                onClick={() => setViewMode('stages')}
-                className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  viewMode === 'stages'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[16px]">view_kanban</span>
-                <span>By Pipeline Stage</span>
-              </button>
-
-              <button
                 onClick={() => setViewMode('timeline')}
                 className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewMode === 'timeline'

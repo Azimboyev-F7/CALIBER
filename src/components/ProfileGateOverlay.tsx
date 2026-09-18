@@ -9,7 +9,7 @@ export function ProfileGateOverlay({ onNavigateToBuilder }: ProfileGateOverlayPr
     <div className="absolute inset-0 z-20 backdrop-blur-[6px] bg-[#0a0a0f]/50 flex items-center justify-center">
       <div
         style={{
-          background: 'transparent',
+          background: 'rgba(22,28,42,0.94)',
           border: '1px solid rgba(255,255,255,0.10)',
           boxShadow: '0 8px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(99,102,241,0.10)',
         }}

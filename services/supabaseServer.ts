@@ -18,12 +18,12 @@ export function getServerSupabaseClient(): SupabaseClient | null {
 }
 
 /** Service-role client — bypasses RLS, used for server-side writes */
-function getServiceClient(): SupabaseClient | null {
+export function getServiceClient(): SupabaseClient | null {
   if (_serviceClient) return _serviceClient;
   const url = process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
-    console.warn('[Supabase Server] Missing SUPABASE_SERVICE_ROLE_KEY — falling back to anon client');
+    console.warn('[Supabase Server] Missing SUPABASE_SERVICE_ROLE_KEY');
     return null;
   }
   _serviceClient = createClient(url, key, { auth: { persistSession: false } });

@@ -4,6 +4,8 @@ export interface ProfileFit {
   satPercentilePosition: 'below 25th' | 'within middle 50%' | 'above 75th' | null;
   gpaComparison: string | null;
   topWeightedFactors: string[];
+  activityStrengthScore?: number;
+  honorsStrengthScore?: number;
 }
 
 export interface EstimatedRange {
@@ -77,11 +79,54 @@ export function calculateProfileFit(
       .slice(0, 2);
   }
 
+  const activities = Array.isArray(studentProfile?.activities) ? studentProfile.activities : [];
+  const activityScores = activities.map((activity: any) => {
+    const tierBase: Record<number, number> = { 1: 90, 2: 70, 3: 50, 4: 30 };
+    const tier = Number(activity?.tier);
+    const hasScorableData = Boolean(tierBase[tier] || activity?.isLeadership || Number(activity?.hoursPerWeek) > 0 || activity?.description);
+    if (!hasScorableData) return 0;
+    let score = tierBase[tier] || 30;
+    if (activity?.isLeadership) score += 8;
+    if (Number(activity?.hoursPerWeek) >= 8) score += 5;
+    if (/\d/.test(String(activity?.description || ''))) score += 5;
+    return Math.min(100, score);
+  }).filter((score: number) => score > 0).sort((a: number, b: number) => b - a).slice(0, 3);
+  const scoreWeights = [0.6, 0.25, 0.15];
+  const activityWeightTotal = scoreWeights.slice(0, activityScores.length).reduce((sum, weight) => sum + weight, 0);
+  const activityStrengthScore = activityScores.length
+    ? Math.round(activityScores.reduce((sum: number, score: number, index: number) => sum + score * scoreWeights[index], 0) / activityWeightTotal)
+    : 0;
+
+  const honors = Array.isArray(studentProfile?.awards) ? studentProfile.awards : [];
+  const honorBase: Record<string, number> = { International: 100, National: 90, State: 70, Regional: 55, School: 35 };
+  const honorScores = honors.map((honor: any) => honorBase[honor?.level] || 35)
+    .sort((a: number, b: number) => b - a).slice(0, 3);
+  const honorsWeightTotal = scoreWeights.slice(0, honorScores.length).reduce((sum, weight) => sum + weight, 0);
+  const honorsStrengthScore = honorScores.length
+    ? Math.round(honorScores.reduce((sum: number, score: number, index: number) => sum + score * scoreWeights[index], 0) / honorsWeightTotal)
+    : 0;
+
   return {
     satPercentilePosition,
     gpaComparison,
-    topWeightedFactors
+    topWeightedFactors,
+    activityStrengthScore,
+    honorsStrengthScore
   };
+}
+
+function calculateHolisticShift(profileFit: ProfileFit, school: any): number {
+  const activityScore = profileFit.activityStrengthScore || 0;
+  const honorsScore = profileFit.honorsStrengthScore || 0;
+  if (!activityScore && !honorsScore) return 0;
+  const weights = Object.keys(school?.cdsFactorWeights || {}).map((key) => key.toLowerCase());
+  const givesHolisticWeight = weights.some((key) =>
+    /extracurricular|character|personal qualities|talent|volunteer|work experience|honors/.test(key)
+  );
+  const activitySignal = activityScore ? (activityScore - 60) / 40 : 0;
+  const honorsSignal = honorsScore ? (honorsScore - 60) / 40 : 0;
+  const rawSignal = (activitySignal * 0.6 + honorsSignal * 0.4) * (givesHolisticWeight ? 1 : 0.6);
+  return Math.max(-4, Math.min(4, Math.round(rawSignal * 4)));
 }
 
 /**
@@ -185,6 +230,9 @@ export function calculateEstimatedRange(
         high = Math.round(officialRate * 1.15);
       }
 
+      const holisticShift = profileFit ? calculateHolisticShift(profileFit, schoolOrRate) : 0;
+      low += holisticShift;
+      high += holisticShift;
       low = Math.max(1, Math.min(99, low));
       high = Math.max(1, Math.min(99, high));
       if (low >= high) high = Math.min(99, low + 1);
@@ -223,6 +271,12 @@ export function calculateEstimatedRange(
   } else {
     return null;
   }
+
+  // Activities and honors influence the personalized range only through a
+  // small, capped shift. The school's official acceptance rate is untouched.
+  const holisticShift = calculateHolisticShift(profileFit, schoolOrRate);
+  low += holisticShift;
+  high += holisticShift;
 
   // Clamp all results to [1, 99] — never return 0% or 100%
   low = Math.max(1, Math.min(99, low));

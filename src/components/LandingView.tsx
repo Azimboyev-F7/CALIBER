@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ActiveScreen, AuthUser } from '../types';
 import { TopNavBar } from './TopNavBar';
 import DarkVeil from './DarkVeil';
+import { CollegeDiscoveryExplorer } from './CollegeDiscoveryExplorer';
 
 interface LandingViewProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -24,50 +25,21 @@ export const LandingView: React.FC<LandingViewProps> = ({
   onReanalyze,
   isAnalyzing = false
 }) => {
+  // Kept for the removed simulator markup below; the simulator is not rendered.
   const [demoGpa, setDemoGpa] = useState('3.9');
   const [demoAps, setDemoAps] = useState('8');
   const [demoMajor, setDemoMajor] = useState('Computer Science');
   const [demoEcTier, setDemoEcTier] = useState<'Tier 1' | 'Tier 2' | 'Tier 3' | 'Tier 4'>('Tier 1');
-
-  // Dynamic calculation for instant preview calibration
   const gpaNum = Math.min(4.0, Math.max(1.0, parseFloat(demoGpa) || 3.5));
   const apNum = Math.min(20, Math.max(0, parseInt(demoAps) || 0));
-
   const rigorScore = Math.min(10, (gpaNum / 4.0 * 6.5) + (apNum * 0.35)).toFixed(1);
   const ecScore = demoEcTier === 'Tier 1' ? 9.5 : demoEcTier === 'Tier 2' ? 8.0 : demoEcTier === 'Tier 3' ? 6.5 : 5.0;
   const compScore = Math.min(99, Math.round((parseFloat(rigorScore) * 5) + (ecScore * 5)));
   const percentile = Math.min(99, Math.max(50, Math.round(compScore * 0.95)));
-
-  let oddsText = '10% - 18%';
-  let oddsBadge = 'Solid Candidate';
-  let oddsBadgeColor = 'text-indigo-400 bg-indigo-500/20 border-indigo-500/30';
-
-  if (compScore >= 90) {
-    oddsText = '32% - 45%';
-    oddsBadge = 'Ivy League Spike';
-    oddsBadgeColor = 'text-emerald-400 bg-emerald-500/20 border-emerald-500/30';
-  } else if (compScore >= 80) {
-    oddsText = '20% - 30%';
-    oddsBadge = 'Top 20 Target Ready';
-    oddsBadgeColor = 'text-purple-300 bg-purple-500/20 border-purple-500/30';
-  } else if (compScore >= 70) {
-    oddsText = '12% - 20%';
-    oddsBadge = 'Competitive Regional';
-    oddsBadgeColor = 'text-amber-300 bg-amber-500/20 border-amber-500/30';
-  } else {
-    oddsText = '5% - 12%';
-    oddsBadge = 'Foundational Gap';
-    oddsBadgeColor = 'text-rose-400 bg-rose-500/20 border-rose-500/30';
-  }
-
-  const majorTips: Record<string, string> = {
-    'Computer Science': `For ${demoMajor}, pair your ${apNum} APs with a Tier 1 open-source or Olympiad project to stand out in the top 3% pool.`,
-    'Engineering': `Engineering admissions weight AP Calc BC & Physics C. Your rigor (${rigorScore}/10) needs lab or build proof.`,
-    'Business / Finance': `For Business, showcase quantitative rigor alongside startup revenue or national leadership.`,
-    'Pre-Med / Biology': `Pre-Med requires wet-lab research or clinical volunteer hours alongside a high GPA (${gpaNum}).`,
-    'Humanities': `Humanities spikes rely on published writing, national awards (Scholastic Art), or regional advocacy.`
-  };
-  const dynamicTip = majorTips[demoMajor] || majorTips['Computer Science'];
+  const oddsText = compScore >= 90 ? '32% - 45%' : compScore >= 80 ? '20% - 30%' : compScore >= 70 ? '12% - 20%' : '5% - 12%';
+  const oddsBadge = compScore >= 90 ? 'Ivy League Spike' : compScore >= 80 ? 'Top 20 Target Ready' : compScore >= 70 ? 'Competitive Regional' : 'Foundational Gap';
+  const oddsBadgeColor = compScore >= 90 ? 'text-emerald-400 bg-emerald-500/20 border-emerald-500/30' : compScore >= 80 ? 'text-purple-300 bg-purple-500/20 border-purple-500/30' : compScore >= 70 ? 'text-amber-300 bg-amber-500/20 border-amber-500/30' : 'text-rose-400 bg-rose-500/20 border-rose-500/30';
+  const dynamicTip = `For ${demoMajor}, pair your ${apNum} advanced courses with a focused project to stand out in the applicant pool.`;
 
   return (
     <div className="bg-[#06020E] text-[#f1f5f9] flex flex-col min-h-screen relative overflow-hidden">
@@ -141,7 +113,8 @@ export const LandingView: React.FC<LandingViewProps> = ({
               </a>
             </div>
 
-            {/* Interactive Live Dashboard Showcase */}
+            {false && <>
+            {/* Live platform preview removed from the landing page */}
             <div className="relative max-w-4xl mx-auto">
               <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/30 via-purple-500/30 to-pink-500/30 rounded-3xl blur-2xl opacity-70"></div>
               
@@ -314,8 +287,11 @@ export const LandingView: React.FC<LandingViewProps> = ({
                 </div>
               </div>
             </div>
+            </>}
           </div>
         </section>
+
+        <CollegeDiscoveryExplorer onNavigate={onNavigate} />
 
         {/* Social Proof Section */}
         <section className="py-8 bg-white/[0.02] backdrop-blur-md border-y border-white/10">
@@ -484,7 +460,8 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </div>
         </section>
 
-        {/* Interactive Quick Try Section */}
+        {false && <>
+        {/* Instant calibration simulator removed from the landing page */}
         <section id="features" className="py-14 relative">
           <div className="max-w-[1050px] mx-auto px-5">
             <div className="relative bg-[#0d0e1a] border border-white/20 rounded-3xl p-6 md:p-10 overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)]">
@@ -690,6 +667,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
             </div>
           </div>
         </section>
+        </>}
       </main>
 
       {/* Footer */}
