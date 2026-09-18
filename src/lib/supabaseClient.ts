@@ -119,6 +119,8 @@ export const mapSupabaseUser = (user: any): AuthUser | null => {
     email: user.email || '',
     username: meta.username || user.email?.split('@')[0],
     name: meta.name || meta.full_name || user.email?.split('@')[0] || 'Applicant',
+    intendedMajor: meta.intendedMajor || undefined,
+    highSchool: meta.highSchool || undefined,
     avatarUrl:
       meta.avatarUrl ||
       `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(meta.name || user.email || 'User')}`,
@@ -209,6 +211,11 @@ export const signInWithIdentifier = async (
   if (!password) return { user: null, error: 'Please enter your password.' };
 
   const supabase = getSupabaseClient();
+  const cachedAccount = getSavedAccounts().find(
+    (account) =>
+      account.email.toLowerCase() === trimmed ||
+      (account.username || account.user.username || '').toLowerCase() === trimmed.replace(/^@/, '')
+  );
 
   // Resolve username → email if needed
   let email = trimmed;
@@ -240,6 +247,10 @@ export const signInWithIdentifier = async (
     const authUser = mapSupabaseUser(data.user);
     if (!authUser) {
       return { user: null, error: 'Failed to load user profile. Please try again.' };
+    }
+    if (authUser && cachedAccount) {
+      authUser.intendedMajor ||= cachedAccount.intendedMajor;
+      authUser.highSchool ||= cachedAccount.highSchool;
     }
     console.info('[Supabase] Sign-in successful, user ID:', data.user.id);
     setStoredAuthUser(authUser);
@@ -282,6 +293,8 @@ export const signUpWithEmail = async (
         data: {
           name: metadata.name.trim(),
           username: derivedUsername,
+          intendedMajor: metadata.intendedMajor?.trim() || '',
+          highSchool: metadata.highSchool?.trim() || '',
           avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(metadata.name || derivedUsername)}`,
         },
       },

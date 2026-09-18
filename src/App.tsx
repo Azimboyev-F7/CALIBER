@@ -27,6 +27,12 @@ import { trackAuthenticatedVisit } from './utils/usageTracking';
 
 const PROFILE_STORAGE_KEY = 'caliber_user_profile';
 
+const profileFromAuthUser = (user: AuthUser): UserProfile => ({
+  ...EMPTY_USER_PROFILE,
+  name: user.name || '',
+  intendedMajor: user.intendedMajor || '',
+});
+
 const getScreenTitle = (screen: ActiveScreen) => {
   switch (screen) {
     case 'dashboard':
@@ -154,6 +160,7 @@ export default function App() {
           const next = {
             ...savedProfile,
             name: user.name || savedProfile.name,
+            intendedMajor: user.intendedMajor || savedProfile.intendedMajor,
             targetColleges: savedProfile.targetColleges?.length ? savedProfile.targetColleges : EMPTY_USER_PROFILE.targetColleges,
           };
           setUserProfile(next);
@@ -167,7 +174,7 @@ export default function App() {
               fetch('/api/student/activities', { headers }).then((r) => r.ok ? r.json() : null),
               fetch('/api/student/honors', { headers }).then((r) => r.ok ? r.json() : null),
             ]);
-            const baseProfile = { ...EMPTY_USER_PROFILE, name: user.name || '' };
+            const baseProfile = profileFromAuthUser(user);
             const remoteActivities = actRes.status === 'fulfilled' ? actRes.value?.activities : null;
             const remoteHonors    = honRes.status  === 'fulfilled' ? honRes.value?.honors    : null;
             const next = {
@@ -179,7 +186,7 @@ export default function App() {
             syncExistingStudentData(next);
             try { localStorage.setItem(userProfileKey, JSON.stringify(next)); } catch {}
           } else {
-            setUserProfile({ ...EMPTY_USER_PROFILE, name: user.name || '' });
+            setUserProfile(profileFromAuthUser(user));
           }
         }
       }
@@ -214,6 +221,7 @@ export default function App() {
         const next = {
           ...savedProfile,
           name: user.name || savedProfile.name,
+          intendedMajor: user.intendedMajor || savedProfile.intendedMajor,
           targetColleges: savedProfile.targetColleges?.length ? savedProfile.targetColleges : EMPTY_USER_PROFILE.targetColleges,
         };
         setUserProfile(next);
@@ -221,7 +229,7 @@ export default function App() {
         try { localStorage.setItem(userProfileKey, JSON.stringify(next)); } catch {}
       } else {
         // First login — start with a clean empty profile, then load Supabase data if any
-        const baseProfile = { ...EMPTY_USER_PROFILE, name: user.name || '' };
+        const baseProfile = profileFromAuthUser(user);
         setUserProfile(baseProfile);
 
         const token = await getSessionToken();
