@@ -512,7 +512,9 @@ export default function App() {
     !userProfile.unweightedGpa ||
     !userProfile.intendedMajor ||
     !userProfile.graduationYear;
-  const showProfileGate = isProfileIncomplete && activeScreen !== 'builder' && activeScreen !== 'admin';
+  // Admin accounts use the app to inspect and test analysis flows, so they
+  // should not be blocked by the student profile-completeness gate.
+  const showProfileGate = !isAdminUser && isProfileIncomplete && activeScreen !== 'builder' && activeScreen !== 'admin';
 
   return (
     <CoachChatProvider key={currentUser?.id || 'guest'} userProfile={userProfile} analysis={analysisResult} storageScope={currentUser?.id || 'guest'}>
