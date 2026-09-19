@@ -508,7 +508,10 @@ export default function App() {
     }
   };
 
-  const isProfileIncomplete = userProfile.unweightedGpa === '' && userProfile.intendedMajor === '';
+  const isProfileIncomplete =
+    !userProfile.unweightedGpa ||
+    !userProfile.intendedMajor ||
+    !userProfile.graduationYear;
   const showProfileGate = isProfileIncomplete && activeScreen !== 'builder' && activeScreen !== 'admin';
 
   return (
