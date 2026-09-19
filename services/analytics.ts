@@ -9,13 +9,23 @@ export async function recordUsage(userId: string, event: UsageEvent, deviceId?: 
   try {
     const client = getServiceClient();
     if (!client) return false;
+    const dedupeKey = event === 'session_active' ? String(Math.floor(Date.now() / 1_800_000)) : randomUUID();
     const { error } = await client.rpc('record_usage_event', {
       p_user_id: userId, p_event_name: event,
       p_device_id: deviceId || null,
       // Repeat visits/tabs within a 30 minute UTC bucket count as one presence event.
-      p_dedupe_key: event === 'session_active' ? String(Math.floor(Date.now() / 1_800_000)) : randomUUID(),
+      p_dedupe_key: dedupeKey,
     });
-    if (error) throw error;
+    if (error && deviceId) {
+      // Keep analytics from breaking during the brief rollout window before the
+      // device-aware Supabase migration has been applied.
+      const legacy = await client.rpc('record_usage_event', {
+        p_user_id: userId, p_event_name: event, p_dedupe_key: dedupeKey,
+      });
+      if (legacy.error) throw error;
+    } else if (error) {
+      throw error;
+    }
     return true;
   } catch {
     console.warn('[Analytics] Event could not be recorded');
