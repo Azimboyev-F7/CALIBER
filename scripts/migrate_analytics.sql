@@ -67,6 +67,11 @@ FROM public.user_events
 WHERE device_id IS NOT NULL
 GROUP BY (created_at AT TIME ZONE 'UTC')::date, device_id
 ON CONFLICT(activity_date, device_id) DO UPDATE SET event_count = excluded.event_count;
+
+-- Account fallbacks preserve legacy analytics compatibility but are not device data.
+-- Exclude them from the visitor tables so the device count starts with real device IDs.
+DELETE FROM public.analytics_daily_device_activity WHERE device_id LIKE 'account:%';
+DELETE FROM public.analytics_device_activity WHERE device_id LIKE 'account:%';
 CREATE TABLE IF NOT EXISTS public.analytics_daily_activity (
   activity_date date NOT NULL,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -130,20 +135,20 @@ BEGIN
     'trackingStartedAt',(SELECT tracking_started_at FROM public.analytics_settings WHERE singleton),
     'totalRegisteredUsers',(SELECT count(*) FROM auth.users),
     'totalTrackedUsers',(SELECT count(*) FROM public.analytics_user_activity),
-    'totalUniqueUsers',(SELECT count(*) FROM public.analytics_device_activity),
-    'activeUsers',(SELECT count(DISTINCT device_id) FROM public.analytics_daily_device_activity WHERE activity_date BETWEEN start_day AND today),
+    'totalUniqueUsers',(SELECT count(*) FROM public.analytics_device_activity WHERE device_id NOT LIKE 'account:%'),
+    'activeUsers',(SELECT count(DISTINCT device_id) FROM public.analytics_daily_device_activity WHERE device_id NOT LIKE 'account:%' AND activity_date BETWEEN start_day AND today),
     'newSignups',(SELECT count(*) FROM auth.users WHERE created_at >= start_day::timestamp AT TIME ZONE 'UTC'),
-    'firstTimeActiveUsers',(SELECT count(*) FROM public.analytics_device_activity WHERE first_active_at >= start_day::timestamp AT TIME ZONE 'UTC'),
-    'returningUsers',(SELECT count(*) FROM public.analytics_device_activity WHERE first_active_at < start_day::timestamp AT TIME ZONE 'UTC' AND last_active_at >= start_day::timestamp AT TIME ZONE 'UTC'),
+    'firstTimeActiveUsers',(SELECT count(*) FROM public.analytics_device_activity WHERE device_id NOT LIKE 'account:%' AND first_active_at >= start_day::timestamp AT TIME ZONE 'UTC'),
+    'returningUsers',(SELECT count(*) FROM public.analytics_device_activity WHERE device_id NOT LIKE 'account:%' AND first_active_at < start_day::timestamp AT TIME ZONE 'UTC' AND last_active_at >= start_day::timestamp AT TIME ZONE 'UTC'),
     'daily',(SELECT jsonb_agg(row_data ORDER BY row_data->>'date') FROM (
       SELECT jsonb_build_object('date',start_day + i,
-        'activeUsers',(SELECT count(DISTINCT device_id) FROM public.analytics_daily_device_activity WHERE activity_date = start_day + i),
-        'events',(SELECT coalesce(sum(event_count),0) FROM public.analytics_daily_device_activity WHERE activity_date = start_day + i),
+        'activeUsers',(SELECT count(DISTINCT device_id) FROM public.analytics_daily_device_activity WHERE device_id NOT LIKE 'account:%' AND activity_date = start_day + i),
+        'events',(SELECT coalesce(sum(event_count),0) FROM public.analytics_daily_device_activity WHERE device_id NOT LIKE 'account:%' AND activity_date = start_day + i),
         'signups',(SELECT count(*) FROM auth.users WHERE created_at >= (start_day + i)::timestamp AT TIME ZONE 'UTC' AND created_at < (start_day + i + 1)::timestamp AT TIME ZONE 'UTC')) row_data
       FROM generate_series(0,p_days-1) i) daily),
     'weekly',(SELECT jsonb_agg(row_data ORDER BY row_data->>'startDate') FROM (
       SELECT jsonb_build_object('startDate',start_day + i * 7,'endDate',least(today,start_day + i * 7 + 6),
-        'activeUsers',(SELECT count(DISTINCT device_id) FROM public.analytics_daily_device_activity WHERE activity_date BETWEEN start_day + i * 7 AND least(today,start_day + i * 7 + 6))) row_data
+        'activeUsers',(SELECT count(DISTINCT device_id) FROM public.analytics_daily_device_activity WHERE device_id NOT LIKE 'account:%' AND activity_date BETWEEN start_day + i * 7 AND least(today,start_day + i * 7 + 6))) row_data
       FROM generate_series(0,(p_days-1)/7) i) weekly),
     'eventTotals',(SELECT coalesce(jsonb_object_agg(event_name,total),'{}'::jsonb) FROM (
       SELECT event_name,count(*) total FROM public.user_events WHERE created_at >= start_day::timestamp AT TIME ZONE 'UTC' GROUP BY event_name) totals)

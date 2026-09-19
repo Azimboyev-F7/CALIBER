@@ -229,7 +229,10 @@ export const signInWithIdentifier = async (
       email = found.email.toLowerCase();
     } else {
       // Admin accounts use the stable Caliber account domain.
-      email = `${trimmed.replace(/^@/, '')}@caliber.app`;
+      const usernameForEmail = trimmed.replace(/^@/, '');
+      // The provisioned admin account has a friendly username but keeps the
+      // stable admin email address used by Supabase Auth.
+      email = usernameForEmail === 'mainadmin' ? 'faxriyor@caliber.app' : `${usernameForEmail}@caliber.app`;
     }
   }
 
@@ -252,6 +255,7 @@ export const signInWithIdentifier = async (
       authUser.intendedMajor ||= cachedAccount.intendedMajor;
       authUser.highSchool ||= cachedAccount.highSchool;
     }
+    refreshSavedAccount(authUser);
     console.info('[Supabase] Sign-in successful, user ID:', data.user.id);
     setStoredAuthUser(authUser);
     return { user: authUser, error: null };
