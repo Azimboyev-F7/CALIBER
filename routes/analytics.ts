@@ -10,7 +10,7 @@ const limiter = rateLimit({ windowMs: 60_000, limit: 30,
 
 // Identity and timestamps always come from the verified session and server.
 analyticsRouter.post('/analytics/session', limiter, async (_req, res) => {
-  if (!await recordUsage(res.locals.userId, 'session_active')) {
+  if (!await recordUsage(res.locals.userId, 'session_active', _req.header('x-device-id') || undefined)) {
     return res.status(503).json({ error: 'Analytics unavailable' });
   }
   return res.sendStatus(204);

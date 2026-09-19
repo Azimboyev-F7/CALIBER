@@ -1,9 +1,9 @@
-import { getApiHeaders } from './apiClient';
+import { getAnalyticsDeviceId, getApiHeaders } from './apiClient';
 
 /** Track visits/navigation, never idle background timers or student profile contents. */
 export async function trackAuthenticatedVisit(signal: AbortSignal): Promise<void> {
   try {
-    const headers = await getApiHeaders();
+    const headers = await getApiHeaders({ 'x-device-id': getAnalyticsDeviceId() });
     if (signal.aborted) return;
     await fetch('/api/analytics/session', { method: 'POST', headers, signal });
   } catch {

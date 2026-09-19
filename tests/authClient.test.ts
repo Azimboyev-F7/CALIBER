@@ -33,7 +33,9 @@ describe('real session and password recovery', () => {
   });
   it('uses the active token instead of a public shared key', async () => {
     auth.getSession.mockResolvedValueOnce({ data: { session: { access_token: 'session-token' } } });
-    expect(await getApiHeaders()).toEqual({ 'Content-Type': 'application/json', Authorization: 'Bearer session-token' });
+    const headers = await getApiHeaders();
+    expect(headers).toMatchObject({ 'Content-Type': 'application/json', Authorization: 'Bearer session-token' });
+    expect(headers['x-device-id']).toMatch(/^device-|^[0-9a-f-]{36}$/i);
   });
   it('clears a stale cached identity when Supabase has no session', async () => {
     expect(await syncSessionFromSupabase()).toBeNull();

@@ -9,6 +9,7 @@ type UsageReport = {
   periodEnd: string;
   trackingStartedAt: string;
   totalRegisteredUsers: number;
+  totalUniqueUsers: number;
   totalTrackedUsers: number;
   activeUsers: number;
   newSignups: number;
@@ -69,8 +70,9 @@ export const AdminPanel: React.FC = () => {
       {report && !loading && <>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            ['Total registered', report.totalRegisteredUsers, 'group', 'All Supabase accounts'],
-            ['Active users', report.activeUsers, 'monitoring', `Unique in ${days === 49 ? '7 weeks' : `${days} days`}`],
+            ['Registered accounts', report.totalRegisteredUsers, 'group', 'All Supabase accounts'],
+            ['Unique visitors', report.totalUniqueUsers, 'devices', 'Unique browsers/devices tracked'],
+            ['Active visitors', report.activeUsers, 'monitoring', `Unique in ${days === 49 ? '7 weeks' : `${days} days`}`],
             ['First-time active', report.firstTimeActiveUsers, 'person_add', 'First tracked use in period'],
             ['Returning users', report.returningUsers, 'sync', 'Used before this period'],
           ].map(([label, value, icon, detail]) => <div key={String(label)} className="glass-panel rounded-2xl border border-white/10 p-4 md:p-5"><div className="flex justify-between items-start"><span className="text-xs text-slate-400">{label}</span><span className="material-symbols-outlined text-indigo-300 text-[19px]">{icon}</span></div><div className="text-3xl font-extrabold text-white mt-3">{value}</div><div className="text-[11px] text-slate-500 mt-1">{detail}</div></div>)}
@@ -78,7 +80,7 @@ export const AdminPanel: React.FC = () => {
 
         <div className="grid lg:grid-cols-[1.5fr_1fr] gap-5">
           <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6">
-            <div className="flex items-start justify-between mb-6"><div><h2 className="font-bold text-white">Weekly active users</h2><p className="text-xs text-slate-500 mt-1">Unique signed-in users per seven-day period</p></div><span className="material-symbols-outlined text-indigo-300">bar_chart</span></div>
+            <div className="flex items-start justify-between mb-6"><div><h2 className="font-bold text-white">Weekly active visitors</h2><p className="text-xs text-slate-500 mt-1">Unique browsers/devices per seven-day period</p></div><span className="material-symbols-outlined text-indigo-300">bar_chart</span></div>
             <div className="h-48 flex items-end gap-2 md:gap-4 border-b border-white/10 px-1">
               {report.weekly.map((week) => <div key={week.startDate} className="flex-1 h-full flex flex-col justify-end items-center gap-2 group"><span className="text-[11px] text-slate-300 opacity-0 group-hover:opacity-100 transition">{week.activeUsers}</span><div className="w-full max-w-12 rounded-t-md bg-gradient-to-t from-indigo-600 to-violet-400 min-h-1 transition-all" style={{ height: `${Math.max(2, week.activeUsers / maxWeekly * 78)}%` }} title={`${week.activeUsers} active users`} /><span className="text-[10px] text-slate-500 whitespace-nowrap">{formatDate(week.startDate)}</span></div>)}
             </div>
@@ -87,7 +89,7 @@ export const AdminPanel: React.FC = () => {
           <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6"><div className="flex items-start justify-between mb-5"><div><h2 className="font-bold text-white">Event activity</h2><p className="text-xs text-slate-500 mt-1">Tracked since {formatDate(report.trackingStartedAt.slice(0, 10))}</p></div><span className="material-symbols-outlined text-emerald-300">bolt</span></div><div className="space-y-3">{Object.entries(eventLabels).map(([key, label]) => <div key={key} className="flex items-center justify-between gap-3"><span className="text-xs text-slate-300">{label}</span><span className="text-sm font-bold text-white">{report.eventTotals?.[key] || 0}</span></div>)}</div></section>
         </div>
 
-        <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6"><div className="flex items-start justify-between mb-5"><div><h2 className="font-bold text-white">Daily activity</h2><p className="text-xs text-slate-500 mt-1">Hover a bar to see unique active users</p></div><span className="text-xs text-slate-500">{formatDate(report.periodStart)} – {formatDate(report.periodEnd)}</span></div><div className="h-32 flex items-end gap-0.5 md:gap-1">{report.daily.map((day) => <div key={day.date} className="flex-1 h-full flex items-end group" title={`${formatDate(day.date)}: ${day.activeUsers} active users`}><div className="w-full rounded-t-sm bg-indigo-400/70 group-hover:bg-indigo-300 transition" style={{ height: `${Math.max(day.activeUsers ? 3 : 1, day.activeUsers / maxDaily * 100)}%` }} /></div>)}</div></section>
+        <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6"><div className="flex items-start justify-between mb-5"><div><h2 className="font-bold text-white">Daily activity</h2><p className="text-xs text-slate-500 mt-1">Hover a bar to see unique active visitors</p></div><span className="text-xs text-slate-500">{formatDate(report.periodStart)} – {formatDate(report.periodEnd)}</span></div><div className="h-32 flex items-end gap-0.5 md:gap-1">{report.daily.map((day) => <div key={day.date} className="flex-1 h-full flex items-end group" title={`${formatDate(day.date)}: ${day.activeUsers} active visitors`}><div className="w-full rounded-t-sm bg-indigo-400/70 group-hover:bg-indigo-300 transition" style={{ height: `${Math.max(day.activeUsers ? 3 : 1, day.activeUsers / maxDaily * 100)}%` }} /></div>)}</div></section>
       </>}
     </div>
   );
