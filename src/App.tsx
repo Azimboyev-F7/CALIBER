@@ -22,8 +22,8 @@ import { ProfileGateOverlay } from './components/ProfileGateOverlay';
 import { CoachChatProvider } from './context/CoachChatContext';
 import { getStoredAuthUser, signOutUser, syncSessionFromSupabase, getSessionToken } from './lib/supabaseClient';
 import { getApiHeaders } from './utils/apiClient';
-import { AdminPanel } from './components/AdminPanel';
 import { trackAuthenticatedVisit } from './utils/usageTracking';
+import { AdminApp } from './admin/AdminApp';
 
 const PROFILE_STORAGE_KEY = 'caliber_user_profile';
 
@@ -49,8 +49,6 @@ const getScreenTitle = (screen: ActiveScreen) => {
       return 'Results & Spike';
     case 'settings':
       return 'Settings';
-    case 'admin':
-      return 'Admin Panel';
     default:
       return 'Dashboard';
   }
@@ -72,14 +70,12 @@ const getScreenIcon = (screen: ActiveScreen) => {
       return 'insights';
     case 'settings':
       return 'settings';
-    case 'admin':
-      return 'admin_panel_settings';
     default:
       return 'dashboard';
   }
 };
 
-export default function App() {
+function StudentApp() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('landing');
   const [pendingScreen, setPendingScreen] = useState<ActiveScreen | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
@@ -114,7 +110,6 @@ export default function App() {
   // Central Navigation handler with auth enforcement
   const handleNavigate = (targetScreen: ActiveScreen) => {
     const user = currentUserRef.current || getStoredAuthUser();
-    if (targetScreen === 'admin' && !isAdminUser) return;
     if (!user && targetScreen !== 'landing' && targetScreen !== 'auth') {
       setPendingScreen(targetScreen);
       setActiveScreen('auth');
@@ -514,7 +509,7 @@ export default function App() {
     !userProfile.graduationYear;
   // Admin accounts use the app to inspect and test analysis flows, so they
   // should not be blocked by the student profile-completeness gate.
-  const showProfileGate = !isAdminUser && isProfileIncomplete && activeScreen !== 'builder' && activeScreen !== 'admin';
+  const showProfileGate = !isAdminUser && isProfileIncomplete && activeScreen !== 'builder';
 
   return (
     <CoachChatProvider key={currentUser?.id || 'guest'} userProfile={userProfile} analysis={analysisResult} storageScope={currentUser?.id || 'guest'}>
@@ -571,7 +566,6 @@ export default function App() {
               onOpenUpgrade={() => setIsUpgradeOpen(true)}
               currentUser={currentUser}
               onSignOut={handleSignOut}
-              isAdmin={isAdminUser}
             />
 
             {/* Mobile Drawer */}
@@ -675,20 +669,6 @@ export default function App() {
                 >
                   Settings
                 </button>
-                {isAdminUser && (
-                  <button
-                    onClick={() => {
-                      setActiveScreen('admin');
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`p-3 rounded-xl text-left font-semibold transition-all flex items-center gap-2 ${
-                      activeScreen === 'admin' ? 'glass-pill text-white font-bold border-indigo-500/40 bg-indigo-500/20' : 'text-indigo-200 hover:text-white bg-indigo-500/5'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[18px] text-indigo-300">admin_panel_settings</span>
-                    <span>Admin Panel</span>
-                  </button>
-                )}
                 <div className="pt-4 mt-auto">
                   <button
                     onClick={() => {
@@ -829,7 +809,6 @@ export default function App() {
                   />
                 )}
 
-                {activeScreen === 'admin' && isAdminUser && <AdminPanel />}
               </main>
 
             {/* Profile completion gate — shown on all screens except builder */}
@@ -884,4 +863,11 @@ export default function App() {
       </div>
     </CoachChatProvider>
   );
+}
+
+export default function App() {
+  if (window.location.pathname === '/rais' || window.location.pathname.startsWith('/rais/')) {
+    return <AdminApp />;
+  }
+  return <StudentApp />;
 }

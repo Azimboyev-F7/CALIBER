@@ -50,6 +50,16 @@ export const AdminPanel: React.FC = () => {
 
   const maxWeekly = useMemo(() => Math.max(1, ...(report?.weekly || []).map((week) => week.activeUsers)), [report]);
   const maxDaily = useMemo(() => Math.max(1, ...(report?.daily || []).map((day) => day.activeUsers)), [report]);
+  const trendPoints = useMemo(() => {
+    const daily = report?.daily || [];
+    const maxValue = Math.max(1, ...daily.flatMap((day) => [day.activeUsers, day.events]));
+    const makePoints = (values: number[]) => values.map((value, index) => {
+      const x = daily.length <= 1 ? 50 : (index / (daily.length - 1)) * 100;
+      const y = 100 - (value / maxValue) * 88 - 6;
+      return `${x},${y}`;
+    }).join(' ');
+    return { active: makePoints(daily.map((day) => day.activeUsers)), events: makePoints(daily.map((day) => day.events)), maxValue };
+  }, [report]);
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-7 md:py-10 space-y-7 text-slate-100">
@@ -77,6 +87,21 @@ export const AdminPanel: React.FC = () => {
             ['Returning users', report.returningUsers, 'sync', 'Used before this period'],
           ].map(([label, value, icon, detail]) => <div key={String(label)} className="glass-panel rounded-2xl border border-white/10 p-4 md:p-5"><div className="flex justify-between items-start"><span className="text-xs text-slate-400">{label}</span><span className="material-symbols-outlined text-indigo-300 text-[19px]">{icon}</span></div><div className="text-3xl font-extrabold text-white mt-3">{value}</div><div className="text-[11px] text-slate-500 mt-1">{detail}</div></div>)}
         </div>
+
+        <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-5">
+            <div><h2 className="font-bold text-white">Visitor and session trend</h2><p className="text-xs text-slate-500 mt-1">Daily unique devices and tracked sessions/events during the selected period</p></div>
+            <div className="flex items-center gap-4 text-xs text-slate-400"><span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-indigo-400" />Active devices</span><span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400" />Sessions/events</span></div>
+          </div>
+          <div className="h-56 rounded-xl bg-black/10 border border-white/5 p-3">
+            {report.daily.length > 0 && <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible" aria-label="Visitor and session trend line chart">
+              <line x1="0" y1="94" x2="100" y2="94" stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
+              <polyline points={trendPoints.events} fill="none" stroke="#34d399" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+              <polyline points={trendPoints.active} fill="none" stroke="#818cf8" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            </svg>}
+          </div>
+          <div className="flex justify-between text-[10px] text-slate-500 mt-3"><span>{report.periodStart}</span><span>Peak scale: {trendPoints.maxValue}</span><span>{report.periodEnd}</span></div>
+        </section>
 
         <div className="grid lg:grid-cols-[1.5fr_1fr] gap-5">
           <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6">
