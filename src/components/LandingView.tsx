@@ -3,6 +3,7 @@ import { ActiveScreen, AuthUser } from '../types';
 import { TopNavBar } from './TopNavBar';
 import DarkVeil from './DarkVeil';
 import { CollegeDiscoveryExplorer } from './CollegeDiscoveryExplorer';
+import { UniversityHeroBackground } from './UniversityHeroBackground';
 
 interface LandingViewProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -58,6 +59,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
       <main className="flex-grow relative">
         {/* Hero Section */}
         <section className="relative pt-12 md:pt-20 pb-16 overflow-hidden">
+          <UniversityHeroBackground />
           {/* DarkVeil Animated Background Container */}
           <div
             className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden"

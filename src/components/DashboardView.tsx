@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ActiveScreen, AdmissionsAnalysis, UserProfile } from '../types';
 import { TargetCollegesSummaryWidget } from './TargetCollegesSummaryWidget';
@@ -36,6 +36,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isExportingDirectly, setIsExportingDirectly] = useState(false);
+  const [isDossierDropdownOpen, setIsDossierDropdownOpen] = useState(false);
+  const dossierDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dossierDropdownRef.current &&
+        !dossierDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDossierDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsDossierDropdownOpen(false);
+      }
+    };
+
+    if (isDossierDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDossierDropdownOpen]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -167,23 +196,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => onNavigate('builder')}
-              className="glass-btn-secondary px-3.5 py-2 rounded-xl text-[12.5px] font-semibold flex items-center gap-1.5 cursor-pointer hover:border-indigo-400/40 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[16px]">edit_note</span>
-              Edit Profile
-            </button>
-
+          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
             <button
               onClick={onReanalyze}
               disabled={isAnalyzing}
               title={hasUnsavedChanges ? "You have unsaved profile changes! Click to re-analyze with AI." : "Run AI Analysis"}
-              className={`px-4 py-2 rounded-xl text-[12.5px] font-bold flex items-center gap-2 cursor-pointer transition-all ${
+              className={`px-4 py-2.5 rounded-xl text-[12.5px] font-bold flex items-center gap-2 cursor-pointer transition-all shadow-md ${
                 hasUnsavedChanges
-                  ? 'bg-gradient-to-r from-amber-500 via-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30 animate-pulse-subtle ring-2 ring-amber-400/60'
-                  : 'glass-btn-primary'
+                  ? 'bg-gradient-to-r from-amber-500 via-indigo-600 to-purple-600 text-white shadow-indigo-500/30 animate-pulse-subtle ring-2 ring-amber-400/60'
+                  : 'glass-btn-primary shadow-indigo-500/20'
               } disabled:opacity-50`}
             >
               <span
@@ -203,45 +224,103 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               )}
             </button>
 
-            <button
-              onClick={() => onNavigate('results')}
-              className="glass-btn-secondary px-3.5 py-2 rounded-xl text-[12.5px] font-semibold flex items-center gap-1.5 cursor-pointer hover:border-indigo-400/40 transition-colors"
-            >
-              <span>View Results &amp; Spike</span>
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-            </button>
-
-            {/* In-App PDF Preview Button */}
-            <button
-              onClick={() => setIsPreviewModalOpen(true)}
-              className="glass-btn-secondary px-3.5 py-2 rounded-xl text-[12.5px] font-semibold flex items-center gap-1.5 cursor-pointer hover:border-indigo-400/40 text-slate-200 hover:text-white transition-colors"
-              title="Review candidate admissions report in-app before downloading"
-            >
-              <span className="material-symbols-outlined text-[16px] text-indigo-400">preview</span>
-              <span>Preview PDF</span>
-            </button>
-
-            <div className="flex items-center rounded-xl glass-btn-secondary overflow-hidden p-0.5 border border-white/10 hover:border-indigo-400/40 transition-colors">
+            {/* Consolidated Export Dossier Dropdown */}
+            <div className="relative" ref={dossierDropdownRef}>
               <button
-                onClick={handleExportPDF}
-                disabled={isExportingDirectly}
-                className="px-3 py-1.5 text-[12.5px] font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 hover:text-white transition-colors"
-                title="Download complete admissions profile & analysis as PDF"
+                onClick={() => setIsDossierDropdownOpen((prev) => !prev)}
+                className={`glass-btn-secondary px-3.5 py-2.5 rounded-xl text-[12.5px] font-semibold flex items-center gap-2 cursor-pointer transition-all ${
+                  isDossierDropdownOpen ? 'border-indigo-400/60 text-white bg-white/10' : 'hover:border-indigo-400/40 text-slate-200 hover:text-white'
+                }`}
+                title="Export or preview candidate admissions dossier"
+                aria-expanded={isDossierDropdownOpen}
+                aria-haspopup="true"
               >
                 <span className={`material-symbols-outlined text-[16px] text-rose-400 ${isExportingDirectly ? 'animate-spin' : ''}`}>
                   {isExportingDirectly ? 'progress_activity' : 'picture_as_pdf'}
                 </span>
-                <span>{isExportingDirectly ? 'Exporting...' : 'Export PDF'}</span>
+                <span>Export Dossier</span>
+                <span className={`material-symbols-outlined text-[16px] text-slate-400 transition-transform duration-200 ${isDossierDropdownOpen ? 'rotate-180 text-white' : ''}`}>
+                  expand_more
+                </span>
               </button>
-              <div className="h-4 w-[1px] bg-white/15" />
-              <button
-                onClick={() => setIsExportModalOpen(true)}
-                disabled={isExportingDirectly}
-                className="px-2 py-1.5 text-[12px] text-slate-400 hover:text-white hover:bg-white/10 rounded-r-lg transition-colors cursor-pointer"
-                title="PDF export options"
-              >
-                <span className="material-symbols-outlined text-[15px]">tune</span>
-              </button>
+
+              {/* Dropdown Menu */}
+              {isDossierDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-[#0d091f]/95 backdrop-blur-2xl border border-white/15 shadow-[0_20px_40px_rgba(0,0,0,0.7)] p-2 z-50 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between border-b border-white/10 pb-1.5 mb-0.5">
+                    <span>Admissions Dossier</span>
+                    <span className="text-[10px] text-indigo-300 font-semibold px-1.5 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/30">PDF</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDossierDropdownOpen(false);
+                      setIsPreviewModalOpen(true);
+                    }}
+                    className="w-full flex items-start gap-3 p-2 rounded-xl hover:bg-white/[0.08] text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5 text-indigo-400 group-hover:bg-indigo-500/25 transition-colors">
+                      <span className="material-symbols-outlined text-[17px]">preview</span>
+                    </div>
+                    <div>
+                      <div className="text-[12.5px] font-semibold text-white group-hover:text-indigo-300 transition-colors">
+                        Preview PDF Dossier
+                      </div>
+                      <div className="text-[11px] text-slate-400 leading-snug">
+                        Review candidate dossier in-app before saving
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDossierDropdownOpen(false);
+                      handleExportPDF();
+                    }}
+                    disabled={isExportingDirectly}
+                    className="w-full flex items-start gap-3 p-2 rounded-xl hover:bg-white/[0.08] text-left transition-colors cursor-pointer group disabled:opacity-50"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 mt-0.5 text-rose-400 group-hover:bg-rose-500/25 transition-colors">
+                      <span className={`material-symbols-outlined text-[17px] ${isExportingDirectly ? 'animate-spin' : ''}`}>
+                        {isExportingDirectly ? 'progress_activity' : 'download'}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="text-[12.5px] font-semibold text-white group-hover:text-rose-300 transition-colors">
+                        {isExportingDirectly ? 'Generating PDF...' : 'Download PDF Dossier'}
+                      </div>
+                      <div className="text-[11px] text-slate-400 leading-snug">
+                        Instant complete candidate portfolio (.pdf)
+                      </div>
+                    </div>
+                  </button>
+
+                  <div className="h-[1px] bg-white/10 my-1 mx-1" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDossierDropdownOpen(false);
+                      setIsExportModalOpen(true);
+                    }}
+                    className="w-full flex items-start gap-3 p-2 rounded-xl hover:bg-white/[0.08] text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5 text-amber-400 group-hover:bg-amber-500/25 transition-colors">
+                      <span className="material-symbols-outlined text-[17px]">tune</span>
+                    </div>
+                    <div>
+                      <div className="text-[12.5px] font-semibold text-white group-hover:text-amber-300 transition-colors">
+                        Customize Dossier...
+                      </div>
+                      <div className="text-[11px] text-slate-400 leading-snug">
+                        Configure included sections, schools & options
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -274,23 +353,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
               <button
-                onClick={onReanalyze}
-                disabled={isAnalyzing}
-                className={`px-3.5 py-2 rounded-xl text-[12.5px] font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-all ${
-                  hasUnsavedChanges
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 animate-pulse-subtle'
-                    : 'glass-btn-secondary'
-                }`}
+                onClick={() => onNavigate('results')}
+                className="glass-btn-secondary px-3.5 py-2 rounded-xl text-[12.5px] font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer hover:border-indigo-400/40 transition-colors"
               >
-                <span className={`material-symbols-outlined text-[16px] ${isAnalyzing ? 'animate-spin' : 'text-amber-400'}`}>
-                  {isAnalyzing ? 'sync' : 'auto_awesome'}
-                </span>
-                <span>{isAnalyzing ? 'Analyzing...' : 'Run AI Analysis'}</span>
-                {hasUnsavedChanges && (
-                  <span className="px-1.5 py-0.5 text-[9.5px] font-black uppercase tracking-wider bg-amber-400 text-black rounded-md">
-                    Unsaved Edits
-                  </span>
-                )}
+                <span>View Results &amp; Spike</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
               </button>
 
               <button

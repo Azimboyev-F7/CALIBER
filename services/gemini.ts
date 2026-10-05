@@ -50,9 +50,11 @@ export async function generateContentWithRetry(
   }
 ): Promise<any> {
   const requestedModel = params.model || 'gemini-3.5-flash-lite';
-  const fallbacks = ['gemini-3.5-flash-lite'].filter((m) => m !== requestedModel);
+  const fallbacks = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.6-flash']
+    .filter((model) => model !== requestedModel);
   const modelsToTry = [requestedModel, ...fallbacks];
   let lastError: any = null;
+  let quotaExhausted = false;
 
   const mergedConfig = {
     ...(params.config || {})
@@ -87,13 +89,11 @@ export async function generateContentWithRetry(
           err?.message?.includes('demand');
 
         if (is429) {
-          setGeminiCooldown(45000);
+          quotaExhausted = true;
           console.warn(
-            `[Gemini Service] Rate limit / quota exceeded for model ${modelName}. Cooldown engaged (45s).`,
-            err?.message,
-            err?.stack
+            `[Gemini Service] Rate limit / quota exceeded for model ${modelName}; trying another supported model.`,
           );
-          throw err;
+          break;
         }
 
         if (is503 && attempt === 0) {
@@ -115,5 +115,6 @@ export async function generateContentWithRetry(
     }
   }
 
+  if (quotaExhausted) setGeminiCooldown(45000);
   throw lastError;
 }

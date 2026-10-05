@@ -30,6 +30,37 @@ export function getServiceClient(): SupabaseClient | null {
   return _serviceClient;
 }
 
+export async function resolveUserEmailByUsername(username: string): Promise<string | null> {
+  const client = getServiceClient();
+  if (!client) throw new Error('Supabase service client is unavailable');
+
+  const normalized = username.trim().replace(/^@/, '').toLowerCase();
+  const perPage = 1000;
+  for (let page = 1; page <= 20; page += 1) {
+    const { data, error } = await client.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+
+    const match = data.users.find((user) =>
+      String(user.user_metadata?.username || '').trim().replace(/^@/, '').toLowerCase() === normalized
+    );
+    if (match?.email) return match.email.toLowerCase();
+    if (data.users.length < perPage) break;
+  }
+  return null;
+}
+
+export async function signInWithPasswordOnServer(email: string, password: string) {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error('Supabase authentication is unavailable');
+
+  const client = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
+  return { session: data.session, error };
+}
+
 function getUserClient(accessToken?: string): SupabaseClient | null {
   if (!accessToken) return null;
   const url = process.env.VITE_SUPABASE_URL;

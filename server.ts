@@ -11,6 +11,7 @@ import { analysisRouter } from './routes/analysis';
 import { activityRouter } from './routes/activity';
 import { collegesRouter } from './routes/colleges';
 import { analyticsRouter } from './routes/analytics';
+import { authRouter } from './routes/auth';
 import { trackSuccessfulAction } from './services/analytics';
 
 /**
@@ -38,6 +39,9 @@ export function createApp() {
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', time: new Date().toISOString() });
   });
+
+  // Username sign-in resolves Supabase Auth metadata before a session exists.
+  app.use('/api', authRouter);
 
   // Authentication guard for all protected /api/* endpoints
   app.use('/api', authMiddleware);

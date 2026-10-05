@@ -42,6 +42,13 @@ describe('Usage reporting security and reliability', () => {
     expect((await request(app()).get('/admin/analytics').set('Authorization','Bearer verified')).status).toBe(403);
     expect(mock.rpc).not.toHaveBeenCalled();
   });
+  it('checks admin access against the server-side administrator registry', async () => {
+    expect((await request(app()).get('/admin/access').set('Authorization','Bearer verified')).body).toEqual({ allowed: true });
+    mock.admin.mockResolvedValue({ data: null, error: null });
+    const denied = await request(app()).get('/admin/access').set('Authorization','Bearer verified');
+    expect(denied.status).toBe(403);
+    expect(denied.body.allowed).toBe(false);
+  });
   it('defaults to seven weeks and disables caching', async () => {
     const res = await request(app()).get('/admin/analytics').set('Authorization','Bearer verified');
     expect(res.status).toBe(200);

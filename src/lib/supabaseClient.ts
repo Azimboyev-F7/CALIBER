@@ -220,20 +220,42 @@ export const signInWithIdentifier = async (
   // Resolve username → email if needed
   let email = trimmed;
   if (!trimmed.includes('@')) {
-    // Try local accounts first to find email from username
-    const accounts = getSavedAccounts();
-    const found = accounts.find(
-      (a) => (a.username || a.user.username || '').toLowerCase() === trimmed.replace(/^@/, '')
-    );
-    if (found) {
-      email = found.email.toLowerCase();
-    } else {
-      // Admin accounts use the stable Caliber account domain.
-      const usernameForEmail = trimmed.replace(/^@/, '');
-      // The provisioned admin account has a friendly username but keeps the
-      // stable admin email address used by Supabase Auth.
-      email = usernameForEmail === 'mainadmin' ? 'faxriyor@caliber.app' : `${usernameForEmail}@caliber.app`;
+    if (supabase) {
+      try {
+        const response = await fetch('/api/auth/username-sign-in', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: trimmed.replace(/^@/, ''), password }),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || !body.accessToken || !body.refreshToken) {
+          return { user: null, error: body.error || 'Invalid username or password.' };
+        }
+
+        const { data, error } = await supabase.auth.setSession({
+          access_token: body.accessToken,
+          refresh_token: body.refreshToken,
+        });
+        if (error || !data.user) return { user: null, error: error?.message || 'Sign-in failed. Please try again.' };
+
+        const authUser = mapSupabaseUser(data.user);
+        if (!authUser) return { user: null, error: 'Failed to load user profile. Please try again.' };
+        if (cachedAccount) {
+          authUser.intendedMajor ||= cachedAccount.intendedMajor;
+          authUser.highSchool ||= cachedAccount.highSchool;
+        }
+        refreshSavedAccount(authUser);
+        setStoredAuthUser(authUser);
+        return { user: authUser, error: null };
+      } catch {
+        return { user: null, error: 'Sign-in is temporarily unavailable. Please try again.' };
+      }
     }
+
+    const found = getSavedAccounts().find(
+      (account) => (account.username || account.user.username || '').toLowerCase() === trimmed.replace(/^@/, '')
+    );
+    email = found?.email.toLowerCase() || '';
   }
 
   if (supabase) {

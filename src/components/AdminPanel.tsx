@@ -1,4 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  LabelList,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { getApiHeaders } from '../utils/apiClient';
 
 type UsageDay = { date: string; activeUsers: number; events: number; signups: number };
@@ -28,6 +41,14 @@ const eventLabels: Record<string, string> = {
 
 const formatDate = (value: string) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(`${value}T00:00:00Z`));
 
+const chartTooltipStyle: React.CSSProperties = {
+  background: '#111827',
+  border: '1px solid rgba(255,255,255,0.14)',
+  borderRadius: 12,
+  color: '#f8fafc',
+  fontSize: 12,
+};
+
 export const AdminPanel: React.FC = () => {
   const [days, setDays] = useState<7 | 30 | 49>(49);
   const [report, setReport] = useState<UsageReport | null>(null);
@@ -47,19 +68,6 @@ export const AdminPanel: React.FC = () => {
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [days]);
-
-  const maxWeekly = useMemo(() => Math.max(1, ...(report?.weekly || []).map((week) => week.activeUsers)), [report]);
-  const maxDaily = useMemo(() => Math.max(1, ...(report?.daily || []).map((day) => day.activeUsers)), [report]);
-  const trendPoints = useMemo(() => {
-    const daily = report?.daily || [];
-    const maxValue = Math.max(1, ...daily.flatMap((day) => [day.activeUsers, day.events]));
-    const makePoints = (values: number[]) => values.map((value, index) => {
-      const x = daily.length <= 1 ? 50 : (index / (daily.length - 1)) * 100;
-      const y = 100 - (value / maxValue) * 88 - 6;
-      return `${x},${y}`;
-    }).join(' ');
-    return { active: makePoints(daily.map((day) => day.activeUsers)), events: makePoints(daily.map((day) => day.events)), maxValue };
-  }, [report]);
 
   return (
     <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-7 md:py-10 space-y-7 text-slate-100">
@@ -91,30 +99,45 @@ export const AdminPanel: React.FC = () => {
         <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-5">
             <div><h2 className="font-bold text-white">Visitor and session trend</h2><p className="text-xs text-slate-500 mt-1">Daily unique devices and tracked sessions/events during the selected period</p></div>
-            <div className="flex items-center gap-4 text-xs text-slate-400"><span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-indigo-400" />Active devices</span><span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400" />Sessions/events</span></div>
+            <div className="text-right"><div className="text-[10px] uppercase tracking-wider text-slate-500">Latest day</div><div className="text-sm font-bold text-white mt-1">{report.daily.at(-1)?.activeUsers ?? 0} devices · {report.daily.at(-1)?.events ?? 0} events</div></div>
           </div>
-          <div className="h-56 rounded-xl bg-black/10 border border-white/5 p-3">
-            {report.daily.length > 0 && <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible" aria-label="Visitor and session trend line chart">
-              <line x1="0" y1="94" x2="100" y2="94" stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
-              <polyline points={trendPoints.events} fill="none" stroke="#34d399" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-              <polyline points={trendPoints.active} fill="none" stroke="#818cf8" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-            </svg>}
+          <div className="h-72 rounded-xl bg-black/10 border border-white/5 px-1 pt-4 pb-1">
+            {report.daily.length > 0 ? <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={report.daily} margin={{ top: 8, right: 16, left: -12, bottom: 0 }} accessibilityLayer>
+                <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" tickFormatter={formatDate} interval={days === 7 ? 0 : days === 30 ? 4 : 6} tick={{ fill: '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.12)' }} minTickGap={16} />
+                <YAxis allowDecimals={false} domain={[0, 'auto']} tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} width={42} />
+                <Tooltip contentStyle={chartTooltipStyle} labelFormatter={(label) => formatDate(String(label))} cursor={{ stroke: 'rgba(255,255,255,0.2)' }} />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
+                <Line type="monotone" dataKey="activeUsers" name="Active devices" stroke="#818cf8" strokeWidth={3} dot={{ r: 3, fill: '#818cf8', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="events" name="Sessions/events" stroke="#34d399" strokeWidth={2.5} dot={{ r: 2.5, fill: '#34d399', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer> : <div className="h-full flex items-center justify-center text-sm text-slate-500">No usage recorded in this period.</div>}
           </div>
-          <div className="flex justify-between text-[10px] text-slate-500 mt-3"><span>{report.periodStart}</span><span>Peak scale: {trendPoints.maxValue}</span><span>{report.periodEnd}</span></div>
         </section>
 
         <div className="grid lg:grid-cols-[1.5fr_1fr] gap-5">
           <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6">
             <div className="flex items-start justify-between mb-6"><div><h2 className="font-bold text-white">Weekly active visitors</h2><p className="text-xs text-slate-500 mt-1">Unique browsers/devices per seven-day period</p></div><span className="material-symbols-outlined text-indigo-300">bar_chart</span></div>
-            <div className="h-48 flex items-end gap-2 md:gap-4 border-b border-white/10 px-1">
-              {report.weekly.map((week) => <div key={week.startDate} className="flex-1 h-full flex flex-col justify-end items-center gap-2 group"><span className="text-[11px] text-slate-300 opacity-0 group-hover:opacity-100 transition">{week.activeUsers}</span><div className="w-full max-w-12 rounded-t-md bg-gradient-to-t from-indigo-600 to-violet-400 min-h-1 transition-all" style={{ height: `${Math.max(2, week.activeUsers / maxWeekly * 78)}%` }} title={`${week.activeUsers} active users`} /><span className="text-[10px] text-slate-500 whitespace-nowrap">{formatDate(week.startDate)}</span></div>)}
+            <div className="h-56">
+              {report.weekly.length > 0 ? <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={report.weekly} margin={{ top: 22, right: 8, left: -16, bottom: 0 }} accessibilityLayer>
+                  <CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="startDate" tickFormatter={formatDate} tick={{ fill: '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.12)' }} />
+                  <YAxis allowDecimals={false} domain={[0, 'auto']} tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} width={42} />
+                  <Tooltip contentStyle={chartTooltipStyle} labelFormatter={(label) => `Week of ${formatDate(String(label))}`} cursor={{ fill: 'rgba(129,140,248,0.08)' }} />
+                  <Bar dataKey="activeUsers" name="Active devices" fill="#818cf8" radius={[6, 6, 0, 0]} maxBarSize={54}>
+                    <LabelList dataKey="activeUsers" position="top" fill="#e2e8f0" fontSize={11} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer> : <div className="h-full flex items-center justify-center text-sm text-slate-500">No weekly usage recorded.</div>}
             </div>
           </section>
 
           <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6"><div className="flex items-start justify-between mb-5"><div><h2 className="font-bold text-white">Event activity</h2><p className="text-xs text-slate-500 mt-1">Tracked since {formatDate(report.trackingStartedAt.slice(0, 10))}</p></div><span className="material-symbols-outlined text-emerald-300">bolt</span></div><div className="space-y-3">{Object.entries(eventLabels).map(([key, label]) => <div key={key} className="flex items-center justify-between gap-3"><span className="text-xs text-slate-300">{label}</span><span className="text-sm font-bold text-white">{report.eventTotals?.[key] || 0}</span></div>)}</div></section>
         </div>
 
-        <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6"><div className="flex items-start justify-between mb-5"><div><h2 className="font-bold text-white">Daily activity</h2><p className="text-xs text-slate-500 mt-1">Hover a bar to see unique active visitors</p></div><span className="text-xs text-slate-500">{formatDate(report.periodStart)} – {formatDate(report.periodEnd)}</span></div><div className="h-32 flex items-end gap-0.5 md:gap-1">{report.daily.map((day) => <div key={day.date} className="flex-1 h-full flex items-end group" title={`${formatDate(day.date)}: ${day.activeUsers} active visitors`}><div className="w-full rounded-t-sm bg-indigo-400/70 group-hover:bg-indigo-300 transition" style={{ height: `${Math.max(day.activeUsers ? 3 : 1, day.activeUsers / maxDaily * 100)}%` }} /></div>)}</div></section>
+        <section className="glass-panel rounded-2xl border border-white/10 p-5 md:p-6"><div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5"><div><h2 className="font-bold text-white">Daily active visitors</h2><p className="text-xs text-slate-500 mt-1">Unique devices active on each day; use the tooltip for the exact date and value</p></div><span className="text-xs text-slate-500">{formatDate(report.periodStart)} – {formatDate(report.periodEnd)}</span></div><div className="h-56">{report.daily.length > 0 ? <ResponsiveContainer width="100%" height="100%"><BarChart data={report.daily} margin={{ top: 10, right: 8, left: -16, bottom: 0 }} accessibilityLayer><CartesianGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" vertical={false} /><XAxis dataKey="date" tickFormatter={formatDate} interval={days === 7 ? 0 : days === 30 ? 4 : 6} tick={{ fill: '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.12)' }} minTickGap={16} /><YAxis allowDecimals={false} domain={[0, 'auto']} tick={{ fill: '#94a3b8', fontSize: 11 }} tickLine={false} axisLine={false} width={42} /><Tooltip contentStyle={chartTooltipStyle} labelFormatter={(label) => formatDate(String(label))} cursor={{ fill: 'rgba(129,140,248,0.08)' }} /><Bar dataKey="activeUsers" name="Active devices" fill="#818cf8" radius={[3, 3, 0, 0]} /></BarChart></ResponsiveContainer> : <div className="h-full flex items-center justify-center text-sm text-slate-500">No daily usage recorded.</div>}</div></section>
       </>}
     </div>
   );

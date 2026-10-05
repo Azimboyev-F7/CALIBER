@@ -10,13 +10,14 @@ import {
   signOutUser,
   syncSessionFromSupabase,
 } from '../lib/supabaseClient';
+import { getApiHeaders } from '../utils/apiClient';
 
-const isAdmin = (user: AuthUser | null) =>
-  user?.role === 'admin' || user?.username?.toLowerCase() === 'faxriyor' || user?.username?.toLowerCase() === 'mainadmin';
+type AdminAccess = 'signed-out' | 'checking' | 'granted' | 'denied' | 'unavailable';
 
 export const AdminApp: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getStoredAuthUser());
   const [isLoading, setIsLoading] = useState(true);
+  const [adminAccess, setAdminAccess] = useState<AdminAccess>('checking');
   const [section, setSection] = useState<AdminSection>('overview');
 
   useEffect(() => {
@@ -30,13 +31,38 @@ export const AdminApp: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
-  const handleUserChange = (user: AuthUser | null) => setCurrentUser(user);
+  useEffect(() => {
+    if (isLoading) return;
+    if (!currentUser) {
+      setAdminAccess('signed-out');
+      return;
+    }
+
+    const controller = new AbortController();
+    setAdminAccess('checking');
+    getApiHeaders()
+      .then((headers) => fetch('/api/admin/access', { headers, signal: controller.signal }))
+      .then((response) => {
+        if (response.status === 403) return setAdminAccess('denied');
+        if (!response.ok) return setAdminAccess('unavailable');
+        setAdminAccess('granted');
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setAdminAccess('unavailable');
+      });
+    return () => controller.abort();
+  }, [currentUser, isLoading]);
+
+  const handleUserChange = (user: AuthUser | null) => {
+    setCurrentUser(user);
+    setAdminAccess(user ? 'checking' : 'signed-out');
+  };
   const handleNavigate = (screen: ActiveScreen) => {
     if (screen === 'landing') window.location.href = '/';
   };
 
-  if (isLoading) {
-    return <div className="min-h-screen bg-[#0a0a0f] text-slate-300 flex items-center justify-center">Loading admin access…</div>;
+  if (isLoading || (currentUser && adminAccess === 'checking')) {
+    return <div className="min-h-screen bg-[#0a0a0f] text-slate-300 flex items-center justify-center">Verifying admin access…</div>;
   }
 
   if (!currentUser) {
@@ -58,13 +84,13 @@ export const AdminApp: React.FC = () => {
     );
   }
 
-  if (!isAdmin(currentUser)) {
+  if (adminAccess !== 'granted') {
     return (
       <div className="min-h-screen bg-[#0a0a0f] text-slate-100 flex items-center justify-center p-4">
         <div className="max-w-md rounded-2xl border border-rose-400/20 bg-rose-500/10 p-7 text-center">
           <span className="material-symbols-outlined text-rose-300 text-4xl">lock</span>
-          <h1 className="text-xl font-bold mt-3">Administrator access required</h1>
-          <p className="text-sm text-slate-400 mt-2">This account is not allowed to access the Rais console.</p>
+          <h1 className="text-xl font-bold mt-3">{adminAccess === 'unavailable' ? 'Admin verification unavailable' : 'Administrator access required'}</h1>
+          <p className="text-sm text-slate-400 mt-2">{adminAccess === 'unavailable' ? 'Your session could not be verified. Please sign in again or retry shortly.' : 'This account is not listed in the Rais administrator registry.'}</p>
           <div className="flex justify-center gap-3 mt-6">
             <button className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15" onClick={() => window.location.href = '/'}>Return to Caliber</button>
             <button className="px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30" onClick={async () => { await signOutUser(); setCurrentUser(null); }}>Sign out</button>

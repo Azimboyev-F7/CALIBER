@@ -2,12 +2,18 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { getServiceClient, invalidateSchoolCache } from '../services/supabaseServer';
 import { recordUsage } from '../services/analytics';
-import { hasInternationalAcceptanceEvidence, researchUniversity } from '../services/universityResearch';
+import { hasAcceptanceEvidence, hasInternationalAcceptanceEvidence, manualUniversityDraft, normalizeUniversityRequest, researchUniversity, findLocalUniversityDraft } from '../services/universityResearch';
 
 export const analyticsRouter = Router();
 const limiter = rateLimit({ windowMs: 60_000, limit: 30,
   keyGenerator: (_req, res) => res.locals.userId,
   standardHeaders: true, legacyHeaders: false });
+
+const requireAdmin = async (client: any, userId: string) => {
+  const { data, error } = await client.from('admin_users').select('user_id').eq('user_id', userId).maybeSingle();
+  if (error) throw error;
+  return Boolean(data);
+};
 
 // Identity and timestamps always come from the verified session and server.
 analyticsRouter.post('/analytics/session', limiter, async (_req, res) => {
@@ -15,6 +21,19 @@ analyticsRouter.post('/analytics/session', limiter, async (_req, res) => {
     return res.status(503).json({ error: 'Analytics unavailable' });
   }
   return res.sendStatus(204);
+});
+
+analyticsRouter.get('/admin/access', limiter, async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const client = getServiceClient();
+    if (!client) return res.status(503).json({ error: 'Admin access check unavailable' });
+    return await requireAdmin(client, res.locals.userId)
+      ? res.json({ allowed: true })
+      : res.status(403).json({ allowed: false, error: 'Administrator access required' });
+  } catch {
+    return res.status(503).json({ error: 'Admin access check unavailable' });
+  }
 });
 
 analyticsRouter.get('/admin/analytics', limiter, async (req, res) => {
@@ -88,12 +107,6 @@ const adminSchoolFields = (school: any) => ({
   region: school.region || null,
 });
 
-const requireAdmin = async (client: any, userId: string) => {
-  const { data, error } = await client.from('admin_users').select('user_id').eq('user_id', userId).maybeSingle();
-  if (error) throw error;
-  return Boolean(data);
-};
-
 analyticsRouter.get('/admin/universities', limiter, async (_req, res) => {
   try {
     const client = getServiceClient();
@@ -113,14 +126,14 @@ analyticsRouter.post('/admin/universities', limiter, async (req, res) => {
     const input = req.body?.university || req.body;
     const row = adminSchoolFields(input);
     const evidence = String(input?.rateEvidence || '').trim();
-    if (!/^rec-[a-z0-9-]+$/.test(row.school_id) || !row.name || row.name.length > 200 || !Number.isFinite(row.official_acceptance_rate) || !row.acceptance_rate_source_year || !/^https:\/\//i.test(row.source_url) || !['us', 'uk', 'canada', 'korea', 'germany', 'china'].includes(row.region || '') || !hasInternationalAcceptanceEvidence(evidence, row.official_acceptance_rate)) {
-      return res.status(400).json({ error: 'Saving requires a university name, valid ID, cited international undergraduate acceptance rate, source year, and HTTPS source URL.' });
+    if (!/^rec-[a-z0-9-]+$/.test(row.school_id) || !row.name || row.name.length > 200 || !Number.isFinite(row.official_acceptance_rate) || !row.acceptance_rate_source_year || !/^https:\/\//i.test(row.source_url) || !['us', 'uk', 'canada', 'korea', 'germany', 'china'].includes(row.region || '') || !hasAcceptanceEvidence(evidence, row.official_acceptance_rate)) {
+      return res.status(400).json({ error: 'Saving requires a university name, valid ID, cited acceptance rate, source year, and HTTPS source URL.' });
     }
     if (row.sat_25th !== null && row.sat_75th !== null && Number(row.sat_25th) > Number(row.sat_75th)) {
       return res.status(400).json({ error: 'SAT 25th percentile cannot exceed SAT 75th percentile.' });
     }
     row.category = row.official_acceptance_rate < 20 ? 'reach' : row.official_acceptance_rate <= 55 ? 'target' : 'safety';
-    row.notes = `${row.notes || ''}\nInternational undergraduate acceptance rate evidence: ${evidence}`.trim();
+    row.notes = `${row.notes || ''}\nUndergraduate acceptance rate evidence: ${evidence}`.trim();
     const { data: idMatch, error: idError } = await client.from('school_profiles').select('name').eq('school_id', row.school_id).maybeSingle();
     if (idError) throw idError;
     const { data: nameMatch, error: nameError } = await client.from('school_profiles').select('name').ilike('name', row.name).limit(1);
@@ -130,7 +143,8 @@ analyticsRouter.post('/admin/universities', limiter, async (req, res) => {
     if (error) throw error;
     invalidateSchoolCache();
     return res.json({ university: data });
-  } catch {
+  } catch (err) {
+    console.error('[Admin Universities] Error saving university:', err);
     return res.status(503).json({ error: 'University could not be saved to Supabase.' });
   }
 });
@@ -138,12 +152,68 @@ analyticsRouter.post('/admin/universities', limiter, async (req, res) => {
 analyticsRouter.post('/admin/universities/ai', limiter, async (req, res) => {
   const request = String(req.body?.message || '').trim();
   if (!request || request.length > 160) return res.status(400).json({ error: 'Enter one university name (up to 160 characters).' });
+  const universityName = normalizeUniversityRequest(request);
+  if (!universityName) return res.status(400).json({ error: 'Enter a university name.' });
+  const client = getServiceClient();
+  if (!client) return res.status(503).json({ error: 'University research is unavailable' });
   try {
-    const client = getServiceClient();
-    if (!client || !await requireAdmin(client, res.locals.userId)) return res.status(403).json({ error: 'Administrator access required' });
-    return res.json(await researchUniversity(request));
+    if (!await requireAdmin(client, res.locals.userId)) return res.status(403).json({ error: 'Administrator access required' });
+  } catch {
+    return res.status(503).json({ error: 'Administrator access check unavailable' });
+  }
+
+  // Check if school already exists in Supabase
+  try {
+    const slug = universityName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70);
+    const { data: existing } = await client
+      .from('school_profiles')
+      .select('*')
+      .or(`school_id.eq.rec-${slug},name.ilike.%${universityName}%`)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      const match = existing[0];
+      return res.json({
+        reply: `"${match.name}" is already in the database (${match.school_id}, acceptance rate: ${match.official_acceptance_rate}%). Here is the existing record.`,
+        university: {
+          schoolId: match.school_id,
+          name: match.name,
+          officialAcceptanceRate: match.official_acceptance_rate,
+          acceptanceRateSourceYear: match.acceptance_rate_source_year,
+          sat25th: match.sat_25th,
+          sat75th: match.sat_75th,
+          avgEnrolledGpaUnweighted: match.avg_enrolled_gpa_unweighted,
+          sourceUrl: match.source_url || '',
+          rateEvidence: match.notes || `Official acceptance rate: ${match.official_acceptance_rate}%`,
+          notes: match.notes || '',
+          location: match.location || '',
+          region: match.region || 'us',
+          category: match.category || null,
+          sources: match.source_url ? [{ id: 1, title: `${match.name} Admissions`, url: match.source_url, excerpt: `${match.name} profile in database` }] : [],
+        },
+        alreadyExists: true,
+      });
+    }
+  } catch (dbErr) {
+    console.warn('[Admin Universities AI] Check existing school error:', dbErr);
+  }
+
+  try {
+    return res.json(await researchUniversity(universityName));
   } catch (error) {
-    const message = error instanceof Error ? error.message : '';
-    return res.status(503).json({ error: /429|quota|RESOURCE_EXHAUSTED/i.test(message) ? 'AI search quota is exhausted. Try again when the API quota resets or update GEMINI_API_KEY.' : message || 'University research failed.' });
+    console.error('[Admin Universities AI] Research failed:', error);
+    const local = findLocalUniversityDraft(universityName);
+    if (local) {
+      return res.json({
+        reply: `I retrieved the verified institutional record for ${local.name} from the admissions database. Review the fields below before saving.`,
+        university: local,
+      });
+    }
+    return res.json({
+      reply: `Web research is temporarily unavailable, so I opened the ${universityName} review record for manual completion. No admissions figures were guessed.`,
+      university: manualUniversityDraft(universityName),
+      researchStatus: 'unavailable',
+    });
   }
 });
+
