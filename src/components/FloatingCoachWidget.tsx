@@ -13,7 +13,7 @@ interface FloatingCoachWidgetProps {
 
 export interface ProactiveCoachTip {
   id: string;
-  category: 'tactical' | 'humor' | 'spike' | 'deadline' | 'balance' | 'common_app';
+  category: 'humor' | 'cheer' | 'roast' | 'vibe' | 'lore' | 'hype';
   tagLabel: string;
   tagColor: string;
   icon: string;
@@ -24,9 +24,9 @@ export interface ProactiveCoachTip {
 }
 
 const PROACTIVE_INTERVAL_MS = 60_000;
-const INITIAL_PROACTIVE_DELAY_MS = 18_000;
-const PROACTIVE_DISPLAY_DURATION_MS = 9_000;
-const LAST_TIP_ID_KEY = 'caliber_coach_proactive_last_tip_v2';
+const INITIAL_PROACTIVE_DELAY_MS = 16_000;
+const PROACTIVE_DISPLAY_DURATION_MS = 9_500;
+const LAST_TIP_ID_KEY = 'caliber_coach_fun_last_tip_v3';
 
 export const resetFloatingCoachMessageSession = () => {
   try {
@@ -57,181 +57,223 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
   const nextTipDelayRef = useRef(INITIAL_PROACTIVE_DELAY_MS);
   const lastTickRef = useRef(Date.now());
 
-  // Generate dynamic, context-aware and witty admissions tips
+  // Curated fun, witty jokes, roasts, and mood-boosting cheers
   const availableTips = useMemo((): ProactiveCoachTip[] => {
-    const tips: ProactiveCoachTip[] = [];
-    const reaches = userProfile.targetColleges?.filter((c) => c.category === 'reach') || [];
-    const safeties = userProfile.targetColleges?.filter((c) => c.category === 'safety') || [];
-    const totalColleges = userProfile.targetColleges?.length || 0;
-    const activitiesCount = userProfile.activities?.length || 0;
-    const majorName = userProfile.intendedMajor?.trim() || 'your major';
+    const studentName = (username || userProfile.name || 'there').trim().split(/\s+/)[0];
+    const majorName = userProfile.intendedMajor?.trim() || 'your dream major';
 
-    // 1. College balance tip
-    if (totalColleges > 0 && reaches.length >= 2 && safeties.length === 0) {
-      tips.push({
-        id: 'missing-safeties',
-        category: 'balance',
-        tagLabel: 'Portfolio Risk',
-        tagColor: 'text-rose-300 bg-rose-500/20 border-rose-500/40',
-        icon: 'shield_with_heart',
-        headline: 'Zero Safety Anchors',
-        message: `You have ${reaches.length} Reach schools but no safety colleges. Top admissions counselors recommend at least 2 safe bets with >50% admit rates.`,
-        actionPrompt: `Recommend 2 strong safety colleges with high admit rates and great academic programs for an applicant studying ${majorName}.`,
-        actionLabel: 'Find Safety Anchors'
-      });
-    } else if (totalColleges === 0) {
-      tips.push({
-        id: 'empty-colleges',
-        category: 'tactical',
-        tagLabel: 'Target Calibration',
-        tagColor: 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40',
-        icon: 'account_balance',
-        headline: 'Target List Empty',
-        message: `Pick 3-5 colleges across Reach, Target, and Safety tiers so Caliber can benchmark your real admissions odds.`,
-        actionPrompt: `Suggest a balanced preliminary 3-tier college list for someone planning to study ${majorName}.`,
-        actionLabel: 'Build College List'
-      });
-    }
-
-    // 2. Extracurricular depth tip
-    if (activitiesCount < 5) {
-      tips.push({
-        id: 'low-activities',
-        category: 'common_app',
-        tagLabel: 'Common App 10-Slot',
-        tagColor: 'text-indigo-300 bg-indigo-500/20 border-indigo-500/40',
-        icon: 'format_list_bulleted_add',
-        headline: `${activitiesCount}/10 Activities Logged`,
-        message: `Common App gives you 10 activity slots. Unused slots are missed opportunities to showcase your impact and character!`,
-        actionPrompt: `Help me brainstorm additional extracurricular activities, summer initiatives, or independent projects related to ${majorName}.`,
-        actionLabel: 'Brainstorm Activities'
-      });
-    }
-
-    // 3. Spike & narrative cohesion tip
-    if (analysis.spikeCategory) {
-      tips.push({
-        id: 'spike-elevation',
-        category: 'spike',
-        tagLabel: 'Narrative Spike',
-        tagColor: 'text-amber-300 bg-amber-500/20 border-amber-500/40',
-        icon: 'bolt',
-        headline: `Spike in ${analysis.spikeCategory}`,
-        message: `Admissions committees remember distinctive, angular applicants with defined spikes. Let's make sure your essays highlight this angle.`,
-        actionPrompt: `How can I sharpen my narrative spike in ${analysis.spikeCategory} across my activities and supplemental essays?`,
-        actionLabel: 'Sharpen Spike'
-      });
-    }
-
-    // 4. Activity descriptions punchiness tip
-    if (activitiesCount > 0) {
-      tips.push({
-        id: 'verbs-quantify',
-        category: 'tactical',
-        tagLabel: 'Common App Verbs',
-        tagColor: 'text-purple-300 bg-purple-500/20 border-purple-500/40',
-        icon: 'edit_note',
-        headline: '150-Character Limit',
-        message: `Admissions officers review ECs in under 2 minutes. Every verb in your 150 characters should quantify people, funds, or results.`,
-        actionPrompt: `Analyze my extracurricular descriptions and suggest rewrites using punchy action verbs and quantified impact metrics.`,
-        actionLabel: 'Critique My ECs'
-      });
-    }
-
-    // 5. High-personality, witty admissions guidance tips (always available and engaging)
-    tips.push(
+    return [
       {
-        id: 'witty-dream-uni',
+        id: 'joke-rude-apply',
         category: 'humor',
-        tagLabel: 'Coach Humor',
-        tagColor: 'text-pink-300 bg-pink-500/20 border-pink-500/40',
+        tagLabel: '😂 Reality Check',
+        tagColor: 'text-amber-300 bg-amber-500/20 border-amber-500/40',
         icon: 'sentiment_very_satisfied',
         headline: 'Unwritten Rule #1',
-        message: 'Your dream university won’t apply to itself. Rude, honestly.',
-        actionPrompt: 'What are the most common application mistakes that students make, and how do I avoid them?',
-        actionLabel: 'Avoid Mistakes'
+        message: 'Your dream university won’t apply to itself. Rude, honestly. 😒',
+        actionPrompt: 'Give me a witty, humorous pep talk to get me excited about applying to college!',
+        actionLabel: 'Pep Talk Me 💖'
       },
       {
-        id: 'witty-scrolling',
-        category: 'deadline',
-        tagLabel: 'Reality Check',
-        tagColor: 'text-amber-300 bg-amber-500/20 border-amber-500/40',
-        icon: 'hourglass_top',
-        headline: 'Time Check',
-        message: 'Still scrolling? Your application deadline is also moving. 👀',
-        actionPrompt: 'Help me prioritize my college application checklist for this upcoming month.',
-        actionLabel: 'Prioritize Tasks'
-      },
-      {
-        id: 'witty-not-cooked',
-        category: 'humor',
-        tagLabel: 'Profile Audit',
+        id: 'joke-not-cooked',
+        category: 'cheer',
+        tagLabel: '🍳 Chef Mode',
         tagColor: 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40',
         icon: 'verified',
-        headline: 'Good News',
-        message: 'I analyzed your profile. Good news: you’re not cooked.',
-        actionPrompt: 'Give me an honest appraisal of my 3 greatest competitive advantages for top colleges.',
-        actionLabel: 'My Advantages'
+        headline: 'Audit Verdict',
+        message: 'I ran the predictive algorithms on your profile. Good news: You’re not cooked! You’re actually cooking. 🔥',
+        actionPrompt: 'Tell me why my profile is cooking and what my strongest competitive advantages are!',
+        actionLabel: 'Why Am I Cooking? 🍳'
       },
       {
-        id: 'witty-main-character',
-        category: 'spike',
-        tagLabel: 'Leadership Voice',
-        tagColor: 'text-purple-300 bg-purple-500/20 border-purple-500/40',
-        icon: 'auto_awesome',
-        headline: 'Main Character Energy',
-        message: 'Your portfolio has potential. It just needs a little main-character energy.',
-        actionPrompt: 'How can I position my extracurricular accomplishments to show authentic initiative and leadership?',
-        actionLabel: 'Elevate Leadership'
-      },
-      {
-        id: 'witty-manifesting',
-        category: 'tactical',
-        tagLabel: 'Admissions Strategy',
-        tagColor: 'text-cyan-300 bg-cyan-500/20 border-cyan-500/40',
-        icon: 'magic_button',
-        headline: 'Action Beats Luck',
-        message: 'Manifesting is great. Submitting strong applications also helps.',
-        actionPrompt: 'What is the single highest-impact action I can take right now to improve my admissions profile?',
-        actionLabel: 'Get Next Move'
-      },
-      {
-        id: 'witty-instagram',
-        category: 'balance',
-        tagLabel: 'Target Fit',
+        id: 'joke-roommate-procrastinating',
+        category: 'roast',
+        tagLabel: '🏃 Procrastination Alert',
         tagColor: 'text-indigo-300 bg-indigo-500/20 border-indigo-500/40',
-        icon: 'travel_explore',
-        headline: 'Substance Over Hype',
-        message: 'Don’t worry—I won’t recommend a university just because its campus looks good on Instagram.',
-        actionPrompt: `Which universities offer the strongest faculty, research, and career outcomes for ${majorName}?`,
-        actionLabel: 'Find Real Fits'
+        icon: 'schedule',
+        headline: 'Roommate Radar',
+        message: 'Your future college roommate is probably scrolling TikTok right now. Perfect time to outwork them! 💨',
+        actionPrompt: 'Give me 1 quick 15-minute admissions task I can knock out right now to feel productive!',
+        actionLabel: '15-Min Quick Win ⚡'
       },
       {
-        id: 'witty-legendary',
-        category: 'tactical',
-        tagLabel: 'Coach Challenge',
+        id: 'joke-manifesting-bed',
+        category: 'humor',
+        tagLabel: '✨ Manifestation Lab',
+        tagColor: 'text-purple-300 bg-purple-500/20 border-purple-500/40',
+        icon: 'magic_button',
+        headline: 'Extra Credit',
+        message: 'Manifesting Stanford from your bed is 10/10 vibes. Submitting the actual application is 11/10. Let’s get that extra point!',
+        actionPrompt: 'What should my immediate next milestone be to turn my admissions dream into reality?',
+        actionLabel: 'Get Next Milestone 🚀'
+      },
+      {
+        id: 'joke-overthinking-2am',
+        category: 'cheer',
+        tagLabel: '💖 Mental Reset',
+        tagColor: 'text-pink-300 bg-pink-500/20 border-pink-500/40',
+        icon: 'favorite',
+        headline: 'Overthinking Tax',
+        message: 'If college admissions gave scholarships for overthinking at 2 AM, you’d already have a full-ride. Deep breath, you got this! 🌸',
+        actionPrompt: 'Help me stop overthinking and give me 3 reassuring reasons I will be okay in college admissions.',
+        actionLabel: 'Calm My Overthinking 🧘'
+      },
+      {
+        id: 'joke-ice-cream-machine',
+        category: 'vibe',
+        tagLabel: '🍦 Valid Priorities',
+        tagColor: 'text-cyan-300 bg-cyan-500/20 border-cyan-500/40',
+        icon: 'icecream',
+        headline: 'No Judgement Zone',
+        message: 'Don’t worry, I won’t judge if you picked a college just because its dining hall has a soft-serve ice cream machine. (Totally valid).',
+        actionPrompt: `Tell me some fun, unexpected campus traditions or perks at top universities for ${majorName}!`,
+        actionLabel: 'Fun Campus Perks 🍦'
+      },
+      {
+        id: 'joke-legendary-lore',
+        category: 'lore',
+        tagLabel: '👑 Legendary Lore',
         tagColor: 'text-amber-300 bg-amber-500/20 border-amber-500/40',
         icon: 'military_tech',
-        headline: 'Legendary Move',
-        message: 'Imagine getting accepted because you clicked this message. Legendary.',
-        actionPrompt: 'Give me a rapid 30-minute high-leverage task I can complete right now for college prep.',
-        actionLabel: 'Accept Challenge'
+        headline: 'The Canonical Timeline',
+        message: 'Imagine getting accepted to your dream university because you clicked this bubble today. The lore would be legendary. 🏆',
+        actionPrompt: 'What is one bold, memorable move I can make in my application to stand out to admissions officers?',
+        actionLabel: 'Drop Legendary Lore 👑'
       },
       {
-        id: 'witty-later',
-        category: 'deadline',
-        tagLabel: 'Admissions Alert',
+        id: 'joke-relatives-harvard',
+        category: 'roast',
+        tagLabel: '😅 Family Sanity',
+        tagColor: 'text-rose-300 bg-rose-500/20 border-rose-500/40',
+        icon: 'family_restroom',
+        headline: 'Zero Pressure, Right?',
+        message: 'Your relatives probably already told the whole group chat you’re going to an Ivy League. No pressure or anything! ☕',
+        actionPrompt: 'How do I handle family expectations and stress about college admissions gracefully?',
+        actionLabel: 'Handle Family Stress 😅'
+      },
+      {
+        id: 'joke-future-latte',
+        category: 'vibe',
+        tagLabel: '☕ Quad Vibes',
+        tagColor: 'text-amber-200 bg-amber-500/20 border-amber-500/40',
+        icon: 'local_cafe',
+        headline: 'Future You Calling',
+        message: `Future ${studentName} on a sunny college campus with an iced latte just called. They said thanks for locking in today! 📞🍂`,
+        actionPrompt: 'Paint me a vivid, exciting picture of what my freshman year will feel like when I get accepted!',
+        actionLabel: 'Freshman Year Vibes ☕'
+      },
+      {
+        id: 'joke-coffee-officers',
+        category: 'humor',
+        tagLabel: '☕ Admissions Tea',
+        tagColor: 'text-yellow-300 bg-yellow-500/20 border-yellow-500/40',
+        icon: 'coffee',
+        headline: 'Favorite Cup of the Day',
+        message: 'Admissions officers drink 4 cups of coffee before reading applications. Let’s make your profile their favorite cup! ☕🚀',
+        actionPrompt: 'How do I make my application feel fresh, energetic, and genuinely fun for an admissions officer to read?',
+        actionLabel: 'Make Them Smile 😊'
+      },
+      {
+        id: 'joke-math-checks-out',
+        category: 'humor',
+        tagLabel: '📈 Rigorous Math',
+        tagColor: 'text-blue-300 bg-blue-500/20 border-blue-500/40',
+        icon: 'calculate',
+        headline: 'Statistical Fact',
+        message: 'Fun fact: 100% of students who never hit “Submit” don’t get accepted. We love rigorous math here. Click in! 📈',
+        actionPrompt: 'Give me a burst of adrenaline and motivation to tackle my application right now!',
+        actionLabel: 'Hype Me Up ⚡'
+      },
+      {
+        id: 'joke-cure-world-essay',
+        category: 'cheer',
+        tagLabel: '💡 Essay Secret',
+        tagColor: 'text-teal-300 bg-teal-500/20 border-teal-500/40',
+        icon: 'history_edu',
+        headline: 'No World Peace Required',
+        message: 'Your college essay doesn’t need to solve all global crises. It just needs to sound like an awesome, thoughtful human wrote it. 📝',
+        actionPrompt: 'What makes a personal statement essay deeply memorable without sounding cheesy or forced?',
+        actionLabel: 'Essay Secrets 💡'
+      },
+      {
+        id: 'joke-hydration-reminder',
+        category: 'cheer',
+        tagLabel: '💧 Hydration Check',
+        tagColor: 'text-sky-300 bg-sky-500/20 border-sky-500/40',
+        icon: 'water_drop',
+        headline: 'Wild Concept',
+        message: 'A high SAT and GPA are awesome, but have you tried drinking water, unclenching your jaw, and stretching for 30 seconds? 💧🧘',
+        actionPrompt: 'Give me a quick 2-minute motivational breathing exercise and an inspiring quote!',
+        actionLabel: 'Breathe & Reset 🧘'
+      },
+      {
+        id: 'joke-snack-approved',
+        category: 'vibe',
+        tagLabel: '🍪 Snack Station',
+        tagColor: 'text-orange-300 bg-orange-500/20 border-orange-500/40',
+        icon: 'cookie',
+        headline: 'Coach Approved',
+        message: 'Go grab a cookie or your favorite snack! Then come back and we’ll conquer college admissions one bite at a time. 🍪💪',
+        actionPrompt: 'What is the absolute easiest, most painless thing I can improve on my profile right now?',
+        actionLabel: 'Painless Quick Win 🍪'
+      },
+      {
+        id: 'joke-rhyme-corner',
+        category: 'humor',
+        tagLabel: '🎤 Poetry Drop',
+        tagColor: 'text-rose-300 bg-rose-500/20 border-rose-500/40',
+        icon: 'mic',
+        headline: 'Poetry Corner',
+        message: 'Roses are red, tuition is pain, click on this button, let’s flex your big brain! 🌹🧠',
+        actionPrompt: 'Write me a funny, motivational rap or rhyme about getting into my top choice college!',
+        actionLabel: 'Drop Another Rhyme 🎤'
+      },
+      {
+        id: 'joke-blockbuster-energy',
+        category: 'hype',
+        tagLabel: '🎬 Superhero Arc',
+        tagColor: 'text-purple-300 bg-purple-500/20 border-purple-500/40',
+        icon: 'movie',
+        headline: 'Origin Story',
+        message: 'Your application isn’t a boring resume; it’s a superhero origin story. Let’s give it that blockbuster summer energy! 🍿⚡',
+        actionPrompt: `How do I frame my unique background and passion for ${majorName} like a compelling hero origin story?`,
+        actionLabel: 'My Hero Arc 🎬'
+      },
+      {
+        id: 'joke-ill-do-it-later',
+        category: 'roast',
+        tagLabel: '🚨 Breaking News',
         tagColor: 'text-rose-300 bg-rose-500/20 border-rose-500/40',
         icon: 'alarm',
-        headline: 'Breaking News',
-        message: '“I’ll do it later” is still not an official application strategy.',
-        actionPrompt: 'What should my application roadmap look like from today until application submission?',
-        actionLabel: 'See Roadmap'
+        headline: 'Official Bulletin',
+        message: '“I’ll do it later” has officially failed peer review as a college admissions strategy. Let’s do 5 minutes now! ⏰',
+        actionPrompt: 'Roast my habit of procrastination and give me one fun 5-minute task to do right now!',
+        actionLabel: 'Roast My Delay 😂'
+      },
+      {
+        id: 'joke-harvard-voicemail',
+        category: 'hype',
+        tagLabel: '📞 Incoming Call',
+        tagColor: 'text-emerald-300 bg-emerald-500/20 border-emerald-500/40',
+        icon: 'call',
+        headline: 'Missed Call',
+        message: 'Top universities called. They didn’t leave a voicemail, but pretty sure they were looking for your application! 👀🎯',
+        actionPrompt: `What would top admissions committees find most fascinating about a student studying ${majorName}?`,
+        actionLabel: 'Check My Appeal 🎯'
+      },
+      {
+        id: 'joke-more-than-numbers',
+        category: 'cheer',
+        tagLabel: '🌟 Pure Cheer',
+        tagColor: 'text-yellow-300 bg-yellow-500/20 border-yellow-500/40',
+        icon: 'auto_awesome',
+        headline: 'Gentle Reminder',
+        message: 'You are so much more than a collection of grades and test scores. The world needs what YOU uniquely bring to campus! 🌟💖',
+        actionPrompt: 'Give me a personalized confidence boost based on my profile and intended major!',
+        actionLabel: 'Hype Me Up! 🌟'
       }
-    );
-
-    return tips;
-  }, [userProfile, analysis]);
+    ];
+  }, [username, userProfile.name, userProfile.intendedMajor]);
 
   // Master 60-second Interval Scheduler
   useEffect(() => {
@@ -246,11 +288,10 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
       lastTickRef.current = now;
 
       if (nextTipDelayRef.current <= 0) {
-        // Pick next proactive tip
+        // Pick next fun tip without repeating previous one
         const filtered = availableTips.filter((t) => t.id !== previousTipIdRef.current);
-        const nextTip = (filtered.length > 0 ? filtered : availableTips)[
-          Math.floor(Math.random() * (filtered.length > 0 ? filtered.length : availableTips.length))
-        ];
+        const candidates = filtered.length > 0 ? filtered : availableTips;
+        const nextTip = candidates[Math.floor(Math.random() * candidates.length)];
 
         if (nextTip) {
           previousTipIdRef.current = nextTip.id;
@@ -314,7 +355,7 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
       {isOpen && (
         <div className="glass-modal w-[360px] sm:w-[440px] max-h-[590px] rounded-2xl shadow-[0_16px_50px_rgba(0,0,0,0.7)] border border-indigo-500/40 overflow-hidden flex flex-col animate-fade-up">
           {/* Header */}
-          <div className="px-3.5 py-2.5 bg-gradient-to-r from-indigo-900/70 to-purple-900/70 border-b border-white/10 flex items-center justify-between">
+          <div className="px-3.5 py-2.5 bg-gradient-to-r from-indigo-900/70 via-purple-900/70 to-pink-900/40 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-md bg-indigo-500/25 border border-indigo-400/40 flex items-center justify-center text-indigo-300">
                 <span className="material-symbols-outlined text-[14px]">psychology</span>
@@ -323,7 +364,7 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
                 <h4 className="text-[12.5px] font-bold text-white leading-tight">Admissions Coach</h4>
                 <p className="text-[9.5px] text-emerald-400 font-medium flex items-center gap-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  {isLoading ? 'Thinking & Analyzing...' : 'Live 1-on-1 Advisor'}
+                  {isLoading ? 'Thinking & Bantering...' : 'Your Personal College Hype Coach'}
                 </p>
               </div>
             </div>
@@ -358,7 +399,7 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
         </div>
       )}
 
-      {/* Interactive Proactive Floating Message Card */}
+      {/* Interactive Proactive Fun & Cheerful Speech Bubble */}
       {!isOpen && activeTip && (
         <div
           onMouseEnter={() => setIsHovered(true)}
@@ -377,10 +418,10 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
           role="button"
           tabIndex={0}
           aria-label="Open Admissions AI Coach"
-          className="relative max-w-[340px] rounded-2xl rounded-br-md bg-gradient-to-br from-[#120d2c]/95 via-[#0e0a24]/95 to-[#170e38]/95 border border-indigo-400/50 p-4 text-[12.5px] text-white shadow-[0_16px_40px_rgba(79,70,229,0.5)] ring-1 ring-indigo-400/25 animate-fade-up cursor-pointer backdrop-blur-2xl transition-all hover:scale-[1.01] hover:border-indigo-400/70"
+          className="relative max-w-[340px] rounded-2xl rounded-br-md bg-gradient-to-br from-[#150f33]/95 via-[#0e0a24]/95 to-[#1c0f40]/95 border border-indigo-400/50 p-4 text-[12.5px] text-white shadow-[0_16px_45px_rgba(79,70,229,0.55)] ring-1 ring-indigo-400/25 animate-fade-up cursor-pointer backdrop-blur-2xl transition-all hover:scale-[1.01] hover:border-pink-400/60"
         >
           {/* Pointing Beak directed at the button */}
-          <span className="absolute -bottom-1.5 right-6 w-3.5 h-3.5 rotate-45 bg-[#170e38] border-r border-b border-indigo-400/50" />
+          <span className="absolute -bottom-1.5 right-6 w-3.5 h-3.5 rotate-45 bg-[#1c0f40] border-r border-b border-indigo-400/50" />
 
           {/* Close Dismiss Button */}
           <button
@@ -399,40 +440,40 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
           <div className="flex flex-col gap-2 relative z-10">
             {/* Tag Header Row */}
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${activeTip.tagColor}`}>
-                  <span className="material-symbols-outlined text-[11px]">{activeTip.icon}</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 shadow-sm ${activeTip.tagColor}`}>
+                  <span className="material-symbols-outlined text-[12px]">{activeTip.icon}</span>
                   <span>{activeTip.tagLabel}</span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-semibold">{coachGreeting}</span>
+                <span className="text-[10px] text-indigo-300 font-semibold tracking-wide">Hey {coachGreeting}</span>
               </div>
 
-              <span className="text-[9.5px] text-indigo-300/80 font-medium">
-                {isHovered ? 'Paused' : `${Math.ceil(timeRemainingMs / 1000)}s`}
+              <span className="text-[9.5px] text-slate-400 font-medium shrink-0">
+                {isHovered ? 'Paused ⏸' : `${Math.ceil(timeRemainingMs / 1000)}s`}
               </span>
             </div>
 
             {/* Headline & Body */}
             <div>
               {activeTip.headline && (
-                <div className="text-[13px] font-bold text-white mb-0.5 flex items-center gap-1">
+                <div className="text-[13px] font-bold text-white mb-0.5 flex items-center gap-1 tracking-tight">
                   <span>{activeTip.headline}</span>
                 </div>
               )}
-              <p className="text-[12px] text-slate-200 leading-snug font-normal">
+              <p className="text-[12.5px] text-slate-200 leading-snug font-normal">
                 {activeTip.message}
               </p>
             </div>
 
             {/* Interactive Quick-Action Button */}
-            <div className="mt-1 pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+            <div className="mt-1 pt-2.5 border-t border-white/10 flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleTriggerAction(activeTip);
                 }}
-                className="px-3 py-1 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-md shadow-indigo-500/25 transition-all hover:scale-[1.03] cursor-pointer"
+                className="px-3 py-1 rounded-lg bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white text-[11px] font-extrabold flex items-center gap-1.5 shadow-md shadow-purple-500/30 transition-all hover:scale-[1.03] cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                   auto_awesome
@@ -440,7 +481,7 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
                 <span>{activeTip.actionLabel}</span>
               </button>
 
-              <span className="text-[10.5px] text-slate-400 hover:text-indigo-200 transition-colors flex items-center gap-0.5">
+              <span className="text-[10px] text-slate-400 hover:text-pink-300 transition-colors flex items-center gap-0.5 font-medium">
                 <span>Chat</span>
                 <span className="material-symbols-outlined text-[11px]">arrow_forward</span>
               </span>
@@ -450,7 +491,7 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
           {/* Slim Auto-dismiss Countdown Progress Bar */}
           <div className="absolute bottom-0 left-3 right-3 h-[2px] bg-white/10 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 transition-all duration-100 ease-linear"
+              className="h-full bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 transition-all duration-100 ease-linear"
               style={{ width: `${countdownPercent}%` }}
             />
           </div>
@@ -464,9 +505,9 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
           className={`group relative flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-gradient-to-r ${
             isLoading
               ? 'from-amber-600 via-purple-600 to-indigo-600 animate-pulse'
-              : 'from-indigo-600 via-purple-600 to-indigo-600'
+              : 'from-indigo-600 via-purple-600 to-pink-600'
           } text-white font-bold text-[12.5px] shadow-[0_4px_25px_rgba(99,102,241,0.5)] border border-indigo-400/50 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer animate-float`}
-          title="AI Admissions Coach - Click to chat"
+          title="AI Admissions Coach - Click to chat & get cheered up!"
         >
           <div className="relative flex items-center justify-center">
             <span className="material-symbols-outlined text-[18px] text-indigo-100 group-hover:rotate-12 transition-transform">
