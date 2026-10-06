@@ -32,13 +32,13 @@ const PROACTIVE_MESSAGES = [
   'Breaking news: “I’ll do it later” is still not an application strategy.'
 ];
 
-const MAX_PROACTIVE_APPEARANCES = 10;
-const APPEARANCE_COUNT_KEY = 'caliber_coach_proactive_appearances_v2';
+const PROACTIVE_INTERVAL_MS = 60_000;
+const INITIAL_PROACTIVE_DELAY_MS = 20_000;
+const PROACTIVE_DISPLAY_DURATION_MS = 8_500;
 const LAST_MESSAGE_KEY = 'caliber_coach_proactive_last_message_v1';
 
 export const resetFloatingCoachMessageSession = () => {
   try {
-    sessionStorage.removeItem(APPEARANCE_COUNT_KEY);
     sessionStorage.removeItem(LAST_MESSAGE_KEY);
   } catch {
     // Session storage may be unavailable in privacy-restricted browsers.
@@ -58,22 +58,13 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [proactiveMessage, setProactiveMessage] = useState<string | null>(null);
-  const [appearanceCount, setAppearanceCount] = useState(() => {
-    try {
-      return Math.min(MAX_PROACTIVE_APPEARANCES, Number(sessionStorage.getItem(APPEARANCE_COUNT_KEY)) || 0);
-    } catch {
-      return 0;
-    }
-  });
   const { isLoading, messages, activePrompt } = useCoachChat();
   const previousMessageRef = useRef<string | null>(getLastProactiveMessage());
-  const nextMessageDelayRef = useRef(30_000);
+  const nextMessageDelayRef = useRef(INITIAL_PROACTIVE_DELAY_MS);
   const lastTickRef = useRef(Date.now());
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (appearanceCount >= MAX_PROACTIVE_APPEARANCES) return;
-
     const isPaused = isOpen || activePrompt.trim().length > 0;
     lastTickRef.current = Date.now();
     if (isPaused) return;
@@ -90,26 +81,21 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
       previousMessageRef.current = message;
       try { sessionStorage.setItem(LAST_MESSAGE_KEY, message); } catch { /* session storage may be unavailable */ }
       setProactiveMessage(message);
-      nextMessageDelayRef.current = 45_000;
-      setAppearanceCount((previousCount) => {
-        const nextCount = Math.min(MAX_PROACTIVE_APPEARANCES, previousCount + 1);
-        try { sessionStorage.setItem(APPEARANCE_COUNT_KEY, String(nextCount)); } catch { /* session storage may be unavailable */ }
-        return nextCount;
-      });
+      nextMessageDelayRef.current = PROACTIVE_INTERVAL_MS;
 
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
-      dismissTimerRef.current = setTimeout(() => setProactiveMessage(null), 7_000);
+      dismissTimerRef.current = setTimeout(() => setProactiveMessage(null), PROACTIVE_DISPLAY_DURATION_MS);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activePrompt, appearanceCount, isOpen]);
+  }, [activePrompt, isOpen]);
 
   useEffect(() => () => {
     if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
   }, []);
 
-  // If already on the dedicated coach view or landing page, don't show the floating popup
-  if (currentScreen === 'landing' || currentScreen === 'coach') {
+  // If already on the dedicated full-screen coach view, don't show the floating popup
+  if (currentScreen === 'coach') {
     return null;
   }
 
@@ -169,16 +155,38 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
 
       {!isOpen && proactiveMessage && (
         <div
-          className="relative max-w-[310px] rounded-2xl rounded-br-md bg-gradient-to-r from-indigo-950 to-purple-950 border border-indigo-300/55 px-4 py-3 text-[12.5px] leading-relaxed text-white shadow-[0_8px_32px_rgba(79,70,229,0.4)] ring-1 ring-indigo-400/15 animate-fade-up cursor-pointer"
+          className="relative max-w-[320px] rounded-2xl rounded-br-md bg-gradient-to-r from-indigo-950 via-[#120e29] to-purple-950 border border-indigo-400/50 px-4 py-3 text-[12.5px] leading-relaxed text-white shadow-[0_12px_36px_rgba(79,70,229,0.45)] ring-1 ring-indigo-400/25 animate-fade-up cursor-pointer backdrop-blur-xl"
           role="button"
           tabIndex={0}
           aria-label="Open Admission AI Coach"
           onClick={() => { setProactiveMessage(null); setIsOpen(true); }}
           onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setProactiveMessage(null); setIsOpen(true); } }}
         >
-          <span className="absolute -bottom-1.5 right-6 w-3 h-3 rotate-45 bg-purple-950 border-r border-b border-indigo-300/55" />
-          <div className="flex items-start gap-2 relative z-10"><span className="material-symbols-outlined text-[17px] text-indigo-200 mt-0.5">psychology</span><div><span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-indigo-200 mb-0.5">{coachGreeting}</span><span>{proactiveMessage}</span></div></div>
-          <button type="button" aria-label="Dismiss coach message" onClick={(event) => { event.stopPropagation(); setProactiveMessage(null); }} className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-slate-800 border border-indigo-300/50 text-slate-300 hover:text-white text-[13px] leading-none cursor-pointer">×</button>
+          <span className="absolute -bottom-1.5 right-6 w-3 h-3 rotate-45 bg-purple-950 border-r border-b border-indigo-400/50" />
+          <div className="flex items-start gap-2.5 relative z-10">
+            <div className="w-6 h-6 rounded-lg bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-indigo-300 shrink-0 mt-0.5">
+              <span className="material-symbols-outlined text-[15px]">psychology</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="block text-[9.5px] font-bold uppercase tracking-[0.14em] text-indigo-200">
+                  {coachGreeting}
+                </span>
+                <span className="text-[8.5px] bg-indigo-500/25 text-indigo-300 border border-indigo-400/40 px-1 py-0.2 rounded font-semibold">
+                  AI Live Coach
+                </span>
+              </div>
+              <span className="text-slate-100 font-medium">{proactiveMessage}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Dismiss coach message"
+            onClick={(event) => { event.stopPropagation(); setProactiveMessage(null); }}
+            className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-slate-800 border border-indigo-300/50 text-slate-300 hover:text-white text-[13px] leading-none cursor-pointer flex items-center justify-center hover:bg-slate-700 shadow-md transition-colors"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -186,21 +194,21 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${
+          className={`group relative flex items-center gap-2.5 px-3.5 py-2.5 rounded-full bg-gradient-to-r ${
             isLoading
               ? 'from-amber-600 via-purple-600 to-indigo-600 animate-pulse'
               : 'from-indigo-600 via-purple-600 to-indigo-600'
-          } text-white font-medium text-[12px] shadow-[0_4px_16px_rgba(99,102,241,0.35)] border border-indigo-400/40 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer`}
-          title="Admission coach"
+          } text-white font-bold text-[12.5px] shadow-[0_4px_25px_rgba(99,102,241,0.45)] border border-indigo-400/50 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer animate-float`}
+          title="AI Admissions Coach - Click to chat"
         >
           <div className="relative flex items-center justify-center">
-            <span className="material-symbols-outlined text-[15px] text-indigo-100 group-hover:rotate-12 transition-transform">
+            <span className="material-symbols-outlined text-[18px] text-indigo-100 group-hover:rotate-12 transition-transform">
               psychology
             </span>
             {isLoading ? (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-400 border border-indigo-900 rounded-full animate-ping"></span>
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 border border-indigo-900 rounded-full animate-ping"></span>
             ) : (
-              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-400 border border-indigo-900 rounded-full"></span>
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 border border-indigo-900 rounded-full animate-pulse"></span>
             )}
           </div>
 
@@ -209,7 +217,7 @@ export const FloatingCoachWidget: React.FC<FloatingCoachWidgetProps> = ({
           </span>
 
           {userMessageCount > 0 && !isLoading && (
-            <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-bold px-1.5 py-0.2 rounded-full border border-emerald-500/40">
+            <span className="bg-emerald-500/25 text-emerald-300 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-emerald-500/40">
               {userMessageCount}
             </span>
           )}
