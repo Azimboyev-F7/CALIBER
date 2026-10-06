@@ -174,6 +174,93 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     };
   }, [userProfile, totalPursuits, totalAwards, totalTargets, onNavigate, onOpenContextNotes]);
 
+  // Dynamic highest-leverage admissions move determination based on student profile state
+  const highestLeverageMove = useMemo(() => {
+    const reaches = userProfile.targetColleges?.filter(c => c.category === 'reach') || [];
+    const safeties = userProfile.targetColleges?.filter(c => c.category === 'safety') || [];
+    const totalColleges = userProfile.targetColleges?.length || 0;
+    const tier1or2Activities = userProfile.activities.filter(a => a.tier === 1 || a.tier === 2);
+
+    if (totalColleges > 0 && safeties.length === 0 && reaches.length >= 2) {
+      return {
+        title: 'De-Risk Portfolio: Add 2 Safety Anchors',
+        tag: 'Portfolio Health Risk',
+        tagColor: 'text-rose-300 bg-rose-500/15 border-rose-500/30',
+        icon: 'shield_with_heart',
+        iconColor: 'text-rose-400',
+        impactScore: 'High Strategic ROI',
+        impactBadge: '+25% Safety Margin',
+        description: `You currently have ${reaches.length} Reach institutions but zero Safety colleges. Admissions advisors strongly advise keeping at least 2 target or safety anchors with >50% admit rates to prevent an admissions blank.`,
+        actionLabel: 'Add Safety Schools',
+        actionTarget: () => onNavigate('colleges'),
+        iconBg: 'bg-rose-500/10 border-rose-500/25',
+      };
+    }
+
+    if (userProfile.activities.length < 5) {
+      return {
+        title: 'Expand Common App Activities (5+ Slots)',
+        tag: 'Extracurricular Depth',
+        tagColor: 'text-indigo-300 bg-indigo-500/15 border-indigo-500/30',
+        icon: 'format_list_bulleted_add',
+        iconColor: 'text-indigo-400',
+        impactScore: 'Primary Admissions Factor',
+        impactBadge: '+15-20% Ivy/T20 Lift',
+        description: `The Common App provides 10 slots for activities. With only ${userProfile.activities.length} recorded, admissions committees lack full visibility into your sustained commitments and leadership.`,
+        actionLabel: 'Log Extracurriculars',
+        actionTarget: () => onNavigate('activities'),
+        iconBg: 'bg-indigo-500/10 border-indigo-500/25',
+      };
+    }
+
+    if (tier1or2Activities.length === 0 && userProfile.activities.length >= 1) {
+      return {
+        title: 'Elevate an Activity to Tier 1 or Tier 2 Impact',
+        tag: 'Narrative Spike Deepening',
+        tagColor: 'text-purple-300 bg-purple-500/15 border-purple-500/30',
+        icon: 'upgrade',
+        iconColor: 'text-purple-400',
+        impactScore: 'Distinctiveness Multiplier',
+        impactBadge: 'Top 5% Differentiator',
+        description: 'Your logged activities currently sit at Tier 3/4 (school/local participation). Escalate your strongest commitment to state/national recognition, independent publication, or regional founding.',
+        actionLabel: 'Refine & Escalate',
+        actionTarget: () => onNavigate('activities'),
+        iconBg: 'bg-purple-500/10 border-purple-500/25',
+      };
+    }
+
+    if (totalColleges === 0) {
+      return {
+        title: 'Build Initial 3-Tier University Target List',
+        tag: 'Admissions Calibration',
+        tagColor: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30',
+        icon: 'account_balance',
+        iconColor: 'text-emerald-400',
+        impactScore: 'Essential Baseline',
+        impactBadge: 'Calibrate Admissions Odds',
+        description: 'Add your aspirational and target universities across Reach, Target, and Safety tiers so Caliber can benchmark your academic & EC profile against real admissions cohorts.',
+        actionLabel: 'Explore Universities',
+        actionTarget: () => onNavigate('colleges'),
+        iconBg: 'bg-emerald-500/10 border-emerald-500/25',
+      };
+    }
+
+    // Default to AI priority recommendation
+    return {
+      title: analysis.priorityRecommendation?.title || 'Prioritize Strategic Profile Polish',
+      tag: 'Strategic Admissions Move',
+      tagColor: 'text-amber-300 bg-amber-500/15 border-amber-500/30',
+      icon: 'auto_awesome',
+      iconColor: 'text-amber-400',
+      impactScore: 'AI Coach Recommendation',
+      impactBadge: 'Highest Leverage ROI',
+      description: analysis.priorityRecommendation?.description || 'Focus on closing gaps identified in your comprehensive profile analysis.',
+      actionLabel: 'Review Strategy Roadmap',
+      actionTarget: () => onNavigate('results'),
+      iconBg: 'bg-amber-500/10 border-amber-500/25',
+    };
+  }, [userProfile, analysis, onNavigate]);
+
   return (
     <div className="max-w-[1140px] mx-auto px-4 md:px-8 py-6 md:py-8 flex flex-col gap-6 text-[#f1f5f9]">
       {/* Toast Notification */}
@@ -660,47 +747,92 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          {/* Priority Strategy Recommendation */}
-          <div className="glass-card rounded-2xl p-5 md:p-6 flex-1 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="material-symbols-outlined text-amber-400 text-[18px] drop-shadow-[0_0_6px_rgba(247,189,62,0.5)]">
-                  lightbulb
-                </span>
-                <h3 className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-                  KEY ACTION ITEM
-                </h3>
+          {/* Highest-Leverage Strategic Action Card */}
+          <div className="glass-card rounded-2xl p-5 md:p-6 flex-1 flex flex-col justify-between relative overflow-hidden border border-white/15 shadow-[0_6px_24px_rgba(0,0,0,0.3)]">
+            <div className="absolute -right-8 -top-8 w-36 h-36 bg-gradient-to-br from-indigo-500/10 via-amber-500/10 to-transparent rounded-full blur-xl pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className={`material-symbols-outlined ${highestLeverageMove.iconColor} text-[18px] drop-shadow-[0_0_6px_rgba(247,189,62,0.5)]`}>
+                    bolt
+                  </span>
+                  <h3 className="text-[11px] font-bold tracking-wider text-slate-300 uppercase">
+                    HIGHEST-LEVERAGE MOVE
+                  </h3>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${highestLeverageMove.tagColor}`}>
+                    {highestLeverageMove.tag}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold">
+                  <span className="material-symbols-outlined text-[13px]">trending_up</span>
+                  <span>{highestLeverageMove.impactBadge}</span>
+                </div>
               </div>
 
               <div className="flex flex-col md:flex-row gap-4 items-start">
-                <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center shrink-0 shadow-inner">
-                  <span className="material-symbols-outlined text-indigo-400 text-[22px]">
-                    edit_document
+                <div className={`w-11 h-11 rounded-xl ${highestLeverageMove.iconBg} border flex items-center justify-center shrink-0 shadow-inner`}>
+                  <span className={`material-symbols-outlined ${highestLeverageMove.iconColor} text-[22px]`}>
+                    {highestLeverageMove.icon}
                   </span>
                 </div>
                 <div className="flex-1 space-y-1.5">
-                  <h4 className="text-[16px] md:text-[17px] font-semibold text-white">
-                    {analysis.priorityRecommendation.title}
+                  <h4 className="text-[16px] md:text-[17px] font-bold text-white tracking-tight">
+                    {highestLeverageMove.title}
                   </h4>
                   <p className="text-[13px] md:text-[14px] text-slate-300 leading-relaxed">
-                    {analysis.priorityRecommendation.description}
+                    {highestLeverageMove.description}
                   </p>
                 </div>
               </div>
+
+              {/* Pending Next Steps Checklist Preview */}
+              {analysis.immediateNextSteps && analysis.immediateNextSteps.length > 0 && (
+                <div className="mt-3.5 pt-3 border-t border-white/10 flex flex-col gap-1.5">
+                  <span className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">
+                    Next Tactical Steps:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {analysis.immediateNextSteps.slice(0, 2).map((step) => (
+                      <div
+                        key={step.id}
+                        onClick={() => onNavigate('results')}
+                        className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/15 transition-all text-[12px] text-slate-300 cursor-pointer group"
+                      >
+                        <span className={`material-symbols-outlined text-[14px] ${step.completed ? 'text-emerald-400' : 'text-slate-500 group-hover:text-amber-400'}`}>
+                          {step.completed ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        <span className="truncate group-hover:text-white transition-colors">
+                          {step.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="pt-4 flex flex-wrap items-center gap-2.5 mt-3 border-t border-white/10">
+            <div className="pt-4 flex flex-wrap items-center gap-2.5 mt-3 border-t border-white/10 relative z-10">
+              <button
+                onClick={highestLeverageMove.actionTarget}
+                className="px-4 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-lg text-[12px] font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-500/20 transition-all hover:scale-[1.02]"
+              >
+                <span className="material-symbols-outlined text-[15px]">play_arrow</span>
+                {highestLeverageMove.actionLabel}
+              </button>
+
               <button
                 onClick={onOpenContextNotes}
                 className="px-3.5 py-1.5 glass-btn-secondary rounded-lg text-[12px] font-semibold flex items-center gap-1.5 cursor-pointer hover:border-indigo-400/40 transition-colors"
               >
                 <span className="material-symbols-outlined text-[15px]">add</span>
-                Add Context Notes
+                Context Notes
               </button>
 
               <button
                 onClick={onOpenReviewDrafts}
-                className="px-3.5 py-1.5 glass-btn-primary rounded-lg text-[12px] font-semibold flex items-center gap-1.5 cursor-pointer"
+                className="px-3.5 py-1.5 glass-btn-secondary rounded-lg text-[12px] font-semibold flex items-center gap-1.5 cursor-pointer hover:border-indigo-400/40 transition-colors"
               >
                 <span className="material-symbols-outlined text-[15px]">auto_stories</span>
                 Review Drafts
