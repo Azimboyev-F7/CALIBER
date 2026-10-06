@@ -204,8 +204,34 @@ export const UniversityCard: React.FC<UniversityCardProps> = ({
           </div>
 
           <div className="p-2 rounded-lg bg-white/[0.02] border border-white/5">
-            <span className="text-slate-400 block text-[10px] font-bold uppercase">Deadline</span>
-            <span className="text-amber-300 font-extrabold text-[13px] truncate block">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 block text-[10px] font-bold uppercase">Deadline</span>
+              {(() => {
+                const parts = (college.deadline || '').trim().split(/[\s,]+/);
+                const months: Record<string, number> = {
+                  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+                };
+                if (parts.length >= 2) {
+                  const mStr = parts[0].slice(0, 3).toLowerCase();
+                  const day = parseInt(parts[1], 10) || 1;
+                  if (mStr in months) {
+                    const today = new Date();
+                    let targetYear = today.getFullYear();
+                    if (months[mStr] < today.getMonth() && today.getMonth() >= 7) targetYear += 1;
+                    const diffDays = Math.ceil((new Date(targetYear, months[mStr], day).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                    if (diffDays > 0) {
+                      return (
+                        <span className={`text-[9.5px] font-mono font-bold px-1.5 py-0.2 rounded ${diffDays <= 30 ? 'bg-rose-500/20 text-rose-300' : 'bg-amber-500/15 text-amber-300'}`}>
+                          ⏳ {diffDays}d
+                        </span>
+                      );
+                    }
+                  }
+                }
+                return null;
+              })()}
+            </div>
+            <span className="text-amber-300 font-extrabold text-[13px] truncate block mt-0.5">
               {college.deadline}
             </span>
           </div>

@@ -36,6 +36,7 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
   const [hoveredDimension, setHoveredDimension] = useState<RadarDimension | null>(null);
   const [showBenchmark, setShowBenchmark] = useState<boolean>(true);
   const [showNationalAvg, setShowNationalAvg] = useState<boolean>(false);
+  const [curveStyle, setCurveStyle] = useState<'spline' | 'linear'>('spline');
   const [activePolygonHover, setActivePolygonHover] = useState<'student' | 'benchmark' | 'national' | null>(null);
 
   const totalAxes = dimensions.length;
@@ -66,48 +67,50 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
     };
   };
 
-  // Build SVG path strings
+  // Build SVG path strings with organic curve or linear web
+  const curveFactory = curveStyle === 'spline' 
+    ? d3.curveCatmullRomClosed.alpha(0.5) 
+    : d3.curveLinearClosed;
+
   const studentPoints = dimensions.map((d, i) => getCoordinates(d.studentScore, i));
   const benchmarkPoints = dimensions.map((d, i) => getCoordinates(d.benchmarkScore, i));
-  const nationalPoints = dimensions.map((d, i) => getCoordinates(d.nationalAvg, i));
 
   const studentPathString = d3.lineRadial<RadarDimension>()
     .radius((d) => rScale(d.studentScore))
     .angle((_, i) => i * angleSlice)
-    .curve(d3.curveLinearClosed)(dimensions) || '';
+    .curve(curveFactory)(dimensions) || '';
 
   const benchmarkPathString = d3.lineRadial<RadarDimension>()
     .radius((d) => rScale(d.benchmarkScore))
     .angle((_, i) => i * angleSlice)
-    .curve(d3.curveLinearClosed)(dimensions) || '';
+    .curve(curveFactory)(dimensions) || '';
 
   const nationalPathString = d3.lineRadial<RadarDimension>()
     .radius((d) => rScale(d.nationalAvg))
     .angle((_, i) => i * angleSlice)
-    .curve(d3.curveLinearClosed)(dimensions) || '';
+    .curve(curveFactory)(dimensions) || '';
 
-  // Render or update D3 elements for smooth transitions if needed
+  // Render smooth D3 transitions
   useEffect(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
 
-    // Subtle animated entrance on student polygon path
     svg.select('.student-polygon-path')
       .transition()
-      .duration(750)
+      .duration(650)
       .ease(d3.easeCubicOut)
       .attr('d', studentPathString);
 
     if (showBenchmark) {
       svg.select('.benchmark-polygon-path')
         .transition()
-        .duration(750)
+        .duration(650)
         .ease(d3.easeCubicOut)
         .attr('d', benchmarkPathString);
     }
   }, [studentPathString, benchmarkPathString, showBenchmark]);
 
-  // Average calculation for overall spike metric
+  // Average calculations
   const avgStudentScore = Math.round(
     dimensions.reduce((acc, curr) => acc + curr.studentScore, 0) / (dimensions.length || 1)
   );
@@ -120,15 +123,30 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
     <div ref={containerRef} className={`flex flex-col items-center select-none ${className}`}>
       {/* Controls & Layer Toggles */}
       <div className="w-full flex items-center justify-between gap-2 mb-2 pb-2 border-b border-white/10 flex-wrap">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse shadow-[0_0_8px_rgba(129,140,248,0.8)]"></span>
           <span className="text-[12.5px] font-bold text-white tracking-tight">
             Multi-Dimensional Spike Radar
+          </span>
+          <span className="text-[10px] uppercase font-bold text-indigo-300 px-1.5 py-0.2 rounded bg-indigo-500/15 border border-indigo-500/25">
+            D3 Engine
           </span>
         </div>
 
         {/* Layer Checkboxes / Pills */}
         <div className="flex items-center gap-1.5 text-[11px]">
+          {/* Curve Mode Toggle */}
+          <button
+            onClick={() => setCurveStyle(curveStyle === 'spline' ? 'linear' : 'spline')}
+            className="px-2 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300"
+            title="Toggle between Organic Spline and Geometric Polygon lines"
+          >
+            <span className="material-symbols-outlined text-[13px] text-indigo-400">
+              {curveStyle === 'spline' ? 'gesture' : 'polyline'}
+            </span>
+            <span>{curveStyle === 'spline' ? 'Curved Spline' : 'Linear Web'}</span>
+          </button>
+
           <button
             onClick={() => setShowBenchmark(!showBenchmark)}
             className={`px-2 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer border ${
@@ -167,15 +185,15 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
           <defs>
             {/* Radial Gradient for Student Spike fill */}
             <radialGradient id="spikeStudentGradient" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#818cf8" stopOpacity="0.75" />
-              <stop offset="60%" stopColor="#a855f7" stopOpacity="0.45" />
-              <stop offset="100%" stopColor="#ec4899" stopOpacity="0.15" />
+              <stop offset="0%" stopColor="#818cf8" stopOpacity={0.75} />
+              <stop offset="60%" stopColor="#a855f7" stopOpacity={0.45} />
+              <stop offset="100%" stopColor="#ec4899" stopOpacity={0.15} />
             </radialGradient>
 
             {/* Benchmark Polygon Gradient */}
             <radialGradient id="spikeBenchmarkGradient" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#c084fc" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.05" />
+              <stop offset="0%" stopColor="#c084fc" stopOpacity={0.25} />
+              <stop offset="100%" stopColor="#7c3aed" stopOpacity={0.05} />
             </radialGradient>
 
             {/* Glow Filter */}
@@ -228,23 +246,45 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
               );
             })}
 
-            {/* Radial Axis Spokes */}
+            {/* Radial Axis Spokes with Dynamic Hover Spotlight */}
             {dimensions.map((dim, i) => {
               const angle = i * angleSlice - Math.PI / 2;
               const x2 = radius * Math.cos(angle);
               const y2 = radius * Math.sin(angle);
               const isSelected = selectedDimensionKey === dim.shortName || selectedDimensionKey === dim.key;
+              const isHovered = hoveredDimension?.key === dim.key;
 
               return (
-                <line
-                  key={`spoke-${dim.key}`}
-                  x1={0}
-                  y1={0}
-                  x2={x2}
-                  y2={y2}
-                  stroke={isSelected ? 'rgba(129, 140, 248, 0.6)' : 'rgba(255, 255, 255, 0.12)'}
-                  strokeWidth={isSelected ? '1.5' : '1'}
-                />
+                <g key={`spoke-${dim.key}`}>
+                  <line
+                    x1={0}
+                    y1={0}
+                    x2={x2}
+                    y2={y2}
+                    stroke={
+                      isHovered
+                        ? 'rgba(168, 85, 247, 0.9)'
+                        : isSelected
+                        ? 'rgba(129, 140, 248, 0.7)'
+                        : 'rgba(255, 255, 255, 0.12)'
+                    }
+                    strokeWidth={isHovered ? '2.5' : isSelected ? '1.5' : '1'}
+                    className="transition-all duration-200"
+                  />
+                  {/* Spotlight pulse on hover */}
+                  {isHovered && (
+                    <line
+                      x1={0}
+                      y1={0}
+                      x2={x2}
+                      y2={y2}
+                      stroke="rgba(168, 85, 247, 0.4)"
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      className="animate-pulse"
+                    />
+                  )}
+                </g>
               );
             })}
           </g>
@@ -335,7 +375,7 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
                   {/* Outer pulse ring if selected or hovered */}
                   {(isSelected || isHovered) && (
                     <circle
-                      r="9"
+                      r="10"
                       fill="none"
                       stroke={dim.color || '#818cf8'}
                       strokeWidth="1.5"
@@ -344,7 +384,7 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
                     />
                   )}
                   <circle
-                    r={isSelected || isHovered ? '6' : '4.5'}
+                    r={isSelected || isHovered ? '6.5' : '4.5'}
                     fill={dim.color || '#818cf8'}
                     stroke="#0c0c14"
                     strokeWidth="2"
@@ -353,7 +393,7 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
                   />
                   {/* Score pill next to vertex */}
                   <text
-                    y="-8"
+                    y="-9"
                     fill="#ffffff"
                     fontSize="9.5"
                     fontWeight="800"
@@ -370,20 +410,20 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
           {/* Dimension Axis Labels & Icons around the perimeter */}
           {dimensions.map((dim, i) => {
             const angle = i * angleSlice - Math.PI / 2;
-            // Place labels slightly outside radius
             const labelRadius = radius + 32;
             const lx = center + labelRadius * Math.cos(angle);
             const ly = center + labelRadius * Math.sin(angle);
             const isSelected = selectedDimensionKey === dim.shortName || selectedDimensionKey === dim.key;
             const isHovered = hoveredDimension?.key === dim.key;
 
-            // Anchor determination
             const textAnchor =
               Math.abs(Math.cos(angle)) < 0.25
                 ? 'middle'
                 : Math.cos(angle) > 0
                 ? 'start'
                 : 'end';
+
+            const leadOrDeficit = dim.studentScore - dim.benchmarkScore;
 
             return (
               <g
@@ -397,14 +437,14 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
                 {/* Background pill on hover/selected */}
                 {(isSelected || isHovered) && (
                   <rect
-                    x={textAnchor === 'middle' ? -45 : textAnchor === 'start' ? -4 : -86}
+                    x={textAnchor === 'middle' ? -50 : textAnchor === 'start' ? -4 : -96}
                     y={-14}
-                    width="90"
+                    width="100"
                     height="28"
                     rx="6"
-                    fill="rgba(99, 102, 241, 0.25)"
-                    stroke="rgba(129, 140, 248, 0.5)"
-                    strokeWidth="1"
+                    fill="rgba(99, 102, 241, 0.28)"
+                    stroke="rgba(129, 140, 248, 0.6)"
+                    strokeWidth="1.2"
                   />
                 )}
 
@@ -421,12 +461,12 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
                   {dim.shortName || dim.name}
                   {dim.evalType === 'calculated' && (
                     <tspan dx="4" fill="#94a3b8" fontSize="8" fontWeight="700">
-                      • Calculated
+                      • Calc
                     </tspan>
                   )}
                   {dim.evalType === 'ai-evaluated' && (
                     <tspan dx="4" fill="#c084fc" fontSize="8" fontWeight="700">
-                      • AI-Evaluated
+                      • AI
                     </tspan>
                   )}
                 </text>
@@ -436,13 +476,11 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
                   x={0}
                   y={10}
                   textAnchor={textAnchor}
-                  fill={dim.studentScore >= dim.benchmarkScore ? '#34d399' : '#fbbf24'}
+                  fill={leadOrDeficit >= 0 ? '#34d399' : '#fbbf24'}
                   fontSize="9.5"
                   fontWeight="700"
                 >
-                  {dim.studentScore >= dim.benchmarkScore
-                    ? `+${dim.studentScore - dim.benchmarkScore}% Lead`
-                    : `${dim.studentScore - dim.benchmarkScore}% Delta`}
+                  {leadOrDeficit >= 0 ? `+${leadOrDeficit}% Lead` : `${leadOrDeficit}% Delta`}
                 </text>
               </g>
             );
@@ -454,7 +492,7 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
             SPIKE
           </span>
-          <span className="text-[15px] font-extrabold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent leading-tight">
+          <span className="text-[15px] font-extrabold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent leading-tight font-mono">
             {avgStudentScore}%
           </span>
           <span className="text-[8px] text-slate-400 leading-none">
@@ -464,39 +502,45 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
       </div>
 
       {/* Interactive Tooltip / Active Dimension Banner */}
-      <div className="w-full mt-1 p-3 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3 min-h-[58px] transition-all">
+      <div className="w-full mt-1 p-3.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between gap-3 min-h-[62px] transition-all">
         {hoveredDimension ? (
           <div className="flex items-center gap-3 w-full">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-md"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-md"
               style={{ backgroundColor: hoveredDimension.color || '#6366f1' }}
             >
-              <span className="material-symbols-outlined text-[17px]">
+              <span className="material-symbols-outlined text-[19px]">
                 {hoveredDimension.icon || 'bolt'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-[12.5px] font-bold text-white truncate">
+                <span className="text-[13px] font-bold text-white truncate">
                   {hoveredDimension.name}
                 </span>
                 {hoveredDimension.evalType && (
                   <ScoreEvaluationBadge type={hoveredDimension.evalType} />
                 )}
-                <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   {hoveredDimension.rubricRating || 'Tier 1/2'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-300 truncate">
+              <p className="text-[11.5px] text-slate-300 truncate">
                 {hoveredDimension.description}
               </p>
             </div>
             <div className="text-right shrink-0">
-              <span className="text-[14px] font-extrabold text-white">
+              <span className="text-[15px] font-black text-white font-mono">
                 {hoveredDimension.studentScore}%
               </span>
-              <span className="block text-[9.5px] text-purple-300">
-                vs {hoveredDimension.benchmarkScore}% pool
+              <span className={`block text-[10px] font-bold font-mono ${
+                hoveredDimension.studentScore >= hoveredDimension.benchmarkScore 
+                  ? 'text-emerald-400' 
+                  : 'text-amber-400'
+              }`}>
+                {hoveredDimension.studentScore >= hoveredDimension.benchmarkScore 
+                  ? `+${hoveredDimension.studentScore - hoveredDimension.benchmarkScore}% vs ${benchmarkTitle}`
+                  : `${hoveredDimension.studentScore - hoveredDimension.benchmarkScore}% vs ${benchmarkTitle}`}
               </span>
             </div>
           </div>
@@ -506,9 +550,9 @@ export const SpikeRadarChart: React.FC<SpikeRadarChartProps> = ({
               <span className="material-symbols-outlined text-indigo-400 text-[16px]">touch_app</span>
               <span>Hover or click any dimension vertex to inspect admissions tier criteria.</span>
             </div>
-            <div className="flex items-center gap-3 font-semibold text-slate-300 text-[11px]">
+            <div className="flex items-center gap-3 font-semibold text-slate-300 text-[11px] font-mono">
               <span className="text-indigo-300">Your Avg: {avgStudentScore}%</span>
-              <span className="text-purple-300">Pool Avg: {avgBenchmarkScore}%</span>
+              <span className="text-purple-300">{benchmarkTitle}: {avgBenchmarkScore}%</span>
             </div>
           </div>
         )}

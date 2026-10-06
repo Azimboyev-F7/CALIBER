@@ -16,13 +16,14 @@ interface UniversitiesViewProps {
 export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
   userProfile,
   onUpdateProfile,
-  onNavigate,
+  onNavigate: _onNavigate,
   onShowToast
 }) => {
   const [activeMainTab, setActiveMainTab] = useState<'portfolio' | 'ai_recommender'>('portfolio');
-  const [viewMode, setViewMode] = useState<'tiers' | 'stages' | 'timeline'>('tiers');
+  const [viewMode, setViewMode] = useState<'tiers' | 'stages' | 'scatter' | 'timeline'>('tiers');
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState<'all' | CollegeCategory>('all');
+  const [hoveredScatterCollege, setHoveredScatterCollege] = useState<CollegeTarget | null>(null);
 
   // Modals state
   const [selectedCollegeForModal, setSelectedCollegeForModal] = useState<CollegeTarget | null>(null);
@@ -58,7 +59,7 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
         healthScore: 0
       };
     }
-    // Condition 1: Missing Safety Schools (flagged if Safety count is 0 regardless of other counts)
+    // Condition 1: Missing Safety Schools
     if (safeties.length === 0) {
       return {
         status: 'Missing Safety Schools',
@@ -139,14 +140,20 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
     });
   }, [colleges, searchQuery, tierFilter]);
 
+  // Distribution percentages for visual balance meter
+  const totalCollegesCount = colleges.length || 1;
+  const reachPct = Math.round((reaches.length / totalCollegesCount) * 100);
+  const targetPct = Math.round((targets.length / totalCollegesCount) * 100);
+  const safetyPct = Math.round((safeties.length / totalCollegesCount) * 100);
+
   return (
-    <div className="max-w-[1180px] mx-auto px-4 md:px-8 py-6 md:py-8 space-y-6 text-[#f1f5f9]">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-[1240px] mx-auto px-4 md:px-8 py-6 md:py-8 space-y-6 text-[#f1f5f9]">
+      {/* Page Title & Global Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/5">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              Universities Hub
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
+              Strategic Admissions Hub
             </span>
             <span className="text-[12px] text-slate-400">
               Class of '{userProfile.graduationYear.slice(-2)} Portfolio Tracker
@@ -266,10 +273,10 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
               </div>
 
               {/* Status Summary & Advice */}
-              <div className="md:w-72 bg-white/[0.03] p-3.5 rounded-xl border border-white/10 space-y-2 flex flex-col justify-between">
+              <div className="md:w-80 bg-white/[0.03] p-3.5 rounded-xl border border-white/10 space-y-2 flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Application Status
+                    Portfolio Strategy
                   </span>
                   <span className={`text-[10.5px] font-bold px-2 py-0.5 rounded-full border ${portfolioAdvice.badgeColor}`}>
                     {portfolioAdvice.status}
@@ -279,6 +286,7 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                 <div className="flex items-center justify-between text-[11.5px] text-slate-300">
                   <span>Submitted / Admitted: <strong className="text-white">{submittedCount}</strong></span>
                   <span>In Progress: <strong className="text-amber-300">{inProgressCount}</strong></span>
+                  <span>Draft: <strong className="text-slate-400">{notStartedCount}</strong></span>
                 </div>
 
                 <p className="text-[11px] text-slate-400 leading-snug">
@@ -286,12 +294,46 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                 </p>
               </div>
             </div>
+
+            {/* Visual Portfolio Balance Meter */}
+            {colleges.length > 0 && (
+              <div className="pt-3 border-t border-white/10 space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                  <span className="flex items-center gap-1.5 font-sans font-bold text-slate-300">
+                    <span className="material-symbols-outlined text-indigo-400 text-[14px]">tune</span>
+                    List Distribution Balance:
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-rose-400">Reach: {reachPct}%</span>
+                    <span className="text-indigo-400">Target: {targetPct}%</span>
+                    <span className="text-emerald-400">Safety: {safetyPct}%</span>
+                  </div>
+                </div>
+                <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden flex border border-white/10 p-[1px]">
+                  <div
+                    style={{ width: `${reachPct}%` }}
+                    className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-l-full transition-all duration-500"
+                    title={`Reach: ${reaches.length}`}
+                  />
+                  <div
+                    style={{ width: `${targetPct}%` }}
+                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500"
+                    title={`Target: ${targets.length}`}
+                  />
+                  <div
+                    style={{ width: `${safetyPct}%` }}
+                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-r-full transition-all duration-500"
+                    title={`Safety: ${safeties.length}`}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Control Bar: View Switcher (Tiers, Stages, Timeline), Search & Filter */}
+          {/* Control Bar: View Switcher (Tiers, Scatter Matrix, Stages, Timeline) */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white/[0.02] p-3 rounded-2xl border border-white/10">
             {/* View Mode Buttons */}
-            <div className="flex items-center bg-white/[0.04] p-1 rounded-xl border border-white/10 gap-1">
+            <div className="flex flex-wrap items-center bg-white/[0.04] p-1 rounded-xl border border-white/10 gap-1">
               <button
                 onClick={() => setViewMode('tiers')}
                 className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
@@ -305,6 +347,30 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
               </button>
 
               <button
+                onClick={() => setViewMode('scatter')}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'scatter'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">bubble_chart</span>
+                <span>Selectivity vs Match Matrix</span>
+              </button>
+
+              <button
+                onClick={() => setViewMode('stages')}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  viewMode === 'stages'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">view_kanban</span>
+                <span>Pipeline Kanban</span>
+              </button>
+
+              <button
                 onClick={() => setViewMode('timeline')}
                 className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   viewMode === 'timeline'
@@ -313,7 +379,7 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                 }`}
               >
                 <span className="material-symbols-outlined text-[16px]">calendar_month</span>
-                <span>By Deadline Timeline</span>
+                <span>Deadlines Timeline</span>
               </button>
             </div>
 
@@ -384,7 +450,7 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[12px] text-slate-400 hidden sm:inline">
-                        Acceptance Rate &lt; 15% • Highly Selective
+                        Acceptance Rate &lt; 15% • Highly Aspirational
                       </span>
                       <button
                         onClick={() => handleOpenAddModal('reach')}
@@ -398,7 +464,7 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
 
                   {reaches.length === 0 ? (
                     <div className="p-5 rounded-2xl bg-white/[0.02] border border-dashed border-rose-500/20 text-center text-[12.5px] text-slate-400 space-y-2">
-                      <p>No Reach institutions added yet. Add aspirational dream schools.</p>
+                      <p>No Reach institutions added yet. Aim high and add dream schools.</p>
                       <button
                         onClick={() => handleOpenAddModal('reach')}
                         className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[12px] font-bold inline-flex items-center gap-1.5 cursor-pointer"
@@ -437,7 +503,7 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                     <div className="flex items-center gap-2.5">
                       <span className="w-3 h-3 rounded-full bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.7)]"></span>
                       <h3 className="text-[17px] font-extrabold text-white tracking-tight">
-                        Target Institutions
+                        Target Matches
                       </h3>
                       <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                         {targets.length}
@@ -445,7 +511,7 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[12px] text-slate-400 hidden sm:inline">
-                        Acceptance Rate 15% - 40% • Strong Academic Match
+                        Acceptance Rate 15% - 40% • Competitive Alignment
                       </span>
                       <button
                         onClick={() => handleOpenAddModal('target')}
@@ -554,18 +620,187 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
             </div>
           )}
 
-          {/* VIEW MODE 2: BY PIPELINE STAGES (Kanban Columns) */}
+          {/* VIEW MODE 2: SELECTIVITY VS MATCH SCATTER MATRIX */}
+          {colleges.length > 0 && viewMode === 'scatter' && (
+            <div className="glass-card rounded-2xl p-5 md:p-7 border border-white/10 space-y-4 animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-indigo-400 text-[20px]">bubble_chart</span>
+                    <span>Admissions Selectivity vs. Profile Match Matrix</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Interactive mapping of your target schools comparing Acceptance Rate (selectivity) vs Fit Score.
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-xs font-mono">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_6px_#fb7185]" />
+                    <span className="text-slate-300">Reach (&lt;15%)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 shadow-[0_0_6px_#818cf8]" />
+                    <span className="text-slate-300">Target (15-40%)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+                    <span className="text-slate-300">Safety (&gt;40%)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2D Coordinate Matrix Canvas */}
+              <div className="relative w-full h-[400px] bg-gradient-to-b from-[#0e0e1a] to-[#080811] rounded-xl border border-white/10 p-6 overflow-hidden">
+                {/* Quadrant Background Tints */}
+                <div className="absolute inset-x-6 top-6 bottom-1/2 grid grid-cols-2 gap-px pointer-events-none opacity-40">
+                  <div className="bg-emerald-500/[0.03] border-b border-r border-white/10 p-2 text-[10px] uppercase font-bold text-emerald-400/60">
+                    Safe Foundation Zone (High Admit)
+                  </div>
+                  <div className="bg-indigo-500/[0.03] border-b border-white/10 p-2 text-[10px] uppercase font-bold text-indigo-400/60 text-right">
+                    Ideal Target Matches
+                  </div>
+                </div>
+                <div className="absolute inset-x-6 top-1/2 bottom-6 grid grid-cols-2 gap-px pointer-events-none opacity-40">
+                  <div className="bg-slate-500/[0.02] border-r border-white/10 p-2 text-[10px] uppercase font-bold text-slate-500/60">
+                    Selective Stretches
+                  </div>
+                  <div className="bg-rose-500/[0.04] p-2 text-[10px] uppercase font-bold text-rose-400/60 text-right">
+                    Aspirational Reach Spikes (Low Admit)
+                  </div>
+                </div>
+
+                {/* SVG Coordinate Grid and Nodes */}
+                <svg className="w-full h-full overflow-visible">
+                  {/* Axis Grid Lines */}
+                  <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
+                  <line x1="50%" y1="0%" x2="50%" y2="100%" stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" />
+
+                  {/* College Bubbles */}
+                  {filteredColleges.map((col, idx) => {
+                    const rawAdmit = parseFloat(col.acceptanceRate.replace(/[^0-9.]/g, '')) || (col.category === 'reach' ? 6 : col.category === 'target' ? 22 : 55);
+                    const rawMatch = (col as any).matchScore ?? (col.category === 'safety' ? 90 : col.category === 'target' ? 82 : 74);
+
+                    // Clamp to plot boundaries
+                    // Y: 0% admit is at bottom (90%), 70% admit is at top (10%)
+                    const yPos = Math.max(10, Math.min(90, 90 - (rawAdmit / 65) * 80));
+                    // X: 50% match is at left (10%), 100% match is at right (90%)
+                    const xPos = Math.max(10, Math.min(90, ((rawMatch - 45) / 55) * 80 + 10));
+
+                    const isHovered = hoveredScatterCollege?.id === col.id;
+                    const nodeColor = col.category === 'reach' ? '#fb7185' : col.category === 'target' ? '#818cf8' : '#34d399';
+
+                    return (
+                      <g
+                        key={col.id || idx}
+                        className="cursor-pointer transition-transform duration-200"
+                        onMouseEnter={() => setHoveredScatterCollege(col)}
+                        onMouseLeave={() => setHoveredScatterCollege(null)}
+                        onClick={() => setSelectedCollegeForModal(col)}
+                      >
+                        {isHovered && (
+                          <circle
+                            cx={`${xPos}%`}
+                            cy={`${yPos}%`}
+                            r="22"
+                            fill="none"
+                            stroke={nodeColor}
+                            strokeWidth="1.5"
+                            className="animate-ping"
+                          />
+                        )}
+                        <circle
+                          cx={`${xPos}%`}
+                          cy={`${yPos}%`}
+                          r={isHovered ? '14' : '10'}
+                          fill={nodeColor}
+                          fillOpacity={isHovered ? 0.9 : 0.75}
+                          stroke="#ffffff"
+                          strokeWidth={isHovered ? '2.5' : '1.5'}
+                          className="transition-all duration-200"
+                        />
+                        <text
+                          x={`${xPos}%`}
+                          y={`${yPos}%`}
+                          dy="3"
+                          textAnchor="middle"
+                          fill="#ffffff"
+                          fontSize="9"
+                          fontWeight="bold"
+                          className="pointer-events-none select-none"
+                        >
+                          {col.name.slice(0, 2).toUpperCase()}
+                        </text>
+                        <text
+                          x={`${xPos}%`}
+                          y={`${yPos}%`}
+                          dy="-15"
+                          textAnchor="middle"
+                          fill={isHovered ? '#ffffff' : '#cbd5e1'}
+                          fontSize="10"
+                          fontWeight={isHovered ? '800' : '600'}
+                          className="pointer-events-none select-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]"
+                        >
+                          {col.name}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+
+                {/* Y-Axis Label */}
+                <div className="absolute left-2 top-2 text-[9px] uppercase font-bold text-slate-500 tracking-wider">
+                  ▲ Higher Acceptance Rate (Selectivity)
+                </div>
+                {/* X-Axis Label */}
+                <div className="absolute right-3 bottom-1.5 text-[9px] uppercase font-bold text-slate-500 tracking-wider">
+                  Higher Profile Alignment Match ▶
+                </div>
+              </div>
+
+              {/* Hovered College Spotlight Tooltip Card */}
+              {hoveredScatterCollege ? (
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="w-3 h-3 rounded-full" style={{
+                      backgroundColor: hoveredScatterCollege.category === 'reach' ? '#fb7185' : hoveredScatterCollege.category === 'target' ? '#818cf8' : '#34d399'
+                    }} />
+                    <div>
+                      <span className="font-bold text-white text-sm">{hoveredScatterCollege.name}</span>
+                      <span className="text-slate-400 ml-2">({hoveredScatterCollege.category.toUpperCase()} • {hoveredScatterCollege.location})</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 font-mono">
+                    <span>Admit Rate: <strong className="text-amber-300">{hoveredScatterCollege.acceptanceRate}</strong></span>
+                    <span>Status: <strong className="text-white capitalize">{hoveredScatterCollege.status || 'Not Started'}</strong></span>
+                    <button
+                      onClick={() => setSelectedCollegeForModal(hoveredScatterCollege)}
+                      className="px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-sans font-bold hover:bg-indigo-500/30"
+                    >
+                      View Details →
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[11px] text-slate-500 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[15px] text-indigo-400">touch_app</span>
+                  <span>Hover over any university bubble to inspect admissions odds, or click to view requirements.</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VIEW MODE 3: BY PIPELINE STAGES (Kanban Columns) */}
           {colleges.length > 0 && viewMode === 'stages' && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-fade-in items-start">
               {/* Column 1: Not Started */}
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+              <div className="space-y-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
                 <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-                    <h4 className="text-[13px] font-bold text-white uppercase tracking-wider">Not Started</h4>
-                  </div>
-                  <span className="text-[11px] font-extrabold text-slate-400">
-                    {filteredColleges.filter((c) => !c.status || c.status === 'not_started').length}
+                  <span className="text-[12px] font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
+                    <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                    <span>Not Started</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-white/10 text-slate-300">
+                    {notStartedCount}
                   </span>
                 </div>
                 <div className="space-y-3">
@@ -584,15 +819,15 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
                 </div>
               </div>
 
-              {/* Column 2: In Progress */}
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+              {/* Column 2: Drafting Essays */}
+              <div className="space-y-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
                 <div className="flex items-center justify-between pb-2 border-b border-amber-500/20">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                    <h4 className="text-[13px] font-bold text-white uppercase tracking-wider">Drafting</h4>
-                  </div>
-                  <span className="text-[11px] font-extrabold text-amber-300">
-                    {filteredColleges.filter((c) => c.status === 'in_progress').length}
+                  <span className="text-[12px] font-bold text-amber-300 flex items-center gap-1.5 uppercase tracking-wider">
+                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span>Drafting Essays</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    {colleges.filter((c) => c.status === 'in_progress').length}
                   </span>
                 </div>
                 <div className="space-y-3">
@@ -612,14 +847,14 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
               </div>
 
               {/* Column 3: Ready for Review */}
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+              <div className="space-y-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
                 <div className="flex items-center justify-between pb-2 border-b border-sky-500/20">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
-                    <h4 className="text-[13px] font-bold text-white uppercase tracking-wider">Ready</h4>
-                  </div>
-                  <span className="text-[11px] font-extrabold text-sky-300">
-                    {filteredColleges.filter((c) => c.status === 'ready').length}
+                  <span className="text-[12px] font-bold text-sky-300 flex items-center gap-1.5 uppercase tracking-wider">
+                    <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+                    <span>Ready for Review</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                    {colleges.filter((c) => c.status === 'ready').length}
                   </span>
                 </div>
                 <div className="space-y-3">
@@ -639,14 +874,14 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
               </div>
 
               {/* Column 4: Submitted & Decisions */}
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">
+              <div className="space-y-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
                 <div className="flex items-center justify-between pb-2 border-b border-emerald-500/20">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                    <h4 className="text-[13px] font-bold text-white uppercase tracking-wider">Submitted / Decided</h4>
-                  </div>
-                  <span className="text-[11px] font-extrabold text-emerald-300">
-                    {filteredColleges.filter((c) => c.status === 'submitted' || c.status === 'accepted' || c.status === 'deferred' || c.status === 'waitlisted' || c.status === 'rejected').length}
+                  <span className="text-[12px] font-bold text-emerald-300 flex items-center gap-1.5 uppercase tracking-wider">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>Submitted / Outcome</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    {submittedCount}
                   </span>
                 </div>
                 <div className="space-y-3">
@@ -667,7 +902,7 @@ export const UniversitiesView: React.FC<UniversitiesViewProps> = ({
             </div>
           )}
 
-          {/* VIEW MODE 3: TIMELINE VIEW (Chronological by Deadline) */}
+          {/* VIEW MODE 4: TIMELINE VIEW (Chronological by Deadline) */}
           {colleges.length > 0 && viewMode === 'timeline' && (
             <div className="space-y-4 animate-fade-in">
               <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 space-y-3">

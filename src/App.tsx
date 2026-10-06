@@ -821,20 +821,18 @@ function StudentApp() {
               <ProfileGateOverlay onNavigateToBuilder={() => handleNavigate('builder')} />
             )}
             </div>
-
-            {/* Floating AI Coach Quick Access Widget appears after the profile is started. */}
-            {!isProfileIncomplete && (
-              <FloatingCoachWidget
-                key={currentUser?.id || 'guest'}
-                currentScreen={activeScreen}
-                onNavigate={handleNavigate}
-                userProfile={userProfile}
-                analysis={analysisResult}
-                username={currentUser?.username || currentUser?.name}
-              />
-            )}
           </div>
         )}
+
+        {/* Floating AI Admissions Coach Quick Access Widget - Fixed on all pages */}
+        <FloatingCoachWidget
+          key={currentUser?.id || 'guest'}
+          currentScreen={activeScreen}
+          onNavigate={handleNavigate}
+          userProfile={userProfile}
+          analysis={analysisResult}
+          username={currentUser?.username || currentUser?.name}
+        />
 
         {/* Interactive Modals */}
         <AddActivityModal
