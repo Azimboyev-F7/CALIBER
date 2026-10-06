@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { getServerSupabaseClient } from '../services/supabaseServer';
 
 export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
-  if (req.path === '/health') return next();
+  if (req.path === '/health' || req.path === '/analytics/visit') return next();
   const header = req.headers.authorization;
   const token = header?.startsWith('Bearer ') ? header.slice(7) : '';
   if (!token) return res.status(401).json({ error: 'Unauthorized' });

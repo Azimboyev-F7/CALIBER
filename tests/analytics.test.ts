@@ -4,11 +4,38 @@ import request from 'supertest';
 import { analyticsRouter } from '../routes/analytics';
 import { recordUsage, trackSuccessfulAction } from '../services/analytics';
 
-const mock = vi.hoisted(() => ({ rpc: vi.fn(), admin: vi.fn(), available: true }));
+const mock = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  admin: vi.fn(),
+  deviceSelect: vi.fn(),
+  deviceInsert: vi.fn(),
+  deviceUpdate: vi.fn(),
+  available: true,
+}));
+
 vi.mock('../services/supabaseServer', () => ({
   getServiceClient: () => mock.available ? {
     rpc: mock.rpc,
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: mock.admin }) }) }),
+    from: (table: string) => {
+      if (table === 'admin_users') {
+        return { select: () => ({ eq: () => ({ maybeSingle: mock.admin }) }) };
+      }
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: mock.deviceSelect,
+            eq: () => ({ maybeSingle: mock.deviceSelect }),
+          }),
+        }),
+        insert: mock.deviceInsert,
+        update: () => ({
+          eq: () => ({
+            eq: mock.deviceUpdate,
+            then: (resolve: any) => resolve({ data: null, error: null }),
+          }),
+        }),
+      };
+    },
   } : null,
 }));
 
@@ -16,6 +43,7 @@ function app() {
   const app = express();
   app.use(express.json());
   app.use((req, res, next) => {
+    if (req.path === '/analytics/visit') return next();
     if (req.headers.authorization !== 'Bearer verified') return res.sendStatus(401);
     res.locals.userId = 'verified-user';
     next();
@@ -30,6 +58,9 @@ beforeEach(() => {
   mock.available = true;
   mock.rpc.mockReset().mockResolvedValue({ data: { activeUsers: 2 }, error: null });
   mock.admin.mockReset().mockResolvedValue({ data: { user_id: 'verified-user' }, error: null });
+  mock.deviceSelect.mockReset().mockResolvedValue({ data: null, error: null });
+  mock.deviceInsert.mockReset().mockResolvedValue({ data: null, error: null });
+  mock.deviceUpdate.mockReset().mockResolvedValue({ data: null, error: null });
 });
 
 describe('Usage reporting security and reliability', () => {
@@ -92,8 +123,21 @@ describe('Usage reporting security and reliability', () => {
     mock.available = false;
     expect((await request(app()).get('/admin/analytics').set('Authorization','Bearer verified')).status).toBe(503);
   });
-  it('analytics failure does not break a successful student save', async () => {
-    mock.rpc.mockRejectedValue(new Error('unavailable'));
-    expect((await request(app()).post('/student/activities').set('Authorization','Bearer verified').send({})).status).toBe(200);
+  it('allows public visitors to record a unique device visit without authentication', async () => {
+    const res = await request(app()).post('/analytics/visit').set('x-device-id', 'device-guest-12345');
+    expect(res.status).toBe(204);
+  });
+  it('rejects invalid or account-prefixed device IDs on visitor heartbeat', async () => {
+    expect((await request(app()).post('/analytics/visit').set('x-device-id', 'account:user-123')).status).toBe(400);
+    expect((await request(app()).post('/analytics/visit').set('x-device-id', 'short')).status).toBe(400);
+    expect((await request(app()).post('/analytics/visit')).status).toBe(400);
+  });
+  it('passes device ID to record_usage_event when saving activity with x-device-id', async () => {
+    await request(app())
+      .post('/student/activities')
+      .set('Authorization', 'Bearer verified')
+      .set('x-device-id', 'device-student-999')
+      .send({});
+    expect(mock.rpc).toHaveBeenCalledWith('record_usage_event', expect.objectContaining({ p_device_id: 'device-student-999' }));
   });
 });

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { getServiceClient, invalidateSchoolCache } from '../services/supabaseServer';
-import { recordUsage } from '../services/analytics';
+import { recordUsage, recordDeviceVisit, isValidDeviceId } from '../services/analytics';
 import { hasAcceptanceEvidence, hasInternationalAcceptanceEvidence, manualUniversityDraft, normalizeUniversityRequest, researchUniversity, findLocalUniversityDraft } from '../services/universityResearch';
 
 export const analyticsRouter = Router();
@@ -9,11 +9,31 @@ const limiter = rateLimit({ windowMs: 60_000, limit: 30,
   keyGenerator: (_req, res) => res.locals.userId,
   standardHeaders: true, legacyHeaders: false });
 
+const visitorLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const requireAdmin = async (client: any, userId: string) => {
   const { data, error } = await client.from('admin_users').select('user_id').eq('user_id', userId).maybeSingle();
   if (error) throw error;
   return Boolean(data);
 };
+
+// Public visitor device heartbeat (records device visits for any browser without requiring an account).
+analyticsRouter.post('/analytics/visit', visitorLimiter, async (req, res) => {
+  const rawDeviceId = req.header('x-device-id') || req.body?.deviceId;
+  if (!rawDeviceId || !isValidDeviceId(rawDeviceId)) {
+    return res.status(400).json({ error: 'Valid x-device-id required' });
+  }
+  const ok = await recordDeviceVisit(rawDeviceId);
+  if (!ok) {
+    return res.status(503).json({ error: 'Device tracking unavailable' });
+  }
+  return res.sendStatus(204);
+});
 
 // Identity and timestamps always come from the verified session and server.
 analyticsRouter.post('/analytics/session', limiter, async (_req, res) => {

@@ -21,8 +21,8 @@ import { SaveStatusIndicator } from './components/SaveStatusIndicator';
 import { ProfileGateOverlay } from './components/ProfileGateOverlay';
 import { CoachChatProvider } from './context/CoachChatContext';
 import { getStoredAuthUser, signOutUser, syncSessionFromSupabase, getSessionToken } from './lib/supabaseClient';
-import { getApiHeaders } from './utils/apiClient';
-import { trackAuthenticatedVisit } from './utils/usageTracking';
+import { getApiHeaders, getAnalyticsDeviceId } from './utils/apiClient';
+import { trackAuthenticatedVisit, trackDeviceVisit } from './utils/usageTracking';
 import { AdminApp } from './admin/AdminApp';
 
 const PROFILE_STORAGE_KEY = 'caliber_user_profile';
@@ -88,10 +88,14 @@ function StudentApp() {
   const isAdminUser = currentUser?.role === 'admin' || currentUser?.username?.toLowerCase() === 'faxriyor';
 
   useEffect(() => {
-    if (!currentUser || currentUser.id.startsWith('demo-') || currentUser.id.startsWith('applicant-')) return;
     const controller = new AbortController();
     const visit = () => {
-      if (document.visibilityState === 'visible') void trackAuthenticatedVisit(controller.signal);
+      if (document.visibilityState === 'visible') {
+        void trackDeviceVisit(controller.signal);
+        if (currentUser && !currentUser.id.startsWith('demo-') && !currentUser.id.startsWith('applicant-')) {
+          void trackAuthenticatedVisit(controller.signal);
+        }
+      }
     };
     visit();
     document.addEventListener('visibilitychange', visit);
@@ -229,7 +233,7 @@ function StudentApp() {
 
         const token = await getSessionToken();
         if (token) {
-          const headers = { 'x-api-key': 'caliber-secret-key', Authorization: `Bearer ${token}` };
+          const headers = { 'x-api-key': 'caliber-secret-key', 'x-device-id': getAnalyticsDeviceId(), Authorization: `Bearer ${token}` };
           const [actRes, honRes] = await Promise.allSettled([
             fetch('/api/student/activities', { headers }).then((r) => r.ok ? r.json() : null),
             fetch('/api/student/honors', { headers }).then((r) => r.ok ? r.json() : null),
@@ -297,6 +301,7 @@ function StudentApp() {
     if (!token) return null;
     return {
       'Content-Type': 'application/json',
+      'x-device-id': getAnalyticsDeviceId(),
       Authorization: `Bearer ${token}`,
     };
   };

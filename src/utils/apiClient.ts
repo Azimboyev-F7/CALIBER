@@ -2,17 +2,26 @@ import { getSessionToken } from '../lib/supabaseClient';
 
 const DEVICE_ID_KEY = 'caliber_analytics_device_id';
 
+let memoryDeviceId: string | null = null;
+
 export function getAnalyticsDeviceId(): string {
   try {
     const existing = localStorage.getItem(DEVICE_ID_KEY);
-    if (existing) return existing;
+    if (existing && existing !== 'device-session-fallback') return existing;
     const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
       : `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem(DEVICE_ID_KEY, id);
+    try {
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    } catch {}
     return id;
   } catch {
-    return 'device-session-fallback';
+    if (!memoryDeviceId) {
+      memoryDeviceId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+    return memoryDeviceId;
   }
 }
 
