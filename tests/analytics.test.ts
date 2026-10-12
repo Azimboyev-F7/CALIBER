@@ -106,6 +106,28 @@ describe('Usage reporting security and reliability', () => {
       expect(mock.rpc.mock.calls[0]).toEqual(mock.rpc.mock.calls[1]);
     } finally { vi.restoreAllMocks(); }
   });
+  it.each(['profile_completed','first_results_viewed'])('records milestone %s once per account with a stable key', async event => {
+    const send = () => request(app()).post('/analytics/milestone').set('Authorization','Bearer verified')
+      .send({ event, user_id: 'someone-else', created_at: '2000-01-01' });
+    expect((await send()).status).toBe(204);
+    expect((await send()).status).toBe(204);
+    expect(mock.rpc).toHaveBeenCalledWith('record_usage_event', expect.objectContaining({ p_user_id: 'verified-user', p_event_name: event, p_dedupe_key: 'once' }));
+    expect(mock.rpc.mock.calls[0]).toEqual(mock.rpc.mock.calls[1]);
+  });
+  it.each(['session_active','analysis_requested','signup',undefined,42])('rejects non-milestone event %s', async event => {
+    expect((await request(app()).post('/analytics/milestone').set('Authorization','Bearer verified').send({ event })).status).toBe(400);
+    expect(mock.rpc).not.toHaveBeenCalled();
+  });
+  it('requires authentication for milestones', async () => {
+    expect((await request(app()).post('/analytics/milestone').send({ event: 'profile_completed' })).status).toBe(401);
+    expect(mock.rpc).not.toHaveBeenCalled();
+  });
+  it('reports milestone recording failures without leaking details', async () => {
+    mock.rpc.mockResolvedValue({ data: null, error: { message: 'private database error' } });
+    const res = await request(app()).post('/analytics/milestone').set('Authorization','Bearer verified').send({ event: 'profile_completed' });
+    expect(res.status).toBe(503);
+    expect(JSON.stringify(res.body)).not.toContain('private');
+  });
   it('tracks successful saves but excludes failed saves', async () => {
     await request(app()).post('/student/activities').set('Authorization','Bearer verified').send({ fail: true });
     expect(mock.rpc).not.toHaveBeenCalled();

@@ -22,7 +22,7 @@ import { ProfileGateOverlay } from './components/ProfileGateOverlay';
 import { CoachChatProvider } from './context/CoachChatContext';
 import { getStoredAuthUser, signOutUser, syncSessionFromSupabase, getSessionToken } from './lib/supabaseClient';
 import { getApiHeaders, getAnalyticsDeviceId } from './utils/apiClient';
-import { trackAuthenticatedVisit, trackDeviceVisit } from './utils/usageTracking';
+import { trackAuthenticatedVisit, trackDeviceVisit, trackMilestone, type Milestone } from './utils/usageTracking';
 import { AdminApp } from './admin/AdminApp';
 
 const PROFILE_STORAGE_KEY = 'caliber_user_profile';
@@ -515,6 +515,25 @@ function StudentApp() {
   // Admin accounts use the app to inspect and test analysis flows, so they
   // should not be blocked by the student profile-completeness gate.
   const showProfileGate = !isAdminUser && isProfileIncomplete && activeScreen !== 'builder';
+
+  // Activation milestones: the server keeps one per account; this ref only
+  // avoids resending them on every re-render within this browser session.
+  const sentMilestonesRef = useRef(new Set<string>());
+  const hasAnalysis = (userProfile.analysisHistory?.length ?? 0) > 0;
+  const viewingResults = activeScreen === 'results' && hasAnalysis;
+  useEffect(() => {
+    const userId = currentUser?.id;
+    if (!userId || userId.startsWith('demo-') || userId.startsWith('applicant-')) return;
+    const reached: Milestone[] = [];
+    if (!isProfileIncomplete) reached.push('profile_completed');
+    if (viewingResults) reached.push('first_results_viewed');
+    for (const milestone of reached) {
+      const key = `${userId}:${milestone}`;
+      if (sentMilestonesRef.current.has(key)) continue;
+      sentMilestonesRef.current.add(key);
+      void trackMilestone(milestone);
+    }
+  }, [currentUser?.id, isProfileIncomplete, viewingResults]);
 
   return (
     <CoachChatProvider key={currentUser?.id || 'guest'} userProfile={userProfile} analysis={analysisResult} storageScope={currentUser?.id || 'guest'}>

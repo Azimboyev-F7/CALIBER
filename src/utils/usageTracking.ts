@@ -28,3 +28,15 @@ export async function trackAuthenticatedVisit(signal: AbortSignal): Promise<void
     // Usage reporting must never interrupt a student's work.
   }
 }
+
+export type Milestone = 'profile_completed' | 'first_results_viewed';
+
+/** Fire-and-forget; the server records each milestone once per account. */
+export async function trackMilestone(event: Milestone): Promise<void> {
+  try {
+    const headers = await getApiHeaders({ 'x-device-id': getAnalyticsDeviceId() });
+    await fetch('/api/analytics/milestone', { method: 'POST', headers, body: JSON.stringify({ event }) });
+  } catch {
+    // Usage reporting must never interrupt a student's work.
+  }
+}
