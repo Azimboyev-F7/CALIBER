@@ -89,6 +89,22 @@ const eventMetadata: Record<string, EventMeta> = {
     badgeBg: 'bg-sky-500/15 border-sky-500/25 text-sky-300',
     barGradient: 'from-sky-500 to-indigo-500',
   },
+  profile_completed: {
+    label: 'Profiles Completed',
+    icon: 'task_alt',
+    category: 'Activation',
+    color: 'text-lime-300',
+    badgeBg: 'bg-lime-500/15 border-lime-500/25 text-lime-300',
+    barGradient: 'from-lime-500 to-emerald-500',
+  },
+  first_results_viewed: {
+    label: 'First Results Viewed',
+    icon: 'visibility',
+    category: 'Activation',
+    color: 'text-rose-300',
+    badgeBg: 'bg-rose-500/15 border-rose-500/25 text-rose-300',
+    barGradient: 'from-rose-500 to-pink-500',
+  },
 };
 
 const formatDateShort = (value: string) => {

@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS public.user_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   event_name text NOT NULL CHECK (event_name IN
-    ('session_active','activity_saved','honor_saved','analysis_requested','recommendations_requested','activity_optimized')),
+    ('session_active','activity_saved','honor_saved','analysis_requested','recommendations_requested','activity_optimized',
+     'profile_completed','first_results_viewed')),
   dedupe_key text NOT NULL CHECK (length(dedupe_key) <= 100),
   device_id text,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -31,6 +32,12 @@ CREATE TABLE IF NOT EXISTS public.analytics_user_activity (
 CREATE INDEX IF NOT EXISTS analytics_last_active_idx ON public.analytics_user_activity(last_active_at);
 
 ALTER TABLE public.user_events ADD COLUMN IF NOT EXISTS device_id text;
+
+-- Re-create the event allow-list so existing tables accept newly added events.
+ALTER TABLE public.user_events DROP CONSTRAINT IF EXISTS user_events_event_name_check;
+ALTER TABLE public.user_events ADD CONSTRAINT user_events_event_name_check CHECK (event_name IN
+  ('session_active','activity_saved','honor_saved','analysis_requested','recommendations_requested','activity_optimized',
+   'profile_completed','first_results_viewed'));
 
 CREATE TABLE IF NOT EXISTS public.analytics_device_activity (
   device_id text PRIMARY KEY,

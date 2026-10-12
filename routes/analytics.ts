@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { getServiceClient, invalidateSchoolCache } from '../services/supabaseServer';
-import { recordUsage, recordDeviceVisit, isValidDeviceId } from '../services/analytics';
+import { MILESTONE_EVENTS, recordUsage, recordDeviceVisit, isValidDeviceId, type UsageEvent } from '../services/analytics';
 import { hasAcceptanceEvidence, hasInternationalAcceptanceEvidence, manualUniversityDraft, normalizeUniversityRequest, researchUniversity, findLocalUniversityDraft } from '../services/universityResearch';
 
 export const analyticsRouter = Router();
@@ -38,6 +38,17 @@ analyticsRouter.post('/analytics/visit', visitorLimiter, async (req, res) => {
 // Identity and timestamps always come from the verified session and server.
 analyticsRouter.post('/analytics/session', limiter, async (_req, res) => {
   if (!await recordUsage(res.locals.userId, 'session_active', _req.header('x-device-id') || undefined)) {
+    return res.status(503).json({ error: 'Analytics unavailable' });
+  }
+  return res.sendStatus(204);
+});
+
+analyticsRouter.post('/analytics/milestone', limiter, async (req, res) => {
+  const event = req.body?.event;
+  if (typeof event !== 'string' || !MILESTONE_EVENTS.has(event)) {
+    return res.status(400).json({ error: 'Unknown milestone' });
+  }
+  if (!await recordUsage(res.locals.userId, event as UsageEvent, req.header('x-device-id') || undefined)) {
     return res.status(503).json({ error: 'Analytics unavailable' });
   }
   return res.sendStatus(204);

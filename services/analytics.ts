@@ -3,7 +3,17 @@ import type { Request, Response, NextFunction } from 'express';
 import { getServiceClient } from './supabaseServer';
 
 export type UsageEvent = 'session_active' | 'activity_saved' | 'honor_saved' |
-  'analysis_requested' | 'recommendations_requested' | 'activity_optimized';
+  'analysis_requested' | 'recommendations_requested' | 'activity_optimized' |
+  'profile_completed' | 'first_results_viewed';
+
+// Activation milestones count once per account, so they share a fixed dedupe key.
+export const MILESTONE_EVENTS: ReadonlySet<string> = new Set<UsageEvent>(['profile_completed', 'first_results_viewed']);
+
+function dedupeKeyFor(event: UsageEvent): string {
+  // Repeat visits/tabs within a 30 minute UTC bucket count as one presence event.
+  if (event === 'session_active') return String(Math.floor(Date.now() / 1_800_000));
+  return MILESTONE_EVENTS.has(event) ? 'once' : randomUUID();
+}
 
 const recentDevicePings = new Map<string, number>();
 
@@ -99,11 +109,10 @@ export async function recordUsage(userId: string, event: UsageEvent, deviceId?: 
     const client = getServiceClient();
     if (!client) return false;
     const validDeviceId = isValidDeviceId(deviceId) ? deviceId.trim() : null;
-    const dedupeKey = event === 'session_active' ? String(Math.floor(Date.now() / 1_800_000)) : randomUUID();
+    const dedupeKey = dedupeKeyFor(event);
     const { error } = await client.rpc('record_usage_event', {
       p_user_id: userId, p_event_name: event,
       p_device_id: validDeviceId,
-      // Repeat visits/tabs within a 30 minute UTC bucket count as one presence event.
       p_dedupe_key: dedupeKey,
     });
     if (error && validDeviceId) {
