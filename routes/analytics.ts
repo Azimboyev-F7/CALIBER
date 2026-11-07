@@ -82,7 +82,9 @@ analyticsRouter.get('/admin/analytics', limiter, async (req, res) => {
     if (!admin) return res.status(403).json({ error: 'Administrator access required' });
     const { data, error } = await client.rpc('admin_usage_summary', { p_days: days });
     if (error) throw error;
-    return res.json(data);
+    // Shown on the Overview; a missing table or error must not break the rest of the report.
+    const research = await client.from('research_snapshots').select('*', { count: 'exact', head: true });
+    return res.json({ ...data, researchSnapshots: research?.count ?? null });
   } catch {
     return res.status(503).json({ error: 'Analytics unavailable' });
   }
@@ -116,7 +118,22 @@ analyticsRouter.get('/admin/users', limiter, async (_req, res) => {
   }
 });
 
-const adminSchoolFields = (school: any) => ({
+analyticsRouter.get('/admin/research', limiter, async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const client = getServiceClient();
+    if (!client || !await requireAdmin(client, res.locals.userId)) return res.status(403).json({ error: 'Administrator access required' });
+    const { data, error } = await client.from('research_snapshots')
+      .select('*').order('created_at', { ascending: false }).limit(5000);
+    if (error) throw error;
+    return res.json({ snapshots: data || [] });
+  } catch (err: any) {
+    console.warn('[Admin Research] Query failed:', err?.code, err?.message);
+    return res.status(503).json({ error: 'Research data unavailable' });
+  }
+});
+
+const adminSchoolFields =(school: any) => ({
   school_id: String(school.schoolId || school.school_id || '').trim(),
   name: String(school.name || '').trim(),
   official_acceptance_rate: Number(school.officialAcceptanceRate ?? school.official_acceptance_rate),

@@ -657,7 +657,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
               Privacy Policy
             </button>
             <button
-              onClick={() => alert('Caliber Terms of Service: Admissions evaluations are advisory models.')}
+              onClick={() => window.open('/terms', '_blank', 'noopener')}
               className="text-[12.5px] text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               Terms of Service

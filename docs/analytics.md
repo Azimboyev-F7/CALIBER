@@ -28,8 +28,25 @@ Visible navigation, page visits, and returning to a visible tab record presence.
 
 All analytics tables use RLS and deny browser roles. Only the backend service role can write or run aggregation. Admin membership is checked for every report request and can only be assigned through trusted database administration. Account deletion cascades through its analytics records. Event recording is best effort: analytics outages never interrupt student saves. The session endpoint reports 503 on failure; the UI silently ignores reporting errors.
 
+## Growth metrics (150 active students goal)
+
+Account-based, not device-based. Trailing windows always end today (UTC), whatever period is selected.
+
+- **Core actions:** `activity_saved`, `honor_saved`, `analysis_requested`, `recommendations_requested`, `activity_optimized`, `coach_message_sent`. Presence (`session_active`) and the one-off milestones (`profile_completed`, `first_results_viewed`) are not core actions.
+- **Weekly active accounts (`weeklyActiveAccounts`):** distinct accounts with a core action in the last 7 UTC days. This is the number the 150 goal is measured against. The goal counts as reached when the last two weekly readings in `wauHistory` are both at or above 150.
+- **Signed-in visitors (`weeklyVisitorAccounts`):** distinct accounts with any event in the last 7 days, including just opening the app.
+- **Monthly active accounts:** as weekly, over 30 days.
+- **Activation funnel (`activationFunnel`):** for signups in the selected period, who recorded `profile_completed` and `first_results_viewed` within 7 days of signup. "Activated" means both. "Returned in week 2" counts activated accounts with a core action 7 to 13 days after signup, among accounts that signed up at least 14 days ago.
+- **Retention cohorts (`retentionCohorts`):** the same, grouped into the seven-day signup buckets used by `weekly`. A cohort is complete once its last signup day is 14 days old.
+
+`coach_message_sent` is recorded server-side on a successful `/chat-coach` or `/chat-coach-stream` response. If an empty stream falls back to the non-streaming route, one message can count twice; account counts are unaffected. Accounts that completed their profile before the milestone events existed record them on their next visit, so they don't count as activated in the funnel.
+
 ## Scope and recovery
 
 This stage provides the database, event collection, and reporting API. A visual admin dashboard, anonymous visitor analytics, profile completion tracking, user search, exports, and error monitoring are future stages.
 
 To disable collection, remove the `trackSuccessfulAction` middleware and the `trackAuthenticatedVisit` effect. Remove the analytics router to disable reporting. Existing records can be retained; no database deletion is needed for rollback. Prior admissions-scoring changes are independent.
+
+## Research snapshots
+
+When a student whose account accepted the Terms (`termsAcceptedAt` in Supabase user metadata) calls `/api/recommend-colleges`, `services/research.ts` stores one anonymized row in `research_snapshots`: numeric/categorical profile fields plus the Reach/Target/Safety output. It never stores names, emails, free text, device IDs or the real user ID (`anon_id` is an HMAC keyed by `RESEARCH_ANON_SALT`; capture is off if unset). Apply `scripts/migrate_research.sql` first. Admins view and export rows in `/rais` → Research Data (`GET /api/admin/research`). Accounts created before the Terms existed are not captured.

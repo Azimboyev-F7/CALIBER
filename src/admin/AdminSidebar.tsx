@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type AdminSection = 'overview' | 'users' | 'universities' | 'subscriptions' | 'coach' | 'audit';
+export type AdminSection = 'overview' | 'users' | 'universities' | 'research' | 'subscriptions' | 'coach' | 'audit';
 
 interface SidebarItem {
   id: AdminSection;
@@ -13,6 +13,7 @@ const items: SidebarItem[] = [
   { id: 'overview', label: 'Overview', icon: 'dashboard' },
   { id: 'users', label: 'Users & Accounts', icon: 'group' },
   { id: 'universities', label: 'Universities', icon: 'school' },
+  { id: 'research', label: 'Research Data', icon: 'science' },
   { id: 'subscriptions', label: 'Subscriptions', icon: 'workspace_premium', badge: 'Soon' },
   { id: 'coach', label: 'Coach Activity', icon: 'psychology', badge: 'Soon' },
   { id: 'audit', label: 'Audit Logs', icon: 'history', badge: 'Soon' },

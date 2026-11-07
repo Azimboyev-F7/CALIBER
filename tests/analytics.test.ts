@@ -51,6 +51,7 @@ function app() {
   app.use(trackSuccessfulAction);
   app.use(analyticsRouter);
   app.post('/student/activities', (req, res) => res.sendStatus(req.body.fail ? 500 : 200));
+  app.post('/chat-coach', (_req, res) => res.json({ reply: 'ok' }));
   return app;
 }
 
@@ -133,6 +134,13 @@ describe('Usage reporting security and reliability', () => {
     expect(mock.rpc).not.toHaveBeenCalled();
     await request(app()).post('/student/activities').set('Authorization','Bearer verified').send({});
     expect(mock.rpc).toHaveBeenCalledWith('record_usage_event', expect.objectContaining({ p_event_name: 'activity_saved' }));
+  });
+  it('tracks successful coach messages', async () => {
+    await request(app()).post('/chat-coach').set('Authorization','Bearer verified').send({});
+    expect(mock.rpc).toHaveBeenCalledWith('record_usage_event', expect.objectContaining({ p_event_name: 'coach_message_sent' }));
+  });
+  it('does not accept coach messages as a client milestone', async () => {
+    expect((await request(app()).post('/analytics/milestone').set('Authorization','Bearer verified').send({ event: 'coach_message_sent' })).status).toBe(400);
   });
   it('fails closed when administrator lookup fails', async () => {
     mock.admin.mockResolvedValue({ data: null, error: { message: 'private database error' } });

@@ -10,6 +10,7 @@ export interface AuthUser {
   avatarUrl?: string;
   created_at?: string;
   role?: string;
+  termsAcceptedAt?: string;
 }
 
 export type ActivityCategory = 

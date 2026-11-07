@@ -7,6 +7,7 @@ import {
   isSupabaseConfigured,
   DEMO_USER
 } from '../lib/supabaseClient';
+import { TERMS_VERSION } from './TermsView';
 
 interface AuthViewProps {
   onNavigate: (screen: ActiveScreen) => void;
@@ -39,6 +40,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
   const [fullName, setFullName] = useState('');
   const [intendedMajor, setIntendedMajor] = useState('Computer Science');
   const [highSchool, setHighSchool] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -55,6 +57,7 @@ export const AuthView: React.FC<AuthViewProps> = ({
     setFullName('');
     setUsername('');
     setHighSchool('');
+    setAcceptedTerms(false);
     setIntendedMajor('Computer Science');
   };
 
@@ -116,13 +119,19 @@ export const AuthView: React.FC<AuthViewProps> = ({
       return;
     }
 
+    if (!acceptedTerms) {
+      setErrorMsg('You must accept the Terms of Service to create an account.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { user, error } = await signUpWithEmail(email, password, {
         name: fullName,
         username,
         intendedMajor,
-        highSchool
+        highSchool,
+        termsVersion: TERMS_VERSION
       });
 
       if (error) {
@@ -462,6 +471,24 @@ export const AuthView: React.FC<AuthViewProps> = ({
                   />
                 </div>
               </div>
+
+              <label className="flex items-start gap-2.5 text-[12px] text-slate-300 cursor-pointer">
+                <input
+                  id="signup-terms-checkbox"
+                  type="checkbox"
+                  required
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-indigo-500"
+                />
+                <span>
+                  I agree to the{' '}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 font-semibold underline">
+                    Terms of Service
+                  </a>
+                  , including the anonymous use of my profile data for research.
+                </span>
+              </label>
 
               <button
                 id="submit-signup-btn"
