@@ -17,7 +17,7 @@ vi.mock('../services/supabaseServer', () => ({
     from: (table: string) => {
       if (table === 'admin_users') return { select: () => ({ eq: () => ({ maybeSingle: mock.admin }) }) };
       return {
-        insert: mock.insert,
+        upsert: mock.insert,
         select: (_cols?: string, opts?: { head?: boolean }) => opts?.head
           ? Promise.resolve({ count: mock.count, error: null })
           : ({ order: () => ({ limit: mock.list }) }),
@@ -81,6 +81,13 @@ describe('buildResearchSnapshot', () => {
     }
   });
 
+  it('rejects implausible values typed mid-entry instead of storing them', () => {
+    const s = buildResearchSnapshot('a', { unweightedGpa: '39', satScore: '1', ieltsScore: '15', graduationYear: '20' }, {}, 'local_engine', {});
+    expect([s.gpa, s.sat, s.ielts, s.graduation_year]).toEqual([null, null, null, null]);
+    const ok = buildResearchSnapshot('a', { unweightedGpa: '3.95', satScore: '1450', ieltsScore: '7.5', graduationYear: '2026' }, {}, 'local_engine', {});
+    expect([ok.gpa, ok.sat, ok.ielts, ok.graduation_year]).toEqual([3.95, 1450, 7.5, 2026]);
+  });
+
   it('turns unusable numbers into null instead of NaN', () => {
     const s = buildResearchSnapshot('a', { unweightedGpa: 'abc', satScore: '' }, {}, 'local_engine', {});
     expect(s.gpa).toBeNull();
@@ -99,8 +106,11 @@ describe('recordResearchSnapshot', () => {
 
   it('stores a snapshot for a consenting user', async () => {
     expect(await recordResearchSnapshot({ userId: 'u1', consented: true, profile, result, source: 'local_engine', filters: {} })).toBe(true);
-    const row = mock.insert.mock.calls[0][0];
+    const [row, options] = mock.insert.mock.calls[0];
     expect(row.anon_id).toBe(anonymizeUserId('u1', 'test-salt'));
+    // One row per student: later runs update it instead of adding another.
+    expect(options).toEqual({ onConflict: 'anon_id' });
+    expect(typeof row.updated_at).toBe('string');
     expect(JSON.stringify(row)).not.toContain('u1"');
   });
 
@@ -163,7 +173,7 @@ import { researchRowsToCsv, type ResearchRow } from '../src/utils/researchCsv';
 
 describe('researchRowsToCsv', () => {
   const row = (over: Partial<ResearchRow> = {}): ResearchRow => ({
-    created_at: '2026-11-07T00:00:00Z', anon_id: 'abc', source: 'local_engine', gpa: 3.9, sat: 1500, ielts: null,
+    created_at: '2026-11-07T00:00:00Z', updated_at: '2026-11-07T01:00:00Z', anon_id: 'abc', source: 'local_engine', gpa: 3.9, sat: 1500, ielts: null,
     ap_ib_honors_count: 8, intended_major: 'CS', graduation_year: 2026, preferred_country: 'US', budget_per_year: null,
     activity_count: 2, leadership_count: 1, activity_tiers: [1, 3], honors_count: 1, filter_tier: null, filter_region: null,
     recommendations: [
@@ -174,7 +184,7 @@ describe('researchRowsToCsv', () => {
 
   it('writes a header, one line per row and pipe-joined schools per category', () => {
     const [header, line] = researchRowsToCsv([row()]).split('\r\n');
-    expect(header.split(',')).toHaveLength(20);
+    expect(header.split(',')).toHaveLength(21);
     expect(line).toContain('1|3');
     expect(line.endsWith('MIT,Georgia Tech,Purdue')).toBe(true);
   });

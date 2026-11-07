@@ -36,8 +36,8 @@ const buildCards = (report: UsageReport): Card[] => [
   { label: 'New signups', value: report.newSignups, hint: `Last ${PERIOD_DAYS} days`, icon: 'person_add' },
   { label: 'Profiles completed', value: report.eventTotals?.profile_completed ?? 0, hint: `Last ${PERIOD_DAYS} days`, icon: 'task_alt' },
   {
-    label: 'Research snapshots', value: report.researchSnapshots,
-    hint: 'Anonymized recommendation runs saved', icon: 'science',
+    label: 'Research students', value: report.researchSnapshots,
+    hint: 'Students with an anonymized research record', icon: 'science',
   },
 ];
 

@@ -38,6 +38,9 @@ const num = (value: unknown): number | null => {
   const n = cleaned === '' ? NaN : Number(cleaned);
   return Number.isFinite(n) ? n : null;
 };
+// Plausible ranges, so values caught mid-typing (e.g. SAT "1") are stored as null, not as data.
+const inRange = (value: number | null, min: number, max: number) =>
+  value !== null && value >= min && value <= max ? value : null;
 const text = (value: unknown): string | null => {
   const s = typeof value === 'string' ? value.trim().slice(0, 80) : '';
   return s || null;
@@ -69,12 +72,12 @@ export function buildResearchSnapshot(
   return {
     anon_id: anonId,
     source: text(source) || 'unknown',
-    gpa: num(profile?.unweightedGpa),
-    sat: num(profile?.satScore),
-    ielts: num(profile?.ieltsScore),
+    gpa: inRange(num(profile?.unweightedGpa), 0.1, 5),
+    sat: inRange(num(profile?.satScore), 400, 1600),
+    ielts: inRange(num(profile?.ieltsScore), 1, 9),
     ap_ib_honors_count: num(profile?.apIbHonorsCount),
     intended_major: text(profile?.intendedMajor),
-    graduation_year: num(profile?.graduationYear),
+    graduation_year: inRange(num(profile?.graduationYear), 2000, 2100),
     preferred_country: text(profile?.preferredCountry),
     budget_per_year: text(profile?.budgetPerYear),
     activity_count: activities.length,
@@ -111,7 +114,10 @@ export async function recordResearchSnapshot(input: {
     const snapshot = buildResearchSnapshot(
       anonymizeUserId(input.userId, salt), input.profile, input.result, input.source, input.filters,
     );
-    const { error } = await client.from('research_snapshots').insert(snapshot);
+    // One row per student: every re-run (the profile page recomputes as fields are filled in)
+    // replaces that student's row, so the table holds each student's latest profile.
+    const { error } = await client.from('research_snapshots')
+      .upsert({ ...snapshot, updated_at: new Date().toISOString() }, { onConflict: 'anon_id' });
     if (error) throw error;
     return true;
   } catch {
