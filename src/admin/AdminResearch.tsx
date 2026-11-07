@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getApiHeaders } from '../utils/apiClient';
+import { researchRowsToXlsx } from '../utils/researchXlsx';
 import { researchRowsToCsv, researchTable, type ResearchRow } from '../utils/researchCsv';
 
 const avg = (values: (number | null)[], digits = 2) => {
@@ -66,14 +67,16 @@ export const AdminResearch: React.FC = () => {
     safety: rows.reduce((n, r) => n + countIn(r, 'safety'), 0),
   }), [rows]);
 
-  const exportCsv = () => {
-    const url = URL.createObjectURL(new Blob([researchRowsToCsv(rows)], { type: 'text/csv;charset=utf-8' }));
+  const download = (blob: Blob, extension: string) => {
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `caliber-research-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `caliber-research-${new Date().toISOString().slice(0, 10)}.${extension}`;
     link.click();
     URL.revokeObjectURL(url);
   };
+  const exportCsv = () => download(new Blob([researchRowsToCsv(rows)], { type: 'text/csv;charset=utf-8' }), 'csv');
+  const exportExcel = async () => download(await researchRowsToXlsx(rows), 'xlsx');
 
   const cards: [string, string | number][] = [
     ['Students', stats.students],
@@ -91,13 +94,22 @@ export const AdminResearch: React.FC = () => {
             accounts that accepted the Terms. No names, emails, free text or device IDs are stored.
           </p>
         </div>
-        <button
-          onClick={exportCsv}
-          disabled={!rows.length}
-          className="px-4 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/30 text-sm font-semibold text-indigo-200 disabled:opacity-40 cursor-pointer"
-        >
-          Export CSV
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={exportExcel}
+            disabled={!rows.length}
+            className="px-4 py-2 rounded-xl bg-indigo-500/30 hover:bg-indigo-500/40 border border-indigo-400/40 text-sm font-semibold text-indigo-100 disabled:opacity-40 cursor-pointer"
+          >
+            Export Excel
+          </button>
+          <button
+            onClick={exportCsv}
+            disabled={!rows.length}
+            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold text-slate-300 disabled:opacity-40 cursor-pointer"
+          >
+            CSV
+          </button>
+        </div>
       </div>
 
       {error && <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-sm">{error}</div>}

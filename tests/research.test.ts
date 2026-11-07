@@ -182,6 +182,8 @@ describe('GET /admin/research', () => {
   });
 });
 
+import { unzipSync, strFromU8 } from 'fflate';
+import { researchRowsToXlsx } from '../src/utils/researchXlsx';
 import { researchRowsToCsv, researchTable, studentIds, type ResearchRow } from '../src/utils/researchCsv';
 
 describe('researchRowsToCsv', () => {
@@ -246,6 +248,18 @@ describe('researchRowsToCsv', () => {
     const csvLines = researchRowsToCsv(rows).replace(/^﻿/, '').split('\r\n');
     expect(csvLines[0]).toBe(header.join(','));
     expect(records.map((r) => r.join(','))).toEqual(csvLines.slice(1));
+  });
+
+  it('builds an Excel file with sized columns, text ids and numeric scores', async () => {
+    const blob = await researchRowsToXlsx([row()]);
+    const files = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+    const sheet = strFromU8(files['xl/worksheets/sheet1.xml']);
+    const strings = strFromU8(files['xl/sharedStrings.xml']);
+    expect(sheet).toContain('<cols>');
+    expect(sheet).toContain('pane');
+    expect(strings).toContain('id_400');
+    expect(strings).toContain('07/11/2026');
+    expect(strings).toContain('2 to 4');
   });
 
   it('shows the capture date as day/month/year only', () => {
