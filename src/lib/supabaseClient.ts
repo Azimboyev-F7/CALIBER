@@ -126,7 +126,36 @@ export const mapSupabaseUser = (user: any): AuthUser | null => {
       `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(meta.name || user.email || 'User')}`,
     created_at: user.created_at || new Date().toISOString(),
     role: meta.role,
+    termsAcceptedAt: meta.termsAcceptedAt || undefined,
   };
+};
+
+// Records Terms acceptance for an existing account (new accounts record it at sign-up).
+export const SESSION_EXPIRED_ERROR = 'Your session has expired. Please sign in again.';
+
+export const acceptTerms = async (
+  termsVersion: string
+): Promise<{ user: AuthUser | null; error: string | null }> => {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { user: null, error: 'Could not reach the server. Please try again.' };
+  try {
+    // A cached login can outlive its Supabase session; updateUser would then fail with "Auth session missing!".
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      setStoredAuthUser(null);
+      return { user: null, error: SESSION_EXPIRED_ERROR };
+    }
+    const { data, error } = await supabase.auth.updateUser({
+      data: { termsVersion, termsAcceptedAt: new Date().toISOString() },
+    });
+    if (error) return { user: null, error: error.message };
+    const user = mapSupabaseUser(data.user);
+    if (!user) return { user: null, error: 'Could not confirm your acceptance. Please try again.' };
+    setStoredAuthUser(user);
+    return { user, error: null };
+  } catch (e) {
+    return { user: null, error: e instanceof Error ? e.message : 'Could not save your acceptance.' };
+  }
 };
 
 export const getStoredAuthUser = (): AuthUser | null => {
@@ -301,7 +330,7 @@ export const signInWithEmail = signInWithIdentifier;
 export const signUpWithEmail = async (
   email: string,
   password: string,
-  metadata: { name: string; username?: string; intendedMajor?: string; highSchool?: string }
+  metadata: { name: string; username?: string; intendedMajor?: string; highSchool?: string; termsVersion?: string }
 ): Promise<{ user: AuthUser | null; error: string | null }> => {
   const trimmedEmail = email.trim();
   const rawUsername = metadata.username?.trim().replace(/^@/, '');
@@ -321,6 +350,8 @@ export const signUpWithEmail = async (
           username: derivedUsername,
           intendedMajor: metadata.intendedMajor?.trim() || '',
           highSchool: metadata.highSchool?.trim() || '',
+          termsVersion: metadata.termsVersion || '',
+          termsAcceptedAt: metadata.termsVersion ? new Date().toISOString() : '',
           avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(metadata.name || derivedUsername)}`,
         },
       },

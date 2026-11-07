@@ -4,7 +4,7 @@ import { getServiceClient } from './supabaseServer';
 
 export type UsageEvent = 'session_active' | 'activity_saved' | 'honor_saved' |
   'analysis_requested' | 'recommendations_requested' | 'activity_optimized' |
-  'profile_completed' | 'first_results_viewed';
+  'profile_completed' | 'first_results_viewed' | 'coach_message_sent';
 
 // Activation milestones count once per account, so they share a fixed dedupe key.
 export const MILESTONE_EVENTS: ReadonlySet<string> = new Set<UsageEvent>(['profile_completed', 'first_results_viewed']);
@@ -139,6 +139,7 @@ const successfulActions: Record<string, UsageEvent> = {
   '/student/activities': 'activity_saved', '/student/honors': 'honor_saved',
   '/analyze-profile': 'analysis_requested', '/recommend-colleges': 'recommendations_requested',
   '/optimize-activity': 'activity_optimized',
+  '/chat-coach': 'coach_message_sent', '/chat-coach-stream': 'coach_message_sent',
 };
 
 export function trackSuccessfulAction(req: Request, res: Response, next: NextFunction) {

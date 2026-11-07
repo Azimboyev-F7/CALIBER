@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.user_events (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   event_name text NOT NULL CHECK (event_name IN
     ('session_active','activity_saved','honor_saved','analysis_requested','recommendations_requested','activity_optimized',
-     'profile_completed','first_results_viewed')),
+     'profile_completed','first_results_viewed','coach_message_sent')),
   dedupe_key text NOT NULL CHECK (length(dedupe_key) <= 100),
   device_id text,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -37,7 +37,7 @@ ALTER TABLE public.user_events ADD COLUMN IF NOT EXISTS device_id text;
 ALTER TABLE public.user_events DROP CONSTRAINT IF EXISTS user_events_event_name_check;
 ALTER TABLE public.user_events ADD CONSTRAINT user_events_event_name_check CHECK (event_name IN
   ('session_active','activity_saved','honor_saved','analysis_requested','recommendations_requested','activity_optimized',
-   'profile_completed','first_results_viewed'));
+   'profile_completed','first_results_viewed','coach_message_sent'));
 
 CREATE TABLE IF NOT EXISTS public.analytics_device_activity (
   device_id text PRIMARY KEY,
@@ -134,6 +134,9 @@ $$;
 CREATE OR REPLACE FUNCTION public.admin_usage_summary(p_days integer DEFAULT 49)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE start_day date; today date := (now() AT TIME ZONE 'UTC')::date; result jsonb;
+  -- Real work, as opposed to presence or one-off milestones. Weekly active accounts count only these.
+  core_events text[] := ARRAY['activity_saved','honor_saved','analysis_requested','recommendations_requested',
+    'activity_optimized','coach_message_sent'];
 BEGIN
   IF p_days NOT IN (7,30,49) THEN RAISE EXCEPTION 'Unsupported reporting period'; END IF;
   start_day := today - (p_days - 1);
@@ -158,7 +161,59 @@ BEGIN
         'activeUsers',(SELECT count(DISTINCT device_id) FROM public.analytics_daily_device_activity WHERE device_id NOT LIKE 'account:%' AND activity_date BETWEEN start_day + i * 7 AND least(today,start_day + i * 7 + 6))) row_data
       FROM generate_series(0,(p_days-1)/7) i) weekly),
     'eventTotals',(SELECT coalesce(jsonb_object_agg(event_name,total),'{}'::jsonb) FROM (
-      SELECT event_name,count(*) total FROM public.user_events WHERE created_at >= start_day::timestamp AT TIME ZONE 'UTC' GROUP BY event_name) totals)
+      SELECT event_name,count(*) total FROM public.user_events WHERE created_at >= start_day::timestamp AT TIME ZONE 'UTC' GROUP BY event_name) totals),
+    -- Account-based growth metrics. Trailing windows end today (UTC) regardless of p_days.
+    'activeAccountsTarget',150,
+    'weeklyActiveAccounts',(SELECT count(DISTINCT user_id) FROM public.user_events
+      WHERE event_name = ANY(core_events) AND created_at >= (today - 6)::timestamp AT TIME ZONE 'UTC'),
+    'weeklyVisitorAccounts',(SELECT count(DISTINCT user_id) FROM public.user_events
+      WHERE created_at >= (today - 6)::timestamp AT TIME ZONE 'UTC'),
+    'monthlyActiveAccounts',(SELECT count(DISTINCT user_id) FROM public.user_events
+      WHERE event_name = ANY(core_events) AND created_at >= (today - 29)::timestamp AT TIME ZONE 'UTC'),
+    -- Trailing seven-day active accounts measured at the end of each of the last eight weeks.
+    'wauHistory',(SELECT jsonb_agg(row_data ORDER BY row_data->>'endDate') FROM (
+      SELECT jsonb_build_object('endDate',today - i * 7,
+        'activeAccounts',(SELECT count(DISTINCT user_id) FROM public.user_events
+          WHERE event_name = ANY(core_events)
+            AND created_at >= (today - i * 7 - 6)::timestamp AT TIME ZONE 'UTC'
+            AND created_at < (today - i * 7 + 1)::timestamp AT TIME ZONE 'UTC')) row_data
+      FROM generate_series(0,7) i) wau),
+    -- Signups in the period: who completed the profile and viewed results within 7 days of signup.
+    'activationFunnel',(SELECT jsonb_build_object(
+        'signups',count(*),
+        'profileCompleted',count(*) FILTER (WHERE pc),
+        'resultsViewed',count(*) FILTER (WHERE rv),
+        'activated',count(*) FILTER (WHERE pc AND rv),
+        'retentionEligible',count(*) FILTER (WHERE eligible),
+        'retainedWeek2',count(*) FILTER (WHERE eligible AND pc AND rv AND ret))
+      FROM (SELECT
+        EXISTS(SELECT 1 FROM public.user_events e WHERE e.user_id = u.id AND e.event_name = 'profile_completed'
+          AND e.created_at < u.created_at + interval '7 days') pc,
+        EXISTS(SELECT 1 FROM public.user_events e WHERE e.user_id = u.id AND e.event_name = 'first_results_viewed'
+          AND e.created_at < u.created_at + interval '7 days') rv,
+        EXISTS(SELECT 1 FROM public.user_events e WHERE e.user_id = u.id AND e.event_name = ANY(core_events)
+          AND e.created_at >= u.created_at + interval '7 days' AND e.created_at < u.created_at + interval '14 days') ret,
+        u.created_at + interval '14 days' <= now() eligible
+        FROM auth.users u WHERE u.created_at >= start_day::timestamp AT TIME ZONE 'UTC') f),
+    -- Week-1 retention by signup cohort, using the same seven-day buckets as 'weekly'.
+    'retentionCohorts',(SELECT jsonb_agg(row_data ORDER BY row_data->>'startDate') FROM (
+      SELECT jsonb_build_object('startDate',c.start_date,'endDate',c.end_date,
+        'complete',c.end_date + 14 <= today,
+        'signups',count(u.id),
+        'activated',count(u.id) FILTER (WHERE a.activated),
+        'retainedWeek2',count(u.id) FILTER (WHERE a.activated AND a.ret)) row_data
+      FROM (SELECT start_day + i * 7 start_date, least(today,start_day + i * 7 + 6) end_date
+            FROM generate_series(0,(p_days-1)/7) i) c
+      LEFT JOIN auth.users u ON u.created_at >= c.start_date::timestamp AT TIME ZONE 'UTC'
+        AND u.created_at < (c.end_date + 1)::timestamp AT TIME ZONE 'UTC'
+      LEFT JOIN LATERAL (SELECT
+        EXISTS(SELECT 1 FROM public.user_events e WHERE e.user_id = u.id AND e.event_name = 'profile_completed'
+          AND e.created_at < u.created_at + interval '7 days')
+        AND EXISTS(SELECT 1 FROM public.user_events e WHERE e.user_id = u.id AND e.event_name = 'first_results_viewed'
+          AND e.created_at < u.created_at + interval '7 days') activated,
+        EXISTS(SELECT 1 FROM public.user_events e WHERE e.user_id = u.id AND e.event_name = ANY(core_events)
+          AND e.created_at >= u.created_at + interval '7 days' AND e.created_at < u.created_at + interval '14 days') ret) a ON true
+      GROUP BY c.start_date, c.end_date) cohorts)
   ) INTO result;
   RETURN result;
 END;

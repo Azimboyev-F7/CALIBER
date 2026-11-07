@@ -8,6 +8,7 @@ import {
 } from '../services/scoring';
 import { getSchoolProfiles } from '../services/supabaseServer';
 import { validateBody, recommendCollegesSchema } from '../middleware/validation';
+import { recordResearchSnapshot } from '../services/research';
 
 export const collegesRouter = Router();
 
@@ -26,6 +27,14 @@ collegesRouter.post(
   validateBody(recommendCollegesSchema),
   async (req: Request, res: Response) => {
     const { profile, filterTier, filterRegion } = req.body;
+
+    const send = (source: string, data: any) => {
+      void recordResearchSnapshot({
+        userId: res.locals.userId, consented: res.locals.researchConsent === true,
+        profile, result: data, source, filters: { filterTier, filterRegion },
+      });
+      return res.json({ source, success: true, data });
+    };
 
     const normalizeName = (n: string) =>
       n.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -117,11 +126,7 @@ collegesRouter.post(
         enrichWithProfileFit(fallbackResult.targetRecommendations);
         enrichWithProfileFit(fallbackResult.safetyRecommendations);
 
-        return res.json({
-          source: 'local_engine',
-          success: true,
-          data: fallbackResult
-        });
+        return send('local_engine', fallbackResult);
       }
 
       const activeCountry = filterRegion || profile.preferredCountry || 'United States';
@@ -277,11 +282,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
       enrichWithProfileFit(parsed.targetRecommendations);
       enrichWithProfileFit(parsed.safetyRecommendations);
 
-      return res.json({
-        source: 'gemini-3.6-flash',
-        success: true,
-        data: parsed
-      });
+      return send('gemini-3.6-flash', parsed);
     } catch (err: any) {
       console.error('[AI College Matchmaker] Error matching universities:', err?.message, err?.stack);
       const fallbackResult = generateIntelligentCollegeRecommendations(profile, filterTier, filterRegion);
@@ -289,11 +290,7 @@ Return ONLY a valid JSON object matching this schema without markdown code block
       enrichWithProfileFit(fallbackResult.targetRecommendations);
       enrichWithProfileFit(fallbackResult.safetyRecommendations);
 
-      return res.json({
-        source: 'local_engine',
-        success: true,
-        data: fallbackResult
-      });
+      return send('local_engine', fallbackResult);
     }
   }
 );

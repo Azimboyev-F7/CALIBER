@@ -4,6 +4,7 @@ import { AuthView } from '../components/AuthView';
 import { AdminSidebar, AdminSection } from './AdminSidebar';
 import { AdminUsers } from './AdminUsers';
 import { AdminUniversities } from './AdminUniversities';
+import { AdminResearch } from './AdminResearch';
 import { AuthUser, ActiveScreen } from '../types';
 import {
   getStoredAuthUser,
@@ -159,7 +160,8 @@ export const AdminApp: React.FC = () => {
           {section === 'overview' && <AdminPanel />}
           {section === 'users' && <AdminUsers />}
           {section === 'universities' && <AdminUniversities />}
-          {section !== 'overview' && section !== 'users' && section !== 'universities' && (
+          {section === 'research' && <AdminResearch />}
+          {section !== 'overview' && section !== 'users' && section !== 'universities' && section !== 'research' && (
             <section className="max-w-[700px] mx-auto px-4 md:px-8 py-20 text-center">
               <div className="glass-panel rounded-3xl border border-white/10 p-10">
                 <div className="w-16 h-16 mx-auto rounded-2xl bg-indigo-500/15 border border-indigo-400/20 flex items-center justify-center mb-5 shadow-[0_0_25px_rgba(99,102,241,0.2)]">

@@ -24,6 +24,9 @@ import { getStoredAuthUser, signOutUser, syncSessionFromSupabase, getSessionToke
 import { getApiHeaders, getAnalyticsDeviceId } from './utils/apiClient';
 import { trackAuthenticatedVisit, trackDeviceVisit, trackMilestone, type Milestone } from './utils/usageTracking';
 import { AdminApp } from './admin/AdminApp';
+import { TermsView } from './components/TermsView';
+import { TermsAcceptanceModal } from './components/TermsAcceptanceModal';
+import { needsTermsAcceptance } from './lib/terms';
 
 const PROFILE_STORAGE_KEY = 'caliber_user_profile';
 
@@ -538,6 +541,9 @@ function StudentApp() {
   return (
     <CoachChatProvider key={currentUser?.id || 'guest'} userProfile={userProfile} analysis={analysisResult} storageScope={currentUser?.id || 'guest'}>
       <div className="min-h-screen bg-[#0a0a0f] text-[#f1f5f9] flex flex-col font-sans relative selection:bg-indigo-500/30 selection:text-white">
+        {needsTermsAcceptance(currentUser) && (
+          <TermsAcceptanceModal onAccepted={handleAccountChange} onDecline={handleSignOut} />
+        )}
         {syncError && <div role="alert" className="fixed bottom-4 left-4 right-4 z-[100] rounded-xl bg-amber-950 border border-amber-500 p-4 text-amber-100">
           {syncError}<button className="ml-4 underline" onClick={() => setSyncError(null)}>Dismiss</button>
         </div>}
@@ -888,6 +894,9 @@ function StudentApp() {
 }
 
 export default function App() {
+  if (window.location.pathname === '/terms') {
+    return <TermsView />;
+  }
   if (window.location.pathname === '/rais' || window.location.pathname.startsWith('/rais/')) {
     return <AdminApp />;
   }
