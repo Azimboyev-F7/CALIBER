@@ -4,6 +4,8 @@ import { gpaOnFourPointScale, validSat } from '../src/lib/gpa';
 export interface ProfileFit {
   satPercentilePosition: 'below 25th' | 'within middle 50%' | 'above 75th' | null;
   gpaComparison: string | null;
+  /** How far the student's GPA is under the school's average (4.0 scale, 2 decimals); 0 when at or above it. */
+  gpaGap?: number;
   topWeightedFactors: string[];
   activityStrengthScore?: number;
   honorsStrengthScore?: number;
@@ -48,6 +50,7 @@ export function calculateProfileFit(
 
   // 2. GPA comparison (only if both student GPA and school avgEnrolledGpaUnweighted exist)
   let gpaComparison: string | null = null;
+  let gpaGap: number | undefined;
   const studentGpa = gpaOnFourPointScale(studentProfile);
   const hasStudentGpa = !isNaN(studentGpa) && studentGpa > 0;
   const hasSchoolGpa =
@@ -55,7 +58,9 @@ export function calculateProfileFit(
     !isNaN(school.avgEnrolledGpaUnweighted);
 
   if (hasStudentGpa && hasSchoolGpa) {
-    const diff = studentGpa - school.avgEnrolledGpaUnweighted;
+    // Rounded to 2 decimals so a gap of exactly 0.05 is not pushed over the line by floating-point error.
+    const diff = Math.round((studentGpa - school.avgEnrolledGpaUnweighted) * 100) / 100;
+    gpaGap = Math.max(0, -diff);
     if (diff > 0.05) {
       gpaComparison = `Above average enrolled GPA (${studentGpa.toFixed(2)} vs ${school.avgEnrolledGpaUnweighted.toFixed(2)} avg)`;
     } else if (diff < -0.05) {
@@ -108,6 +113,7 @@ export function calculateProfileFit(
   return {
     satPercentilePosition,
     gpaComparison,
+    gpaGap,
     topWeightedFactors,
     activityStrengthScore,
     honorsStrengthScore
@@ -245,40 +251,36 @@ export function calculateEstimatedRange(
     return null;
   }
 
-  // 3. Determine if GPA is deficient
-  const isGpaDeficient = Boolean(profileFit.gpaComparison?.toLowerCase().includes('below'));
+  // 3. How much the GPA shortfall counts: 0 up to 0.05 under the school average, rising linearly to
+  // 1 at 0.30 under. It blends the SAT-based range toward the lowest band instead of switching to it.
+  const gpaWeight = typeof profileFit.gpaGap === 'number'
+    ? Math.max(0, Math.min(1, (profileFit.gpaGap - 0.05) / 0.25))
+    : (profileFit.gpaComparison?.toLowerCase().includes('below') ? 1 : 0);
 
-  // 4. Calculate range based on student percentile position — headroom-scaled, not multiplicative.
+  // 4. Range from the SAT position — headroom-scaled, not multiplicative.
   // Multiplying a high official rate (e.g. 89% * 1.6 = 142%) always overflows past 100 and
   // clamps to 99, making every strong-profile student at a Target/Safety school look identical.
   // Instead, scale relative to the REMAINING headroom to 100%, so schools with different
   // official rates stay distinguishable even for top-band students.
   const headroom = 100 - officialRate;
+  const lowestBand = { low: officialRate * 0.4, high: officialRate * 0.7 };
 
-  let low: number;
-  let high: number;
-
-  if (profileFit.satPercentilePosition === 'above 75th' && !isGpaDeficient) {
-    // Above 75th percentile AND above-average/competitive GPA:
-    // close 30%-60% of the remaining gap to 100.
-    low = Math.round(officialRate + headroom * 0.30);
-    high = Math.round(officialRate + headroom * 0.60);
-  } else if (profileFit.satPercentilePosition === 'below 25th' || isGpaDeficient) {
-    // Below 25th percentile, or missing a "Very Important" factor: reduce the rate.
-    // Multiplicative reduction has no overflow risk, so this band is unchanged.
-    low = Math.round(officialRate * 0.4);
-    high = Math.round(officialRate * 0.7);
+  let band: { low: number; high: number };
+  if (profileFit.satPercentilePosition === 'above 75th') {
+    band = { low: officialRate + headroom * 0.30, high: officialRate + headroom * 0.60 };
+  } else if (profileFit.satPercentilePosition === 'below 25th') {
+    band = lowestBand;
   } else if (profileFit.satPercentilePosition === 'within middle 50%') {
-    // Within middle 50%: modest headroom-scaled adjustment in both directions.
-    low = Math.round(officialRate - officialRate * 0.15);
-    high = Math.round(officialRate + headroom * 0.15);
+    band = { low: officialRate * 0.85, high: officialRate + headroom * 0.15 };
   } else {
     return null;
   }
+  let low = Math.round(band.low * (1 - gpaWeight) + lowestBand.low * gpaWeight);
+  let high = Math.round(band.high * (1 - gpaWeight) + lowestBand.high * gpaWeight);
 
   // Activities and honors influence the personalized range only through a
   // small, capped shift. The school's official acceptance rate is untouched.
-  const belowAdmittedRange = profileFit.satPercentilePosition === 'below 25th' || isGpaDeficient;
+  const belowAdmittedRange = profileFit.satPercentilePosition === 'below 25th' || gpaWeight > 0;
   const holisticShift = calculateHolisticShift(profileFit, schoolOrRate, { low, high }, !belowAdmittedRange);
 
   // Clamp all results to [1, 99] — never return 0% or 100%

@@ -129,3 +129,32 @@ describe('aid-list colleges', () => {
     expect(low).not.toEqual(high);
   });
 });
+
+describe('GPA below the school average lowers the range gradually', () => {
+  const cmu = SCHOOL_PROFILES.find((s) => s.schoolId === 'rec-cmu') ?? SCHOOL_PROFILES.find((s) => /Carnegie Mellon/.test(s.name))!;
+  const range = (gpa: string, sat = '1540') => {
+    const p = { unweightedGpa: gpa, satScore: sat };
+    return calculateEstimatedRange(p, cmu, calculateProfileFit(p, cmu))!;
+  };
+
+  it('a GPA exactly 0.05 under the average is still Competitive (no floating-point cliff)', () => {
+    expect(calculateProfileFit({ unweightedGpa: '3.9', satScore: '1540' }, cmu).gpaComparison).toMatch(/^Competitive/);
+    expect(range('3.9')).toEqual(range('4.0'));
+  });
+
+  it('a bigger GPA gap gives a lower range, never a higher one', () => {
+    const gaps = ['4.0', '3.9', '3.85', '3.8', '3.7', '3.6', '3.4'].map((g) => range(g));
+    for (let i = 1; i < gaps.length; i++) {
+      expect(gaps[i].low).toBeLessThanOrEqual(gaps[i - 1].low);
+      expect(gaps[i].high).toBeLessThanOrEqual(gaps[i - 1].high);
+    }
+  });
+
+  it('a small shortfall costs less than a large one, and a large one reaches the lowest band', () => {
+    const near = range('3.85'), far = range('3.5'), inside = range('4.0');
+    expect(near.high).toBeLessThan(inside.high);
+    expect(near.high).toBeGreaterThan(far.high);
+    const r = cmu.officialAcceptanceRate;
+    expect(far).toEqual({ low: Math.round(r * 0.4), high: Math.round(r * 0.7) });
+  });
+});
