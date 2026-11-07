@@ -12,6 +12,8 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     const { data, error } = await client.auth.getUser(token);
     if (error || !data.user) return res.status(401).json({ error: 'Unauthorized' });
     res.locals.userId = data.user.id;
+    // Set at signup when the user accepts the Terms (which cover anonymized research use).
+    res.locals.researchConsent = Boolean(data.user.user_metadata?.termsAcceptedAt);
     next();
   } catch {
     return res.status(503).json({ error: 'Authentication unavailable' });
