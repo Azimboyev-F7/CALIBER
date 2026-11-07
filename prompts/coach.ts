@@ -2,7 +2,7 @@ export function getCoachSystemInstruction(profile: any, analysis: any): string {
   const studentName = profile?.name || 'Student';
   const major = profile?.intendedMajor || 'Undecided';
   const gradYear = profile?.graduationYear || '2026';
-  const unweightedGpa = profile?.unweightedGpa || 'N/A';
+  const unweightedGpa = profile?.unweightedGpa ? `${profile.unweightedGpa}${profile?.gpaScale === '5.0' ? ' (5.0 scale)' : ''}` : 'N/A';
   const apCount = profile?.apIbHonorsCount || 'N/A';
   const sat = profile?.satScore || 'N/A';
   const activitiesJson = JSON.stringify(profile?.activities || []);

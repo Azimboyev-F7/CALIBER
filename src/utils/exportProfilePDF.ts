@@ -647,7 +647,7 @@ export async function generateProfilePDFDoc(
   const acadCardHeight = 18;
 
   const academicItems = [
-    { label: 'Unweighted GPA', val: profile.unweightedGpa ? `${profile.unweightedGpa} / 4.00` : 'Not Reported', sub: '4.00 Scale' },
+    { label: 'Unweighted GPA', val: profile.unweightedGpa ? `${profile.unweightedGpa} / ${profile.gpaScale === '5.0' ? '5.00' : '4.00'}` : 'Not Reported', sub: profile.gpaScale === '5.0' ? '5.00 Scale' : '4.00 Scale' },
     { label: 'AP / IB / Honors', val: profile.apIbHonorsCount ? `${profile.apIbHonorsCount} Courses` : 'Standard', sub: 'Course Rigor Index' },
     { label: 'SAT Score', val: profile.satScore ? `SAT: ${profile.satScore}` : 'Not Taken', sub: parsedSat >= 1500 ? '99th Percentile' : 'Standardized Testing' },
     { label: 'English Proficiency', val: profile.ieltsScore ? `IELTS: ${profile.ieltsScore}` : 'Exempt / Not Reported', sub: parsedIelts >= 7.5 ? 'Competency Met' : 'Language Assessment' },

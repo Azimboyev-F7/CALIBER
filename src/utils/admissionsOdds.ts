@@ -1,4 +1,5 @@
 import { CollegeTarget, UserProfile } from '../types';
+import { gpaOnFourPointScale } from '../lib/gpa';
 
 export interface PortfolioScoreResult {
   totalPortfolioScore: number;
@@ -11,7 +12,8 @@ export interface PortfolioScoreResult {
  * Calculates Portfolio Strength Index (0 to 100) based on GPA, testing, rigor, activities, leadership, and awards.
  */
 export function computePortfolioScore(profile: Partial<UserProfile> | any): PortfolioScoreResult {
-  const uwGpa = parseFloat(profile?.unweightedGpa || '3.5');
+  const normalizedGpa = gpaOnFourPointScale(profile);
+  const uwGpa = Number.isNaN(normalizedGpa) ? 3.5 : normalizedGpa;
   const sat = parseInt(profile?.satScore || '0', 10);
   const rigor = parseInt(profile?.apIbHonorsCount || '4', 10);
   const activities = Array.isArray(profile?.activities) ? profile.activities : [];

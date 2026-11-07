@@ -14,6 +14,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     res.locals.userId = data.user.id;
     // Set at signup when the user accepts the Terms (which cover anonymized research use).
     res.locals.researchConsent = Boolean(data.user.user_metadata?.termsAcceptedAt);
+    res.locals.termsVersion = String(data.user.user_metadata?.termsVersion || '');
     next();
   } catch {
     return res.status(503).json({ error: 'Authentication unavailable' });

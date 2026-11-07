@@ -40,7 +40,7 @@ Student Profile:
 - Name: ${profile.name || 'Candidate'}
 - Intended Major: ${profile.intendedMajor || 'Undecided'}
 - Target Graduation: ${profile.graduationYear || '2026'}
-- GPA: Unweighted ${profile.unweightedGpa || 'N/A'}
+- GPA: Unweighted ${profile.unweightedGpa || 'N/A'}${profile.gpaScale === '5.0' ? ' (on a 5.0 scale)' : ''}
 - IELTS Score: ${profile.ieltsScore || 'N/A'}
 - Preferred Country/Region: ${profile.preferredCountry || 'United States'}
 - Annual Budget: ${profile.budgetPerYear || 'Flexible'}

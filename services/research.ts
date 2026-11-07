@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { getServiceClient } from './supabaseServer';
+import { gpaOnFourPointScale, parseGpaScale, type GpaScale } from '../src/lib/gpa';
 
 // Research snapshots hold only numeric/categorical profile data plus the
 // recommendations Caliber produced. Names, emails, free text (notes, activity
@@ -9,6 +10,9 @@ export interface ResearchRecommendation {
   id: string | null;
   name: string | null;
   category: string | null;
+  // The school data the result was based on, so a run can be reproduced later.
+  officialAcceptanceRate: number | null;
+  acceptanceRateSourceYear: string | null;
   profileFit: unknown;
   estimatedRange: unknown;
 }
@@ -16,7 +20,10 @@ export interface ResearchRecommendation {
 export interface ResearchSnapshot {
   anon_id: string;
   source: string;
+  terms_version: string | null;
   gpa: number | null;
+  gpa_scale: GpaScale;
+  gpa_4pt: number | null;
   sat: number | null;
   ielts: number | null;
   ap_ib_honors_count: number | null;
@@ -28,7 +35,6 @@ export interface ResearchSnapshot {
   leadership_count: number;
   activity_tiers: number[];
   honors_count: number;
-  filter_tier: string | null;
   filter_region: string | null;
   recommendations: ResearchRecommendation[];
 }
@@ -45,6 +51,10 @@ const text = (value: unknown): string | null => {
   const s = typeof value === 'string' ? value.trim().slice(0, 80) : '';
   return s || null;
 };
+const finite = (value: unknown): number | null => (typeof value === 'number' && Number.isFinite(value) ? value : null);
+const year = (value: unknown): string | null =>
+  typeof value === 'string' || typeof value === 'number' ? String(value).trim().slice(0, 10) || null : null;
+const round2 = (value: number) => Math.round(value * 100) / 100;
 
 export function anonymizeUserId(userId: string, salt: string): string {
   return createHmac('sha256', salt).update(userId).digest('hex').slice(0, 32);
@@ -55,8 +65,12 @@ export function buildResearchSnapshot(
   profile: any,
   result: any,
   source: string,
-  filters: { filterTier?: unknown; filterRegion?: unknown },
+  filters: { filterRegion?: unknown },
+  termsVersion: string,
 ): ResearchSnapshot {
+  const gpaScale = parseGpaScale(profile?.gpaScale);
+  // A GPA above its own scale (e.g. 4.8 on a 4.0 scale) is a data-entry error, not data.
+  const gpa = inRange(num(profile?.unweightedGpa), 0.1, gpaScale === '5.0' ? 5 : 4);
   const activities: any[] = Array.isArray(profile?.activities) ? profile.activities : [];
   const awards: any[] = Array.isArray(profile?.awards) ? profile.awards : [];
   const recommendations = ['reachRecommendations', 'targetRecommendations', 'safetyRecommendations']
@@ -65,6 +79,8 @@ export function buildResearchSnapshot(
       id: text(school?.id),
       name: text(school?.name),
       category: text(school?.category),
+      officialAcceptanceRate: finite(school?.officialAcceptanceRate),
+      acceptanceRateSourceYear: year(school?.acceptanceRateSourceYear),
       profileFit: school?.profileFit ?? null,
       estimatedRange: school?.estimatedRange ?? null,
     }));
@@ -72,7 +88,10 @@ export function buildResearchSnapshot(
   return {
     anon_id: anonId,
     source: text(source) || 'unknown',
-    gpa: inRange(num(profile?.unweightedGpa), 0.1, 5),
+    terms_version: text(termsVersion),
+    gpa,
+    gpa_scale: gpaScale,
+    gpa_4pt: gpa === null ? null : round2(gpaOnFourPointScale({ unweightedGpa: gpa, gpaScale })),
     sat: inRange(num(profile?.satScore), 400, 1600),
     ielts: inRange(num(profile?.ieltsScore), 1, 9),
     ap_ib_honors_count: num(profile?.apIbHonorsCount),
@@ -84,7 +103,6 @@ export function buildResearchSnapshot(
     leadership_count: activities.filter((a) => a?.isLeadership === true).length,
     activity_tiers: activities.map((a) => Number(a?.tier)).filter((t) => Number.isInteger(t) && t >= 1 && t <= 4),
     honors_count: awards.length,
-    filter_tier: text(filters.filterTier),
     filter_region: text(filters.filterRegion),
     recommendations,
   };
@@ -95,10 +113,11 @@ let warnedMissingSalt = false;
 export async function recordResearchSnapshot(input: {
   userId: string;
   consented: boolean;
+  termsVersion: string;
   profile: any;
   result: any;
   source: string;
-  filters: { filterTier?: unknown; filterRegion?: unknown };
+  filters: { filterRegion?: unknown };
 }): Promise<boolean> {
   // Fail closed: no Terms acceptance or no anonymization salt means nothing is stored.
   const salt = process.env.RESEARCH_ANON_SALT;
@@ -112,7 +131,7 @@ export async function recordResearchSnapshot(input: {
     const client = getServiceClient();
     if (!client) return false;
     const snapshot = buildResearchSnapshot(
-      anonymizeUserId(input.userId, salt), input.profile, input.result, input.source, input.filters,
+      anonymizeUserId(input.userId, salt), input.profile, input.result, input.source, input.filters, input.termsVersion,
     );
     // One row per student: every re-run (the profile page recomputes as fields are filled in)
     // replaces that student's row, so the table holds each student's latest profile.
