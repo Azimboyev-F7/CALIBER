@@ -11,6 +11,7 @@ import { writeFileSync } from 'node:fs';
 import { generateIntelligentCollegeRecommendations } from '../services/scoring';
 import { buildResearchSnapshot } from '../services/research';
 import { researchRowsToCsv, type ResearchRow } from '../src/utils/researchCsv';
+import { researchRowsToXlsx } from '../src/utils/researchXlsx';
 
 type Act = [tier: number, leader: boolean];
 type Case = {
@@ -77,6 +78,7 @@ const rows: ResearchRow[] = cases.map((c, i) => {
 
 const output = process.argv[2] || 'docs/synthetic-research-export.csv';
 writeFileSync(output, researchRowsToCsv(rows));
+writeFileSync(output.replace(/\.csv$/, '.xlsx'), Buffer.from(await (await researchRowsToXlsx(rows)).arrayBuffer()));
 
 // SQL to load the same rows into Supabase so they appear in the admin Research tab.
 const q = (v: unknown) => (v === null || v === undefined ? 'NULL' : typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
@@ -88,7 +90,9 @@ const values = rows.map((r) => `(${[
   `${q(JSON.stringify(r.recommendations))}::jsonb`,
 ].join(', ')})`);
 const sql = `-- SYNTHETIC test students for reviewing the Research Data tab. Not real students.
--- Run in the Supabase SQL Editor. Safe to re-run.
+-- Run in the Supabase SQL Editor. Replaces any earlier synthetic rows, so it is safe to re-run.
+DELETE FROM public.research_snapshots WHERE anon_id LIKE 'synthetic-%';
+
 INSERT INTO public.research_snapshots
   (anon_id, source, created_at, updated_at, terms_version, gpa, gpa_scale, gpa_4pt, sat, ielts, ap_ib_honors_count,
    intended_major, graduation_year, preferred_country, budget_per_year, activity_count, leadership_count,
