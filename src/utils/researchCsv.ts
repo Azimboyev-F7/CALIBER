@@ -1,5 +1,6 @@
 export type ResearchRow = {
   created_at: string;
+  updated_at: string;
   anon_id: string;
   source: string;
   gpa: number | null;
@@ -21,6 +22,7 @@ export type ResearchRow = {
 
 const COLUMNS: [string, (r: ResearchRow) => unknown][] = [
   ['created_at', (r) => r.created_at],
+  ['updated_at', (r) => r.updated_at],
   ['anon_id', (r) => r.anon_id],
   ['source', (r) => r.source],
   ['gpa', (r) => r.gpa],

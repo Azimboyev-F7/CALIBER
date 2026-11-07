@@ -124,7 +124,7 @@ analyticsRouter.get('/admin/research', limiter, async (_req, res) => {
     const client = getServiceClient();
     if (!client || !await requireAdmin(client, res.locals.userId)) return res.status(403).json({ error: 'Administrator access required' });
     const { data, error } = await client.from('research_snapshots')
-      .select('*').order('created_at', { ascending: false }).limit(5000);
+      .select('*').order('updated_at', { ascending: false }).limit(5000);
     if (error) throw error;
     return res.json({ snapshots: data || [] });
   } catch (err: any) {

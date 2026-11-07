@@ -32,7 +32,6 @@ export const AdminResearch: React.FC = () => {
   }, []);
 
   const stats = useMemo(() => ({
-    snapshots: rows.length,
     students: new Set(rows.map((r) => r.anon_id)).size,
     gpa: avg(rows.map((r) => r.gpa)),
     sat: avg(rows.map((r) => r.sat)),
@@ -51,7 +50,7 @@ export const AdminResearch: React.FC = () => {
   };
 
   const cards: [string, string | number][] = [
-    ['Snapshots', stats.snapshots], ['Anonymous students', stats.students],
+    ['Students', stats.students],
     ['Avg GPA', stats.gpa], ['Avg SAT', stats.sat],
     ['Reach / Target / Safety', `${stats.reach} / ${stats.target} / ${stats.safety}`],
   ];
@@ -62,7 +61,7 @@ export const AdminResearch: React.FC = () => {
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">Research Data</h1>
           <p className="text-sm text-slate-400 mt-1 max-w-2xl">
-            Anonymized profile inputs and the Reach/Target/Safety output Caliber produced, captured only from
+            Anonymized profile inputs and the Reach/Target/Safety output Caliber produced, one row per student (their latest profile), captured only from
             accounts that accepted the Terms. No names, emails, free text or device IDs are stored.
           </p>
         </div>
@@ -92,12 +91,12 @@ export const AdminResearch: React.FC = () => {
           <div className="rounded-2xl border border-white/10 overflow-x-auto">
             <table className="w-full text-left text-[12.5px]">
               <thead className="text-slate-500 uppercase text-[10.5px] tracking-wider">
-                <tr>{['When', 'Student', 'GPA', 'SAT', 'Major', 'Acts', 'Honors', 'R / T / S', 'Schools'].map((h) => <th key={h} className="px-3 py-2.5">{h}</th>)}</tr>
+                <tr>{['Updated', 'Student', 'GPA', 'SAT', 'Major', 'Acts', 'Honors', 'R / T / S', 'Schools'].map((h) => <th key={h} className="px-3 py-2.5">{h}</th>)}</tr>
               </thead>
               <tbody>
                 {rows.slice(0, 200).map((r, i) => (
-                  <tr key={`${r.anon_id}-${r.created_at}-${i}`} className="border-t border-white/5 text-slate-300">
-                    <td className="px-3 py-2 whitespace-nowrap">{new Date(r.created_at).toLocaleDateString()}</td>
+                  <tr key={r.anon_id} className="border-t border-white/5 text-slate-300">
+                    <td className="px-3 py-2 whitespace-nowrap">{new Date(r.updated_at).toLocaleDateString()}</td>
                     <td className="px-3 py-2 font-mono text-slate-500">{r.anon_id.slice(0, 8)}</td>
                     <td className="px-3 py-2">{r.gpa ?? '—'}</td>
                     <td className="px-3 py-2">{r.sat ?? '—'}</td>
@@ -108,7 +107,7 @@ export const AdminResearch: React.FC = () => {
                     <td className="px-3 py-2 text-slate-400">{r.recommendations.map((s) => s.name).join(', ')}</td>
                   </tr>
                 ))}
-                {!rows.length && <tr><td colSpan={9} className="px-3 py-8 text-center text-slate-500">No snapshots yet. They appear when a consenting student generates recommendations.</td></tr>}
+                {!rows.length && <tr><td colSpan={9} className="px-3 py-8 text-center text-slate-500">No students yet. A row appears when a consenting student generates recommendations, and updates as they complete their profile.</td></tr>}
               </tbody>
             </table>
           </div>

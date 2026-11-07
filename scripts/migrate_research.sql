@@ -24,7 +24,14 @@ CREATE TABLE IF NOT EXISTS public.research_snapshots (
   recommendations jsonb NOT NULL DEFAULT '[]'::jsonb
 );
 CREATE INDEX IF NOT EXISTS research_snapshots_created_idx ON public.research_snapshots(created_at DESC);
-CREATE INDEX IF NOT EXISTS research_snapshots_anon_idx ON public.research_snapshots(anon_id);
+
+-- One row per student: the app updates a student's row on every run.
+ALTER TABLE public.research_snapshots ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+DROP INDEX IF EXISTS public.research_snapshots_anon_idx;
+-- Collapse any earlier duplicate rows, keeping each student's most recent one.
+DELETE FROM public.research_snapshots a USING public.research_snapshots b
+  WHERE a.anon_id = b.anon_id AND (a.created_at < b.created_at OR (a.created_at = b.created_at AND a.id < b.id));
+CREATE UNIQUE INDEX IF NOT EXISTS research_snapshots_anon_unique ON public.research_snapshots(anon_id);
 
 ALTER TABLE public.research_snapshots ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.research_snapshots FROM anon, authenticated;
