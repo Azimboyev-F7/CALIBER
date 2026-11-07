@@ -33,25 +33,42 @@ export type ResearchRow = {
 };
 
 const inTier = (row: ResearchRow, category: string) => row.recommendations.filter((s) => s.category === category);
-const estimate = (s: ResearchRecommendationRow) => (s.estimatedRange ? `${s.estimatedRange.low}-${s.estimatedRange.high}` : 'none');
+// Written as words: a bare "2-4" is turned into a date by Excel.
+const estimate = (s: ResearchRecommendationRow) => (s.estimatedRange ? `${s.estimatedRange.low} to ${s.estimatedRange.high}` : 'none');
 const firstScore = (row: ResearchRow, key: 'activityStrengthScore' | 'honorsStrengthScore') =>
   row.recommendations.find((s) => typeof s.profileFit?.[key] === 'number')?.profileFit?.[key];
 
-const tierColumns = (category: string): [string, (r: ResearchRow) => unknown][] => [
-  [category, (r) => inTier(r, category).map((s) => s.name).join('|')],
-  [`${category}_estimates`, (r) => inTier(r, category).map(estimate).join('|')],
-  [`${category}_rates`, (r) => inTier(r, category).map((s) => s.officialAcceptanceRate ?? '').join('|')],
-];
+/** "2026-11-07T01:00:00Z" -> "07/11/2026" (day/month/year, UTC). */
+export const dayMonthYear = (iso: string) => {
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+};
 
-const COLUMNS: [string, (r: ResearchRow) => unknown][] = [
-  ['created_at', (r) => r.created_at],
-  ['updated_at', (r) => r.updated_at],
-  ['anon_id', (r) => r.anon_id],
-  ['source', (r) => r.source],
-  ['terms_version', (r) => r.terms_version],
+type Column =[string, (r: ResearchRow, studentId: string) => unknown];
+
+const TIERS = ['reach', 'target', 'safety'];
+
+// One short cell per school (name, estimate, rate) instead of a long joined list, so nothing overflows.
+function schoolColumns(rows: ResearchRow[]): Column[] {
+  return TIERS.flatMap((tier) => {
+    const slots = Math.max(0, ...rows.map((r) => inTier(r, tier).length));
+    return Array.from({ length: slots }, (_, i): Column[] => {
+      const n = i + 1;
+      const at = (r: ResearchRow) => inTier(r, tier)[i];
+      return [
+        [`${tier}_${n}`, (r) => at(r)?.name],
+        [`${tier}_${n}_estimate`, (r) => (at(r) ? estimate(at(r)) : '')],
+        [`${tier}_${n}_rate`, (r) => at(r)?.officialAcceptanceRate],
+      ];
+    }).flat();
+  });
+}
+
+const COLUMNS: Column[] = [
+  ['student_id', (_r, id) => id],
+  ['date', (r) => dayMonthYear(r.created_at)],
   ['gpa', (r) => r.gpa],
   ['gpa_scale', (r) => r.gpa_scale],
-  ['gpa_4pt', (r) => r.gpa_4pt],
   ['sat', (r) => r.sat],
   ['ielts', (r) => r.ielts],
   ['ap_ib_honors_count', (r) => r.ap_ib_honors_count],
@@ -66,9 +83,9 @@ const COLUMNS: [string, (r: ResearchRow) => unknown][] = [
   ['filter_region', (r) => r.filter_region],
   ['activity_strength', (r) => firstScore(r, 'activityStrengthScore')],
   ['honors_strength', (r) => firstScore(r, 'honorsStrengthScore')],
-  ...tierColumns('reach'),
-  ...tierColumns('target'),
-  ...tierColumns('safety'),
+];
+
+const DATA_YEARS: Column[] = [
   // Acceptance-rate data years behind the result, for reproducing it later.
   ['data_years', (r) => [...new Set(r.recommendations.map((s) => s.acceptanceRateSourceYear).filter(Boolean))].sort().join('|')],
 ];
@@ -80,8 +97,29 @@ const cell = (value: unknown) => {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
+const FIRST_STUDENT_NUMBER = 400;
+
+const byFirstCapture = (a: ResearchRow, b: ResearchRow) =>
+  a.created_at.localeCompare(b.created_at) || a.anon_id.localeCompare(b.anon_id);
+
+/** Readable student IDs (id_400, id_401, ...) in order of first capture. Replaces the internal hash. */
+export function studentIds(rows: ResearchRow[]): Map<string, string> {
+  return new Map([...rows].sort(byFirstCapture).map((row, i) => [row.anon_id, `id_${FIRST_STUDENT_NUMBER + i}`]));
+}
+
+/** The research table as plain text: the admin tab and the CSV both render exactly this. */
+export function researchTable(rows: ResearchRow[]): { header: string[]; records: string[][] } {
+  const ids = studentIds(rows);
+  const columns = [...COLUMNS, ...schoolColumns(rows), ...DATA_YEARS];
+  const text = (value: unknown) => (value === null || value === undefined ? '' : String(value));
+  return {
+    header: columns.map(([name]) => name),
+    records: [...rows].sort(byFirstCapture).map((row) => columns.map(([, get]) => text(get(row, ids.get(row.anon_id)!)))),
+  };
+}
+
+// The leading byte order mark makes Excel read the file as UTF-8 instead of guessing.
 export function researchRowsToCsv(rows: ResearchRow[]): string {
-  const header = COLUMNS.map(([name]) => name).join(',');
-  const lines = rows.map((row) => COLUMNS.map(([, get]) => cell(get(row))).join(','));
-  return [header, ...lines].join('\r\n');
+  const { header, records } = researchTable(rows);
+  return '﻿' + [header, ...records].map((line) => line.map(cell).join(',')).join('\r\n');
 }
