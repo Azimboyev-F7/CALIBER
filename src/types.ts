@@ -114,6 +114,8 @@ export interface UserProfile {
   name: string;
   avatarUrl: string;
   unweightedGpa: string;
+  /** Scale the GPA was entered on; absent on older profiles, which means 4.0. */
+  gpaScale?: '4.0' | '5.0';
   apIbHonorsCount: string;
   satScore: string;
   ieltsScore: string;

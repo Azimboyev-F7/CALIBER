@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS public.research_snapshots (
   leadership_count integer NOT NULL DEFAULT 0,
   activity_tiers integer[] NOT NULL DEFAULT '{}',
   honors_count integer NOT NULL DEFAULT 0,
-  filter_tier text,
   filter_region text,
   recommendations jsonb NOT NULL DEFAULT '[]'::jsonb
 );
@@ -27,6 +26,12 @@ CREATE INDEX IF NOT EXISTS research_snapshots_created_idx ON public.research_sna
 
 -- One row per student: the app updates a student's row on every run.
 ALTER TABLE public.research_snapshots ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+-- GPA scale (4.0 or 5.0), the GPA converted to 4.0, and which Terms version the student accepted.
+ALTER TABLE public.research_snapshots ADD COLUMN IF NOT EXISTS gpa_scale text NOT NULL DEFAULT '4.0';
+ALTER TABLE public.research_snapshots ADD COLUMN IF NOT EXISTS gpa_4pt numeric;
+ALTER TABLE public.research_snapshots ADD COLUMN IF NOT EXISTS terms_version text;
+-- Never populated by the app.
+ALTER TABLE public.research_snapshots DROP COLUMN IF EXISTS filter_tier;
 DROP INDEX IF EXISTS public.research_snapshots_anon_idx;
 -- Collapse any earlier duplicate rows, keeping each student's most recent one.
 DELETE FROM public.research_snapshots a USING public.research_snapshots b

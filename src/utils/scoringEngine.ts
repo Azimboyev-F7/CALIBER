@@ -1,8 +1,9 @@
 import { UserProfile, ActivityItem, AwardItem, AnalysisResult } from '../types';
 import { RadarDimension } from '../components/SpikeRadarChart';
+import { gpaOnFourPointScale } from '../lib/gpa';
 
 export function calculateAcademicRigorScore(profile: UserProfile): number {
-  const gpa = parseFloat(profile.unweightedGpa) || 0;
+  const gpa = gpaOnFourPointScale(profile) || 0;
   const gpaComponent = Math.min(gpa / 4.0, 1.0);
 
   const sat = parseInt(profile.satScore, 10) || 0;

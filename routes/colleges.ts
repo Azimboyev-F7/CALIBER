@@ -31,7 +31,8 @@ collegesRouter.post(
     const send = (source: string, data: any) => {
       void recordResearchSnapshot({
         userId: res.locals.userId, consented: res.locals.researchConsent === true,
-        profile, result: data, source, filters: { filterTier, filterRegion },
+        termsVersion: res.locals.termsVersion || '',
+        profile, result: data, source, filters: { filterRegion },
       });
       return res.json({ source, success: true, data });
     };
@@ -114,6 +115,8 @@ collegesRouter.post(
           college.officialAcceptanceRate = matched.officialAcceptanceRate;
           college.baselineAcceptanceRate = `${matched.officialAcceptanceRate.toFixed(1)}%`;
         }
+        // Keep the data year with the result so a run can be reproduced later (AI results lack it).
+        if (matched?.acceptanceRateSourceYear) college.acceptanceRateSourceYear = matched.acceptanceRateSourceYear;
         delete college.estimatedAdmitRate;
       }
     };
@@ -160,7 +163,7 @@ Student Profile:
 - Name: ${profile.name || 'Candidate'}
 - Intended Major: ${profile.intendedMajor || 'Undecided'}
 - Target Graduation Year: ${profile.graduationYear || '2026'}
-- Unweighted GPA: ${profile.unweightedGpa || 'N/A'} (out of 4.0)
+- Unweighted GPA: ${profile.unweightedGpa || 'N/A'} (out of ${profile.gpaScale === "5.0" ? "5.0" : "4.0"})
 - IELTS Score: ${profile.ieltsScore || 'Not provided'}
 - Preferred Country/Region: ${activeCountry}
 - Annual Budget for Tuition & Expenses: ${profile.budgetPerYear || 'Flexible'}

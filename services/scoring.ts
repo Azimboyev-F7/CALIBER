@@ -1,4 +1,5 @@
 import { SCHOOL_PROFILES, SchoolProfile } from '../data/schools';
+import { gpaOnFourPointScale } from '../src/lib/gpa';
 
 export interface ProfileFit {
   satPercentilePosition: 'below 25th' | 'within middle 50%' | 'above 75th' | null;
@@ -48,8 +49,7 @@ export function calculateProfileFit(
 
   // 2. GPA comparison (only if both student GPA and school avgEnrolledGpaUnweighted exist)
   let gpaComparison: string | null = null;
-  const rawGpa = studentProfile?.unweightedGpa;
-  const studentGpa = rawGpa ? parseFloat(String(rawGpa).trim()) : NaN;
+  const studentGpa = gpaOnFourPointScale(studentProfile);
   const hasStudentGpa = !isNaN(studentGpa) && studentGpa > 0;
   const hasSchoolGpa =
     typeof school?.avgEnrolledGpaUnweighted === 'number' &&
@@ -194,8 +194,7 @@ export function calculateEstimatedRange(
     if (!('satPercentilePosition' in studentProfileOrFit)) {
       const rawSat = studentProfileOrFit?.satScore;
       const studentSat = rawSat ? parseInt(String(rawSat).replace(/[^0-9]/g, ''), 10) : NaN;
-      const rawGpa = studentProfileOrFit?.unweightedGpa;
-      const studentGpa = rawGpa ? parseFloat(String(rawGpa).trim()) : NaN;
+      const studentGpa = gpaOnFourPointScale(studentProfileOrFit);
 
       if (isNaN(studentSat) || studentSat <= 0 || isNaN(studentGpa) || studentGpa <= 0) {
         return null;

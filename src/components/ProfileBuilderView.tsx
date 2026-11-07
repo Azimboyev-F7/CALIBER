@@ -100,14 +100,23 @@ export const ProfileBuilderView: React.FC<ProfileBuilderViewProps> = ({
           {/* Row 1: GPA (Unweighted) & IELTS Score */}
           <div className="grid grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-[11.5px] font-semibold text-slate-300 mb-1.5">
-                GPA (Unweighted)
+              <label className="flex items-center justify-between text-[11.5px] font-semibold text-slate-300 mb-1.5">
+                <span>GPA (Unweighted)</span>
+                <select
+                  aria-label="GPA scale"
+                  value={userProfile.gpaScale || '4.0'}
+                  onChange={(e) => handleFieldChange('gpaScale', e.target.value)}
+                  className="bg-[#13131f] border border-white/10 rounded-lg px-1.5 py-0.5 text-[11px] text-slate-200 cursor-pointer"
+                >
+                  <option value="4.0">out of 4.0</option>
+                  <option value="5.0">out of 5.0</option>
+                </select>
               </label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
-                max="4.0"
+                max={userProfile.gpaScale === '5.0' ? 5 : 4}
                 value={userProfile.unweightedGpa || ''}
                 onChange={(e) => handleFieldChange('unweightedGpa', parseFloat(e.target.value) || 0)}
                 placeholder="3.85"
@@ -192,10 +201,11 @@ export const ProfileBuilderView: React.FC<ProfileBuilderViewProps> = ({
               <span>Annual Budget for College</span>
             </label>
             <select
-              value={userProfile.budgetPerYear || '$25,000 - $45,000 / year'}
+              value={userProfile.budgetPerYear || ''}
               onChange={(e) => handleFieldChange('budgetPerYear', e.target.value)}
               className="w-full bg-[#13131f] border border-white/10 rounded-xl px-3.5 py-2.5 text-[13px] text-white focus:outline-none focus:border-indigo-500 transition-colors cursor-pointer"
             >
+              <option value="" disabled>Select your budget</option>
               <option value="Full Need / $0 - $10,000 / year">Full Need / $0 - $10,000 / year</option>
               <option value="$10,000 - $25,000 / year">$10,000 - $25,000 / year</option>
               <option value="$25,000 - $45,000 / year">$25,000 - $45,000 / year</option>

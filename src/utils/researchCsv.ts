@@ -1,9 +1,22 @@
+export type ResearchRecommendationRow = {
+  id: string | null;
+  name: string | null;
+  category: string | null;
+  officialAcceptanceRate?: number | null;
+  acceptanceRateSourceYear?: string | null;
+  estimatedRange?: { low: number; high: number } | null;
+  profileFit?: { activityStrengthScore?: number; honorsStrengthScore?: number } | null;
+};
+
 export type ResearchRow = {
   created_at: string;
   updated_at: string;
   anon_id: string;
   source: string;
+  terms_version: string | null;
   gpa: number | null;
+  gpa_scale: string;
+  gpa_4pt: number | null;
   sat: number | null;
   ielts: number | null;
   ap_ib_honors_count: number | null;
@@ -15,17 +28,30 @@ export type ResearchRow = {
   leadership_count: number;
   activity_tiers: number[];
   honors_count: number;
-  filter_tier: string | null;
   filter_region: string | null;
-  recommendations: { id: string | null; name: string | null; category: string | null }[];
+  recommendations: ResearchRecommendationRow[];
 };
+
+const inTier = (row: ResearchRow, category: string) => row.recommendations.filter((s) => s.category === category);
+const estimate = (s: ResearchRecommendationRow) => (s.estimatedRange ? `${s.estimatedRange.low}-${s.estimatedRange.high}` : 'none');
+const firstScore = (row: ResearchRow, key: 'activityStrengthScore' | 'honorsStrengthScore') =>
+  row.recommendations.find((s) => typeof s.profileFit?.[key] === 'number')?.profileFit?.[key];
+
+const tierColumns = (category: string): [string, (r: ResearchRow) => unknown][] => [
+  [category, (r) => inTier(r, category).map((s) => s.name).join('|')],
+  [`${category}_estimates`, (r) => inTier(r, category).map(estimate).join('|')],
+  [`${category}_rates`, (r) => inTier(r, category).map((s) => s.officialAcceptanceRate ?? '').join('|')],
+];
 
 const COLUMNS: [string, (r: ResearchRow) => unknown][] = [
   ['created_at', (r) => r.created_at],
   ['updated_at', (r) => r.updated_at],
   ['anon_id', (r) => r.anon_id],
   ['source', (r) => r.source],
+  ['terms_version', (r) => r.terms_version],
   ['gpa', (r) => r.gpa],
+  ['gpa_scale', (r) => r.gpa_scale],
+  ['gpa_4pt', (r) => r.gpa_4pt],
   ['sat', (r) => r.sat],
   ['ielts', (r) => r.ielts],
   ['ap_ib_honors_count', (r) => r.ap_ib_honors_count],
@@ -37,15 +63,15 @@ const COLUMNS: [string, (r: ResearchRow) => unknown][] = [
   ['leadership_count', (r) => r.leadership_count],
   ['activity_tiers', (r) => r.activity_tiers.join('|')],
   ['honors_count', (r) => r.honors_count],
-  ['filter_tier', (r) => r.filter_tier],
   ['filter_region', (r) => r.filter_region],
-  ['reach', (r) => namesIn(r, 'reach')],
-  ['target', (r) => namesIn(r, 'target')],
-  ['safety', (r) => namesIn(r, 'safety')],
+  ['activity_strength', (r) => firstScore(r, 'activityStrengthScore')],
+  ['honors_strength', (r) => firstScore(r, 'honorsStrengthScore')],
+  ...tierColumns('reach'),
+  ...tierColumns('target'),
+  ...tierColumns('safety'),
+  // Acceptance-rate data years behind the result, for reproducing it later.
+  ['data_years', (r) => [...new Set(r.recommendations.map((s) => s.acceptanceRateSourceYear).filter(Boolean))].sort().join('|')],
 ];
-
-const namesIn = (row: ResearchRow, category: string) =>
-  row.recommendations.filter((s) => s.category === category).map((s) => s.name).join('|');
 
 // Quote fields, and neutralize spreadsheet formula injection (=, +, -, @).
 const cell = (value: unknown) => {
