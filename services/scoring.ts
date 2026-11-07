@@ -1,5 +1,5 @@
 import { SCHOOL_PROFILES, SchoolProfile } from '../data/schools';
-import { gpaOnFourPointScale } from '../src/lib/gpa';
+import { gpaOnFourPointScale, validSat } from '../src/lib/gpa';
 
 export interface ProfileFit {
   satPercentilePosition: 'below 25th' | 'within middle 50%' | 'above 75th' | null;
@@ -28,9 +28,8 @@ export function calculateProfileFit(
 ): ProfileFit {
   // 1. SAT percentile position (only if both student SAT and school 25th/75th exist)
   let satPercentilePosition: 'below 25th' | 'within middle 50%' | 'above 75th' | null = null;
-  const rawSat = studentProfile?.satScore;
-  const studentSat = rawSat ? parseInt(String(rawSat).replace(/[^0-9]/g, ''), 10) : NaN;
-  const hasStudentSat = !isNaN(studentSat) && studentSat > 0;
+  const studentSat = validSat(studentProfile?.satScore);
+  const hasStudentSat = !isNaN(studentSat);
   const hasSchoolSat =
     typeof school?.sat25th === 'number' &&
     typeof school?.sat75th === 'number' &&
@@ -115,7 +114,14 @@ export function calculateProfileFit(
   };
 }
 
-function calculateHolisticShift(profileFit: ProfileFit, school: any): number {
+/**
+ * Activities and honors nudge the academic range; they never replace it. The nudge is
+ * - at most 4 points,
+ * - at most a quarter of the range it adjusts (so at a 3% school it cannot dwarf the estimate), and
+ * - zero when the student's academics are below the school's admitted range: there only academics
+ *   move the estimate, so a weaker student can never come out ahead of a stronger one.
+ */
+function calculateHolisticShift(profileFit: ProfileFit, school: any, base: { low: number; high: number }, applies: boolean): number {
   const activityScore = profileFit.activityStrengthScore || 0;
   const honorsScore = profileFit.honorsStrengthScore || 0;
   if (!activityScore && !honorsScore) return 0;
@@ -126,7 +132,9 @@ function calculateHolisticShift(profileFit: ProfileFit, school: any): number {
   const activitySignal = activityScore ? (activityScore - 60) / 40 : 0;
   const honorsSignal = honorsScore ? (honorsScore - 60) / 40 : 0;
   const rawSignal = (activitySignal * 0.6 + honorsSignal * 0.4) * (givesHolisticWeight ? 1 : 0.6);
-  return Math.max(-4, Math.min(4, Math.round(rawSignal * 4)));
+  const room = Math.min(4, ((base.low + base.high) / 2) * 0.25);
+  const shift = Math.max(-room, Math.min(room, rawSignal * room));
+  return applies ? shift : 0;
 }
 
 /**
@@ -192,11 +200,10 @@ export function calculateEstimatedRange(
   // If student profile was provided, check if SAT or GPA is missing
   if (studentProfileOrFit && typeof studentProfileOrFit === 'object') {
     if (!('satPercentilePosition' in studentProfileOrFit)) {
-      const rawSat = studentProfileOrFit?.satScore;
-      const studentSat = rawSat ? parseInt(String(rawSat).replace(/[^0-9]/g, ''), 10) : NaN;
+      const studentSat = validSat(studentProfileOrFit?.satScore);
       const studentGpa = gpaOnFourPointScale(studentProfileOrFit);
 
-      if (isNaN(studentSat) || studentSat <= 0 || isNaN(studentGpa) || studentGpa <= 0) {
+      if (isNaN(studentSat) || isNaN(studentGpa)) {
         return null;
       }
     }
@@ -229,11 +236,9 @@ export function calculateEstimatedRange(
         high = Math.round(officialRate * 1.15);
       }
 
-      const holisticShift = profileFit ? calculateHolisticShift(profileFit, schoolOrRate) : 0;
-      low += holisticShift;
-      high += holisticShift;
-      low = Math.max(1, Math.min(99, low));
-      high = Math.max(1, Math.min(99, high));
+      const holisticShift = profileFit ? calculateHolisticShift(profileFit, schoolOrRate, { low, high }, !gpa.includes('below')) : 0;
+      low = Math.max(1, Math.min(99, Math.round(low + holisticShift)));
+      high = Math.max(1, Math.min(99, Math.round(high + holisticShift)));
       if (low >= high) high = Math.min(99, low + 1);
       return { low, high, approximate: true };
     }
@@ -273,13 +278,12 @@ export function calculateEstimatedRange(
 
   // Activities and honors influence the personalized range only through a
   // small, capped shift. The school's official acceptance rate is untouched.
-  const holisticShift = calculateHolisticShift(profileFit, schoolOrRate);
-  low += holisticShift;
-  high += holisticShift;
+  const belowAdmittedRange = profileFit.satPercentilePosition === 'below 25th' || isGpaDeficient;
+  const holisticShift = calculateHolisticShift(profileFit, schoolOrRate, { low, high }, !belowAdmittedRange);
 
   // Clamp all results to [1, 99] — never return 0% or 100%
-  low = Math.max(1, Math.min(99, low));
-  high = Math.max(1, Math.min(99, high));
+  low = Math.max(1, Math.min(99, Math.round(low + holisticShift)));
+  high = Math.max(1, Math.min(99, Math.round(high + holisticShift)));
 
   if (low >= high) {
     high = Math.min(99, low + 1);
@@ -738,6 +742,40 @@ function resolveSchool(school: SchoolProfile, major: string, profile: any) {
 }
 
 /**
+ * Middle of a school's SAT range. Schools without published bands get an estimate from their
+ * acceptance rate (fitted on the 72 US schools that have bands: mid = 1716 - 98.8 * ln(rate),
+ * typical error about 46 points). The estimate is used ONLY to order the list; it is never
+ * shown, stored, or used in an admission estimate.
+ */
+function typicalSat(school: SchoolProfile): number {
+  if (typeof school.sat25th === 'number' && typeof school.sat75th === 'number') return (school.sat25th + school.sat75th) / 2;
+  return 1716 - 98.8 * Math.log(Math.max(school.officialAcceptanceRate, 1));
+}
+
+/** How far the student's scores are from a school's typical admitted student; Infinity when unknown. */
+function fitDistance(school: SchoolProfile, profile: any): number {
+  const sat = validSat(profile?.satScore);
+  if (!isNaN(sat)) return Math.abs(sat - typicalSat(school));
+  const gpa = gpaOnFourPointScale(profile);
+  if (!isNaN(gpa) && typeof school.avgEnrolledGpaUnweighted === 'number') {
+    return Math.abs(gpa - school.avgEnrolledGpaUnweighted) * 400; // GPA points on the SAT's scale
+  }
+  return Infinity;
+}
+
+/**
+ * The `count` schools of a tier that best fit the student. Ties, and students with no usable
+ * scores, keep the default order: most selective first for Reach, least selective first otherwise.
+ */
+function pickByFit(tier: SchoolProfile[], count: number, profile: any, mostSelectiveFirst: boolean): SchoolProfile[] {
+  const direction = mostSelectiveFirst ? 1 : -1;
+  const defaultOrder = [...tier].sort((a, b) => direction * (a.officialAcceptanceRate - b.officialAcceptanceRate));
+  const distances = new Map(defaultOrder.map((s) => [s, fitDistance(s, profile)]));
+  const fit = (s: SchoolProfile) => distances.get(s)!;
+  return defaultOrder.sort((a, b) => (fit(a) === fit(b) ? 0 : fit(a) - fit(b))).slice(0, count);
+}
+
+/**
  * Pure data-backed college recommendation generator.
  * Groups institutions by official selectivity (Reach < 20%, Target 20-55%, Safety > 55%)
  * and computes pure qualitative Profile Fit without fabricated probabilities.
@@ -768,22 +806,19 @@ export function generateIntelligentCollegeRecommendations(
 
   // Categorize by official acceptance rate as ground truth — avoids duplicate listings
   // when a school's category tag disagrees with its rate.
-  const reaches = regionalSchools
-    .filter((s) => s.officialAcceptanceRate < 20)
+  // Within each tier the schools closest to the student's own scores are listed (see fitDistance);
+  // a student with no usable scores gets the plain selectivity ranking. The list is always shown
+  // in selectivity order. Major is NOT used: the school data has no per-major information.
+  const reaches = pickByFit(regionalSchools.filter((s) => s.officialAcceptanceRate < 20), 2, profile, true)
     .sort((a, b) => a.officialAcceptanceRate - b.officialAcceptanceRate)
-    .slice(0, 2)
     .map((s) => resolveSchool(s, major, profile));
 
-  const targets = regionalSchools
-    .filter((s) => s.officialAcceptanceRate >= 20 && s.officialAcceptanceRate <= 55)
+  const targets = pickByFit(regionalSchools.filter((s) => s.officialAcceptanceRate >= 20 && s.officialAcceptanceRate <= 55), 4, profile, false)
     .sort((a, b) => b.officialAcceptanceRate - a.officialAcceptanceRate)
-    .slice(0, 4)
     .map((s) => resolveSchool(s, major, profile));
 
-  const safeties = regionalSchools
-    .filter((s) => s.officialAcceptanceRate > 55)
+  const safeties = pickByFit(regionalSchools.filter((s) => s.officialAcceptanceRate > 55), 4, profile, false)
     .sort((a, b) => b.officialAcceptanceRate - a.officialAcceptanceRate)
-    .slice(0, 4)
     .map((s) => resolveSchool(s, major, profile));
 
   return {

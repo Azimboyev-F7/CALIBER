@@ -34,6 +34,7 @@
     "react-markdown": "^10.1.0",
     "recharts": "^3.10.1",
     "vite": "^6.2.3",
+    "write-excel-file": "^4.1.1",
     "zod": "^4.5.4"
   },
   "devDependencies": {

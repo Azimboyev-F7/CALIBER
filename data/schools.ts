@@ -1,4 +1,6 @@
-﻿export interface SchoolProfile {
+﻿import { AID_LIST_SCHOOLS } from './aidListSchools';
+
+export interface SchoolProfile {
   schoolId: string;
   name: string;
   officialAcceptanceRate: number; // approximate, from official source
@@ -2853,6 +2855,8 @@ export const SCHOOL_PROFILES: SchoolProfile[] = [
     strengthAlignment: 'high',
     region: 'canada'
   }
+  ,
+  ...AID_LIST_SCHOOLS
 ];
 
 export const ALL_SCHOOLS = SCHOOL_PROFILES;

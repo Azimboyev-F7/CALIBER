@@ -182,7 +182,9 @@ describe('GET /admin/research', () => {
   });
 });
 
-import { researchRowsToCsv, type ResearchRow } from '../src/utils/researchCsv';
+import { unzipSync, strFromU8 } from 'fflate';
+import { researchRowsToXlsx } from '../src/utils/researchXlsx';
+import { researchRowsToCsv, researchTable, studentIds, type ResearchRow } from '../src/utils/researchCsv';
 
 describe('researchRowsToCsv', () => {
   const row = (over: Partial<ResearchRow> = {}): ResearchRow => ({
@@ -196,14 +198,84 @@ describe('researchRowsToCsv', () => {
     ], ...over,
   });
 
-  it('writes a header, one line per row and pipe-joined schools per category', () => {
-    const [header, line] = researchRowsToCsv([row()]).split('\r\n');
+  const parse = (csv: string) => {
+    const [header, ...lines] = csv.replace(/^﻿/, '').split('\r\n');
     const columns = header.split(',');
-    expect(columns).toEqual(expect.arrayContaining(['gpa_scale', 'gpa_4pt', 'terms_version', 'reach_estimates', 'target_estimates', 'safety_estimates', 'reach_rates', 'data_years', 'activity_strength', 'honors_strength']));
-    expect(columns).not.toContain('filter_tier');
-    const cells = Object.fromEntries(columns.map((c, i) => [c, line.split(',')[i]]));
-    expect(cells).toMatchObject({ reach: 'MIT', target: 'Georgia Tech', safety: 'Purdue', reach_estimates: '2-4', target_estimates: '20-30', safety_estimates: 'none', reach_rates: '3.9', data_years: '2024|2025', activity_strength: '70', honors_strength: '90' });
-    expect(line).toContain('1|3');
+    return { columns, rows: lines.map((l) => Object.fromEntries(columns.map((c, i) => [c, l.split(',')[i]]))) };
+  };
+
+  it('writes one line per student with per-tier schools, estimates and rates', () => {
+    const { columns, rows } = parse(researchRowsToCsv([row()]));
+    expect(columns).toEqual(expect.arrayContaining(['gpa_scale', 'reach_1', 'reach_1_estimate', 'reach_1_rate', 'target_1', 'safety_1', 'data_years', 'activity_strength', 'honors_strength']));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ reach_1: 'MIT', target_1: 'Georgia Tech', safety_1: 'Purdue', reach_1_rate: '3.9', data_years: '2024|2025', activity_strength: '70', honors_strength: '90', activity_tiers: '1|3' });
+  });
+
+  it('gives each school its own cells, with as many slots as the longest tier needs', () => {
+    const extra = row({
+      anon_id: 'two', created_at: '2026-11-07T03:00:00Z',
+      recommendations: [
+        { id: 'a', name: 'MIT', category: 'reach', officialAcceptanceRate: 3.9, estimatedRange: null },
+        { id: 'd', name: 'Stanford', category: 'reach', officialAcceptanceRate: 3.7, estimatedRange: null },
+      ],
+    });
+    const { columns, rows } = parse(researchRowsToCsv([row(), extra]));
+    expect(columns).toContain('reach_2');
+    expect(columns).not.toContain('reach_3');
+    expect(rows[0].reach_2).toBe('');
+    expect(rows[1]).toMatchObject({ reach_1: 'MIT', reach_2: 'Stanford', target_1: '' });
+  });
+
+  it('leaves out internal and identifying columns', () => {
+    const { columns } = parse(researchRowsToCsv([row()]));
+    for (const unwanted of ['updated_at', 'source', 'terms_version', 'gpa_4pt', 'anon_id', 'filter_tier']) {
+      expect(columns).not.toContain(unwanted);
+    }
+    expect(columns[0]).toBe('student_id');
+  });
+
+  it('numbers students id_400, id_401, ... in order of first capture, whatever the input order', () => {
+    const later = row({ anon_id: 'later', created_at: '2026-11-07T02:00:00Z' });
+    const earlier = row({ anon_id: 'earlier', created_at: '2026-11-07T01:00:00Z' });
+    expect(studentIds([later, earlier])).toEqual(new Map([['earlier', 'id_400'], ['later', 'id_401']]));
+    const { rows } = parse(researchRowsToCsv([later, earlier]));
+    expect(rows.map((r) => r.student_id)).toEqual(['id_400', 'id_401']);
+  });
+
+  it('gives the admin tab the same header and values as the CSV', () => {
+    const rows = [row(), row({ anon_id: 'b', created_at: '2026-11-08T00:00:00Z' })];
+    const { header, records } = researchTable(rows);
+    const csvLines = researchRowsToCsv(rows).replace(/^﻿/, '').split('\r\n');
+    expect(csvLines[0]).toBe(header.join(','));
+    expect(records.map((r) => r.join(','))).toEqual(csvLines.slice(1));
+  });
+
+  it('builds an Excel file with sized columns, text ids and numeric scores', async () => {
+    const blob = await researchRowsToXlsx([row()]);
+    const files = unzipSync(new Uint8Array(await blob.arrayBuffer()));
+    const sheet = strFromU8(files['xl/worksheets/sheet1.xml']);
+    const strings = strFromU8(files['xl/sharedStrings.xml']);
+    expect(sheet).toContain('<cols>');
+    expect(sheet).toContain('pane');
+    expect(strings).toContain('id_400');
+    expect(strings).toContain('07/11/2026');
+    expect(strings).toContain('2 to 4');
+  });
+
+  it('shows the capture date as day/month/year only', () => {
+    const { columns, rows } = parse(researchRowsToCsv([row()]));
+    expect(columns).toContain('date');
+    expect(columns).not.toContain('created_at');
+    expect(rows[0].date).toBe('07/11/2026');
+  });
+
+  it('writes estimates as text that Excel will not turn into a date', () => {
+    const { rows } = parse(researchRowsToCsv([row()]));
+    expect(rows[0]).toMatchObject({ reach_1_estimate: '2 to 4', target_1_estimate: '20 to 30', safety_1_estimate: 'none' });
+  });
+
+  it('starts with a UTF-8 byte order mark so Excel reads it correctly', () => {
+    expect(researchRowsToCsv([row()]).startsWith('﻿')).toBe(true);
   });
 
   it('quotes commas and neutralizes spreadsheet formulas', () => {

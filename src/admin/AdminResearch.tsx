@@ -1,11 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getApiHeaders } from '../utils/apiClient';
-import { researchRowsToCsv, type ResearchRow } from '../utils/researchCsv';
+import { researchRowsToXlsx } from '../utils/researchXlsx';
+import { researchRowsToCsv, researchTable, type ResearchRow } from '../utils/researchCsv';
 
-const avg = (values: (number | null)[]) => {
+const avg = (values: (number | null)[], digits = 2) => {
   const nums = values.filter((v): v is number => typeof v === 'number');
-  return nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : '—';
+  return nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(digits) : '—';
 };
+
+// Column bands above the table, so the ~60 CSV columns read as sections.
+const GROUPS = [
+  ['Student', (c: string) => c === 'student_id' || c === 'date'],
+  ['Academics', (c: string) => ['gpa', 'gpa_scale', 'sat', 'ielts', 'ap_ib_honors_count'].includes(c)],
+  ['Profile', (c: string) => ['intended_major', 'graduation_year', 'preferred_country', 'budget_per_year'].includes(c)],
+  ['Activities & honors', (c: string) => /^(activity|leadership|honors)_/.test(c) || c === 'filter_region'],
+  ['Reach', (c: string) => c.startsWith('reach_')],
+  ['Target', (c: string) => c.startsWith('target_')],
+  ['Safety', (c: string) => c.startsWith('safety_')],
+  ['Data', () => true],
+] as const;
+const groupOf = (column: string) => GROUPS.findIndex(([, matches]) => matches(column));
+const GROUP_TINT = ['', '', '', '', 'bg-rose-500/[0.04]', 'bg-amber-500/[0.04]', 'bg-emerald-500/[0.04]', ''];
 
 const countIn = (row: ResearchRow, category: string) =>
   row.recommendations.filter((s) => s.category === category).length;
@@ -31,23 +46,37 @@ export const AdminResearch: React.FC = () => {
     return () => controller.abort();
   }, []);
 
+  const table = useMemo(() => researchTable(rows), [rows]);
+  const { bands, groupStarts } = useMemo(() => {
+    const bands: { label: string; span: number; group: number }[] = [];
+    const groupStarts = new Set<number>();
+    table.header.forEach((column, i) => {
+      const group = groupOf(column);
+      if (bands.length && bands[bands.length - 1].group === group) bands[bands.length - 1].span += 1;
+      else { bands.push({ label: GROUPS[group][0], span: 1, group }); groupStarts.add(i); }
+    });
+    return { bands, groupStarts };
+  }, [table.header]);
+
   const stats = useMemo(() => ({
     students: new Set(rows.map((r) => r.anon_id)).size,
     gpa: avg(rows.map((r) => r.gpa)),
-    sat: avg(rows.map((r) => r.sat)),
+    sat: avg(rows.map((r) => r.sat), 0),
     reach: rows.reduce((n, r) => n + countIn(r, 'reach'), 0),
     target: rows.reduce((n, r) => n + countIn(r, 'target'), 0),
     safety: rows.reduce((n, r) => n + countIn(r, 'safety'), 0),
   }), [rows]);
 
-  const exportCsv = () => {
-    const url = URL.createObjectURL(new Blob([researchRowsToCsv(rows)], { type: 'text/csv;charset=utf-8' }));
+  const download = (blob: Blob, extension: string) => {
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `caliber-research-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `caliber-research-${new Date().toISOString().slice(0, 10)}.${extension}`;
     link.click();
     URL.revokeObjectURL(url);
   };
+  const exportCsv = () => download(new Blob([researchRowsToCsv(rows)], { type: 'text/csv;charset=utf-8' }), 'csv');
+  const exportExcel = async () => download(await researchRowsToXlsx(rows), 'xlsx');
 
   const cards: [string, string | number][] = [
     ['Students', stats.students],
@@ -65,13 +94,22 @@ export const AdminResearch: React.FC = () => {
             accounts that accepted the Terms. No names, emails, free text or device IDs are stored.
           </p>
         </div>
-        <button
-          onClick={exportCsv}
-          disabled={!rows.length}
-          className="px-4 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/30 text-sm font-semibold text-indigo-200 disabled:opacity-40 cursor-pointer"
-        >
-          Export CSV
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={exportExcel}
+            disabled={!rows.length}
+            className="px-4 py-2 rounded-xl bg-indigo-500/30 hover:bg-indigo-500/40 border border-indigo-400/40 text-sm font-semibold text-indigo-100 disabled:opacity-40 cursor-pointer"
+          >
+            Export Excel
+          </button>
+          <button
+            onClick={exportCsv}
+            disabled={!rows.length}
+            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-semibold text-slate-300 disabled:opacity-40 cursor-pointer"
+          >
+            CSV
+          </button>
+        </div>
       </div>
 
       {error && <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-sm">{error}</div>}
@@ -88,30 +126,33 @@ export const AdminResearch: React.FC = () => {
             ))}
           </div>
 
-          <div className="rounded-2xl border border-white/10 overflow-x-auto">
-            <table className="w-full text-left text-[12.5px]">
-              <thead className="text-slate-500 uppercase text-[10.5px] tracking-wider">
-                <tr>{['Updated', 'Student', 'GPA', 'SAT', 'Major', 'Acts', 'Honors', 'R / T / S', 'Schools'].map((h) => <th key={h} className="px-3 py-2.5">{h}</th>)}</tr>
+          {/* Same columns and values as the exported CSV, grouped into bands. */}
+          <div className="rounded-2xl border border-white/10 overflow-auto max-h-[70vh]">
+            <table className="text-left text-[12.5px] border-separate border-spacing-0">
+              <thead className="sticky top-0 z-20 bg-[#12101c]">
+                <tr>
+                  {bands.map(({ label, span, group }) => (
+                    <th key={label} colSpan={span} className={`px-3 py-1.5 text-[10.5px] uppercase tracking-wider text-indigo-300 font-bold border-b border-l border-white/10 ${GROUP_TINT[group]}`}>{label}</th>
+                  ))}
+                </tr>
+                <tr>
+                  {table.header.map((h, i) => (
+                    <th key={h} className={`px-3 py-2 whitespace-nowrap font-mono text-[11px] text-slate-400 font-semibold border-b border-white/10 ${i === 0 ? 'sticky left-0 z-10 bg-[#12101c]' : ''} ${groupStarts.has(i) ? 'border-l border-l-white/10' : ''}`}>{h}</th>
+                  ))}
+                </tr>
               </thead>
               <tbody>
-                {rows.slice(0, 200).map((r, i) => (
-                  <tr key={r.anon_id} className="border-t border-white/5 text-slate-300">
-                    <td className="px-3 py-2 whitespace-nowrap">{new Date(r.updated_at).toLocaleDateString()}</td>
-                    <td className="px-3 py-2 font-mono text-slate-500">{r.anon_id.slice(0, 8)}</td>
-                    <td className="px-3 py-2">{r.gpa ?? '—'}</td>
-                    <td className="px-3 py-2">{r.sat ?? '—'}</td>
-                    <td className="px-3 py-2">{r.intended_major ?? '—'}</td>
-                    <td className="px-3 py-2">{r.activity_count}</td>
-                    <td className="px-3 py-2">{r.honors_count}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{countIn(r, 'reach')} / {countIn(r, 'target')} / {countIn(r, 'safety')}</td>
-                    <td className="px-3 py-2 text-slate-400">{r.recommendations.map((s) => s.name).join(', ')}</td>
+                {table.records.map((record) => (
+                  <tr key={record[0]} className="group text-slate-300 hover:bg-white/[0.04]">
+                    {record.map((value, i) => (
+                      <td key={table.header[i]} className={`px-3 py-2 whitespace-nowrap border-b border-white/5 ${GROUP_TINT[groupOf(table.header[i])]} ${i === 0 ? 'sticky left-0 z-10 bg-[#12101c] font-mono font-semibold text-white' : ''} ${groupStarts.has(i) ? 'border-l border-l-white/10' : ''}`}>{value}</td>
+                    ))}
                   </tr>
                 ))}
-                {!rows.length && <tr><td colSpan={9} className="px-3 py-8 text-center text-slate-500">No students yet. A row appears when a consenting student generates recommendations, and updates as they complete their profile.</td></tr>}
+                {!rows.length && <tr><td colSpan={table.header.length} className="px-3 py-8 text-center text-slate-500">No students yet. A row appears when a consenting student generates recommendations, and updates as they complete their profile.</td></tr>}
               </tbody>
             </table>
           </div>
-          {rows.length > 200 && <p className="text-xs text-slate-500">Showing the latest 200 of {rows.length}. Export CSV includes all loaded rows.</p>}
         </>
       )}
     </section>
