@@ -12,6 +12,7 @@ import { activityRouter } from './routes/activity';
 import { collegesRouter } from './routes/colleges';
 import { analyticsRouter } from './routes/analytics';
 import { authRouter } from './routes/auth';
+import { proRouter } from './routes/pro';
 import { trackSuccessfulAction } from './services/analytics';
 
 /**
@@ -47,6 +48,7 @@ export function createApp() {
   app.use('/api', authMiddleware);
   app.use('/api', trackSuccessfulAction);
   app.use('/api', analyticsRouter);
+  app.use('/api', proRouter);
 
   // Mount API route modules
   app.use('/api', chatRouter);

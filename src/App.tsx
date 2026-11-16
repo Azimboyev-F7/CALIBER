@@ -26,6 +26,9 @@ import { trackAuthenticatedVisit, trackDeviceVisit, trackMilestone, type Milesto
 import { AdminApp } from './admin/AdminApp';
 import { TermsView } from './components/TermsView';
 import { TermsAcceptanceModal } from './components/TermsAcceptanceModal';
+import { ClaimView } from './components/ClaimView';
+import { ProClaimBanner } from './components/ProClaimBanner';
+import { getPendingClaimCode } from './utils/proClaim';
 import { needsTermsAcceptance } from './lib/terms';
 
 const PROFILE_STORAGE_KEY = 'caliber_user_profile';
@@ -142,6 +145,12 @@ function StudentApp() {
       setActiveScreen('auth');
     }
   }, [currentUser, activeScreen]);
+
+  // Arriving from the webinar QR code without an account: go straight to sign-in.
+  useEffect(() => {
+    if (getPendingClaimCode() && !currentUserRef.current && !getStoredAuthUser()) handleNavigate('auth');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Restore session on page reload — load the user's own saved profile
   useEffect(() => {
@@ -544,6 +553,7 @@ function StudentApp() {
         {needsTermsAcceptance(currentUser) && (
           <TermsAcceptanceModal onAccepted={handleAccountChange} onDecline={handleSignOut} />
         )}
+        <ProClaimBanner userId={currentUser?.id ?? null} />
         {syncError && <div role="alert" className="fixed bottom-4 left-4 right-4 z-[100] rounded-xl bg-amber-950 border border-amber-500 p-4 text-amber-100">
           {syncError}<button className="ml-4 underline" onClick={() => setSyncError(null)}>Dismiss</button>
         </div>}
@@ -896,6 +906,9 @@ function StudentApp() {
 export default function App() {
   if (window.location.pathname === '/terms') {
     return <TermsView />;
+  }
+  if (window.location.pathname === '/claim') {
+    return <ClaimView />;
   }
   if (window.location.pathname === '/rais' || window.location.pathname.startsWith('/rais/')) {
     return <AdminApp />;
