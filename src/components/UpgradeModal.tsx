@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { fetchProUntil, formatUzDate } from '../utils/proClaim';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -7,6 +8,14 @@ interface UpgradeModalProps {
 
 export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
   const [contactMessageVisible, setContactMessageVisible] = useState(false);
+  const [proUntil, setProUntil] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const controller = new AbortController();
+    fetchProUntil(controller.signal).then(setProUntil);
+    return () => controller.abort();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -58,15 +67,21 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) =
               <li className="flex items-center gap-1.5"><span className="text-indigo-300">✓</span> Ivy League &amp; T20 probability matrix</li>
               <li className="flex items-center gap-1.5"><span className="text-indigo-300">✓</span> Rec Letters &amp; Spike Playbook</li>
             </ul>
-            <button
-              onClick={() => {
-                setContactMessageVisible(true);
-              }}
-              className="w-full py-2.5 glass-btn-primary font-bold rounded-xl text-[12px] cursor-pointer"
-            >
-              Start 7-Day Free Trial
-            </button>
-            {contactMessageVisible && (
+            {proUntil ? (
+              <div className="w-full py-2.5 text-center font-bold rounded-xl text-[12px] bg-emerald-500/20 border border-emerald-400/40 text-emerald-100">
+                Pro faol: {formatUzDate(proUntil)} gacha
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setContactMessageVisible(true);
+                }}
+                className="w-full py-2.5 glass-btn-primary font-bold rounded-xl text-[12px] cursor-pointer"
+              >
+                Start 7-Day Free Trial
+              </button>
+            )}
+            {!proUntil && contactMessageVisible && (
               <div className="rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-3 py-2.5 text-[12px] text-indigo-100 leading-relaxed">
                 To subscribe, contact our CEO on Telegram:{' '}
                 <a
